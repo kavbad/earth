@@ -61,6 +61,11 @@
     },
     "//#test:root": {
       "outputs": []
+    },
+    "@earth/e2e#test": {
+      "dependsOn": ["^typecheck", "earth-web#build"],
+      "cache": false,
+      "outputs": []
     }
   }
 }

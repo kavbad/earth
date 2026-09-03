@@ -48,7 +48,7 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 - Gate: e2e 5, 6, 12
 
 ## Milestone 5 — Feed
-- [ ] Migrations 04xx: posts, post_media, post_reactions, post_hides; storage buckets
+- [x] Migrations 04xx: posts, post_media, post_reactions, post_hides; storage buckets (0997, guarded for hosted storage schema)
 - [x] RPC: post_create/get/react/reply/hide/delete, feed_candidates, public feed for visitors
 - [x] Domain feed ranking + cursor; server `/api/feed`
 - [ ] Home (all radii), Post composer, Post detail, Profile, Notifications, Search (web + mobile)
