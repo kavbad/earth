@@ -24,13 +24,30 @@ import {
   type Human,
 } from './fixtures'
 
-const ACTORS = ['visitor', 'guest', 'claiming', 'self', 'member', 'nonMember', 'friend', 'blocked'] as const
+const ACTORS = [
+  'visitor',
+  'guest',
+  'claiming',
+  'self',
+  'member',
+  'nonMember',
+  'friend',
+  'blocked',
+] as const
 type Actor = (typeof ACTORS)[number]
 
 const TABLES = ['analytics_events', 'rtc_diagnostics', 'metrics_daily'] as const
 type Table = (typeof TABLES)[number]
 
-const PRIVILEGES = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] as const
+const PRIVILEGES = [
+  'SELECT',
+  'INSERT',
+  'UPDATE',
+  'DELETE',
+  'TRUNCATE',
+  'REFERENCES',
+  'TRIGGER',
+] as const
 
 describe('RLS matrix over the analytics tables (service only)', () => {
   let db: TestDb
@@ -38,7 +55,10 @@ describe('RLS matrix over the analytics tables (service only)', () => {
   let actorSpec: Record<Actor, RoleSpec>
   let roomId: string
 
-  const statements = (table: Table, ctx: { humanId: string; roomId: string }): Record<'select' | 'insert' | 'update' | 'delete', string> => {
+  const statements = (
+    table: Table,
+    ctx: { humanId: string; roomId: string },
+  ): Record<'select' | 'insert' | 'update' | 'delete', string> => {
     switch (table) {
       case 'analytics_events':
         return {
@@ -71,7 +91,11 @@ describe('RLS matrix over the analytics tables (service only)', () => {
     const nonMember = await human(db, 'NonMember')
     const friend = await human(db, 'Friend')
     const blocked = await human(db, 'Blocked')
-    const claiming = await createHuman(db, { handle: 'claiming', status: 'pending', identity: false })
+    const claiming = await createHuman(db, {
+      handle: 'claiming',
+      status: 'pending',
+      identity: false,
+    })
     const guest = await createGuest(db)
     await befriend(db, self, friend)
     await befriend(db, self, blocked)
@@ -94,8 +118,13 @@ describe('RLS matrix over the analytics tables (service only)', () => {
       `insert into public.analytics_events (human_id, name, platform, app_version) values ($1, 'feed_opened', 'web', '1.0.0')`,
       [self.humanId],
     )
-    await db.sql.query(`insert into public.rtc_diagnostics (human_id, room_id, kind) values ($1, $2, 'connected')`, [self.humanId, roomId])
-    await db.sql.query(`insert into public.metrics_daily (day, metric, value) values ('2026-06-15', 'rooms_started', 1)`)
+    await db.sql.query(
+      `insert into public.rtc_diagnostics (human_id, room_id, kind) values ($1, $2, 'connected')`,
+      [self.humanId, roomId],
+    )
+    await db.sql.query(
+      `insert into public.metrics_daily (day, metric, value) values ('2026-06-15', 'rooms_started', 1)`,
+    )
   })
 
   afterAll(async () => {
@@ -116,12 +145,18 @@ describe('RLS matrix over the analytics tables (service only)', () => {
       expect(policies[0]?.n).toBe(0)
       for (const role of ['anon', 'authenticated', 'public']) {
         for (const privilege of PRIVILEGES) {
-          const { rows } = await db.sql.query<{ ok: boolean }>('select has_table_privilege($1, $2, $3) as ok', [role, `public.${table}`, privilege])
+          const { rows } = await db.sql.query<{ ok: boolean }>(
+            'select has_table_privilege($1, $2, $3) as ok',
+            [role, `public.${table}`, privilege],
+          )
           expect(rows[0]?.ok, `${role} ${privilege}`).toBe(false)
         }
       }
       for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
-        const { rows } = await db.sql.query<{ ok: boolean }>('select has_table_privilege($1, $2, $3) as ok', ['service_role', `public.${table}`, privilege])
+        const { rows } = await db.sql.query<{ ok: boolean }>(
+          'select has_table_privilege($1, $2, $3) as ok',
+          ['service_role', `public.${table}`, privilege],
+        )
         expect(rows[0]?.ok, `service_role ${privilege}`).toBe(true)
       }
     })
@@ -129,13 +164,18 @@ describe('RLS matrix over the analytics tables (service only)', () => {
     it.each(ACTORS)('%s cannot select, insert, update or delete', async (actor) => {
       const sql = statements(table, { humanId: self.humanId, roomId })
       for (const op of ['select', 'insert', 'update', 'delete'] as const) {
-        expect(sqlstate(await attempt(db, actorSpec[actor], sql[op])), `${actor} ${op}`).toBe(PERMISSION_DENIED)
+        expect(sqlstate(await attempt(db, actorSpec[actor], sql[op])), `${actor} ${op}`).toBe(
+          PERMISSION_DENIED,
+        )
       }
     })
 
     it('the service role reads and writes', async () => {
       const sql = statements(table, { humanId: self.humanId, roomId })
-      const seen = await db.asRole('service', async (client) => (await client.query(sql.select)).rowCount)
+      const seen = await db.asRole(
+        'service',
+        async (client) => (await client.query(sql.select)).rowCount,
+      )
       expect(seen).toBe(1)
       for (const op of ['insert', 'update', 'delete'] as const) {
         expect(await attempt(db, 'service', sql[op]), op).toBeUndefined()
@@ -145,12 +185,24 @@ describe('RLS matrix over the analytics tables (service only)', () => {
 
   it('rooms.max_visibility is readable with the room and never client-writable', async () => {
     const visible = await db.asRole(self.as, async (client) => {
-      const { rows } = await client.query<{ max_visibility: string }>('select max_visibility::text from public.rooms where id = $1', [roomId])
+      const { rows } = await client.query<{ max_visibility: string }>(
+        'select max_visibility::text from public.rooms where id = $1',
+        [roomId],
+      )
       return rows[0]?.max_visibility
     })
     expect(visible).toBe('friends')
     for (const actor of ACTORS) {
-      expect(sqlstate(await attempt(db, actorSpec[actor], `update public.rooms set max_visibility = 'world' where id = '${roomId}'`)), actor).toBe(PERMISSION_DENIED)
+      expect(
+        sqlstate(
+          await attempt(
+            db,
+            actorSpec[actor],
+            `update public.rooms set max_visibility = 'world' where id = '${roomId}'`,
+          ),
+        ),
+        actor,
+      ).toBe(PERMISSION_DENIED)
     }
   })
 })

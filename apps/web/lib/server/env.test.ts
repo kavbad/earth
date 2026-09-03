@@ -24,7 +24,9 @@ describe('releaseFor', () => {
     expect(releaseFor({ [VERCEL_COMMIT_VARIABLE]: 'not-a-sha' })).toBe(
       `${WEB_APP_NAME}@${WEB_APP_VERSION}`,
     )
-    expect(releaseFor({ [VERCEL_COMMIT_VARIABLE]: '   ' })).toBe(`${WEB_APP_NAME}@${WEB_APP_VERSION}`)
+    expect(releaseFor({ [VERCEL_COMMIT_VARIABLE]: '   ' })).toBe(
+      `${WEB_APP_NAME}@${WEB_APP_VERSION}`,
+    )
   })
 })
 

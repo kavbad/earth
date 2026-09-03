@@ -53,6 +53,7 @@ import type { z } from 'zod'
 
 import type {
   AreaResolutionDtoSchema,
+  BlockChangeDtoSchema,
   ConversationPrefsDtoSchema,
   ConversationsPageDtoSchema,
   FeatureFlagRowSchema,
@@ -67,7 +68,6 @@ import type {
   VerificationBeginDtoSchema,
   VerificationResultDtoSchema,
 } from '../dto'
-import type { BlockChangeDtoSchema } from '../namespaces/social'
 
 type Input<S extends z.ZodType> = z.input<S>
 type Overrides<S extends z.ZodType> = Partial<Input<S>>

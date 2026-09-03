@@ -20,7 +20,15 @@ import { DB_ROLES, createTestDb, type TestDb } from '../harness'
 
 const CLIENT_ROLES = [DB_ROLES.anon, DB_ROLES.authenticated] as const
 const PUBLIC_ROLE = 'public'
-const TABLE_PRIVILEGES = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] as const
+const TABLE_PRIVILEGES = [
+  'SELECT',
+  'INSERT',
+  'UPDATE',
+  'DELETE',
+  'TRUNCATE',
+  'REFERENCES',
+  'TRIGGER',
+] as const
 
 /** Tables that hold secrets or internal bookkeeping and must be unreachable by every API role. */
 const CLOSED_PRIVATE_TABLES = [
@@ -44,11 +52,10 @@ const REALTIME_TABLES = [
 ] as const
 
 async function schemaUsage(db: TestDb, role: string, schema: string): Promise<boolean> {
-  const { rows } = await db.sql.query<{ ok: boolean }>('select has_schema_privilege($1, $2, $3) as ok', [
-    role,
-    schema,
-    'USAGE',
-  ])
+  const { rows } = await db.sql.query<{ ok: boolean }>(
+    'select has_schema_privilege($1, $2, $3) as ok',
+    [role, schema, 'USAGE'],
+  )
   return rows[0]?.ok ?? false
 }
 

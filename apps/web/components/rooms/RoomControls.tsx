@@ -82,7 +82,11 @@ export function RoomControls(props: RoomControlsProps) {
             disabled={props.busy}
           />
           {props.cameraOn ? (
-            <ControlButton icon="flip" label={copy.roomControls.flipCamera} onClick={props.onFlip} />
+            <ControlButton
+              icon="flip"
+              label={copy.roomControls.flipCamera}
+              onClick={props.onFlip}
+            />
           ) : null}
         </>
       ) : null}

@@ -6,7 +6,12 @@
  * change waits for everyone on camera (ARCHITECTURE §10). Options come from `state/openUp.ts`.
  */
 import type { FeatureFlags } from '@earth/config'
-import { type RoomDto, type RoomJoinPolicy, type RoomVisibility, requiresConsent } from '@earth/domain'
+import {
+  type RoomDto,
+  type RoomJoinPolicy,
+  type RoomVisibility,
+  requiresConsent,
+} from '@earth/domain'
 import { copy } from '@earth/ui'
 import { useId, useState } from 'react'
 
@@ -15,11 +20,18 @@ import { Sheet } from '../ui/Sheet'
 import { cx } from '../ui/cx'
 import { roomCopy } from './copy'
 import { isPublishing } from './state/consent'
-import { defaultJoinPolicyFor, openUpJoinPolicyOptions, openUpVisibilityOptions } from './state/openUp'
+import {
+  defaultJoinPolicyFor,
+  openUpJoinPolicyOptions,
+  openUpVisibilityOptions,
+} from './state/openUp'
 
 export interface OpenUpSheetProps {
   readonly open: boolean
-  readonly room: Pick<RoomDto, 'contextType' | 'visibility' | 'joinPolicy' | 'pendingVisibility' | 'participants'>
+  readonly room: Pick<
+    RoomDto,
+    'contextType' | 'visibility' | 'joinPolicy' | 'pendingVisibility' | 'participants'
+  >
   readonly flags: FeatureFlags
   readonly busy?: boolean
   readonly error?: string | null
@@ -35,7 +47,11 @@ export function pendingConsentCount(room: OpenUpSheetProps['room']): number {
     (p) =>
       isPublishing(p) &&
       !p.isGuest &&
-      requiresConsent({ roomVisibility: pending, myConsentLevel: p.audienceConsentLevel, mediaState: p.mediaState }),
+      requiresConsent({
+        roomVisibility: pending,
+        myConsentLevel: p.audienceConsentLevel,
+        mediaState: p.mediaState,
+      }),
   ).length
 }
 
@@ -49,7 +65,15 @@ interface OptionRowProps<K extends string> {
   readonly onSelect: (value: K) => void
 }
 
-function OptionRow<K extends string>({ name, value, label, description, checked, current = false, onSelect }: OptionRowProps<K>) {
+function OptionRow<K extends string>({
+  name,
+  value,
+  label,
+  description,
+  checked,
+  current = false,
+  onSelect,
+}: OptionRowProps<K>) {
   const id = useId()
   return (
     <label
@@ -71,7 +95,9 @@ function OptionRow<K extends string>({ name, value, label, description, checked,
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-body text-text-primary">
           {label}
-          {current ? <span className="ml-2 text-meta text-text-secondary">{roomCopy.currentVisibility}</span> : null}
+          {current ? (
+            <span className="ml-2 text-meta text-text-secondary">{roomCopy.currentVisibility}</span>
+          ) : null}
         </span>
         <span className="text-secondary text-text-secondary">{description}</span>
       </span>
@@ -79,8 +105,17 @@ function OptionRow<K extends string>({ name, value, label, description, checked,
   )
 }
 
-function OpenUpForm({ room, flags, busy = false, error = null, onApply, onClose }: Omit<OpenUpSheetProps, 'open'>) {
-  const [visibility, setVisibility] = useState<RoomVisibility>(room.pendingVisibility ?? room.visibility)
+function OpenUpForm({
+  room,
+  flags,
+  busy = false,
+  error = null,
+  onApply,
+  onClose,
+}: Omit<OpenUpSheetProps, 'open'>) {
+  const [visibility, setVisibility] = useState<RoomVisibility>(
+    room.pendingVisibility ?? room.visibility,
+  )
   const [joinPolicy, setJoinPolicy] = useState<RoomJoinPolicy>(room.joinPolicy)
   const visibilityOptions = openUpVisibilityOptions(room.contextType, flags, room.visibility)
   const policyOptions = openUpJoinPolicyOptions(visibility, room.contextType)

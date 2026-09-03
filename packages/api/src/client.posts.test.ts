@@ -11,9 +11,9 @@ const { IDS } = fixtures
 const POST = asPostId(IDS.post)
 
 describe('posts', () => {
-  it('create maps every argument, defaults policies and passes media object ids', async () => {
+  it('create maps every argument, defaults policies and passes media object ids with provenance', async () => {
     const { client, supabase } = createTestClient()
-    supabase.rpcData(RPC.postCreate, fixtures.postDto())
+    supabase.rpcData(RPC.postCreate, fixtures.postView())
     const post = await client.posts.create({
       type: 'image',
       text: null,
@@ -45,12 +45,13 @@ describe('posts', () => {
         reply_policy: 'everyone_eligible',
         reshare_policy: 'allowed_within_audience',
         parent_post_id: null,
+        provenance: ['earth_capture'],
       },
     })
     expect(post.id).toBe(IDS.post)
   })
 
-  it('create unwraps a PostViewDto result', async () => {
+  it('create returns the post of the PostViewDto the RPC answers (a bare PostDto is a contract bug)', async () => {
     const { client, supabase } = createTestClient()
     supabase.rpcData(RPC.postCreate, fixtures.postView())
     const post = await client.posts.create({
@@ -62,6 +63,22 @@ describe('posts', () => {
       parentPostId: null,
     })
     expect(post.authorHumanId).toBe(IDS.xavier)
+    expect(supabase.lastRpc().args).toMatchObject({ media: [], provenance: [] })
+    supabase.rpcData(RPC.postCreate, fixtures.postDto())
+    expect(
+      (
+        await earthRejection(
+          client.posts.create({
+            type: 'text',
+            text: 'hi',
+            audience: 'friends',
+            placeId: null,
+            media: [],
+            parentPostId: null,
+          }),
+        )
+      ).code,
+    ).toBe('internal')
   })
 
   it('create rejects posts with neither text nor media and surfaces reply_not_allowed', async () => {
@@ -111,17 +128,55 @@ describe('posts', () => {
     supabase.rpcData(RPC.postDelete, null)
     await client.posts.delete(POST)
     expect(supabase.lastRpc()).toEqual({ name: 'post_delete', args: { post_id: IDS.post } })
-    supabase.rpcData(RPC.postReactionSet, null)
-    await client.posts.react({ postId: POST, reaction: 'like' })
+    supabase.rpcData(RPC.postReactionSet, {
+      postId: IDS.post,
+      myReaction: 'like',
+      reactionCount: 5,
+    })
+    expect(await client.posts.react({ postId: POST, reaction: 'like' })).toEqual({
+      postId: IDS.post,
+      myReaction: 'like',
+      reactionCount: 5,
+    })
     expect(supabase.lastRpc()).toEqual({
       name: 'post_reaction_set',
       args: { post_id: IDS.post, reaction_type: 'like' },
     })
-    await client.posts.react({ postId: POST, reaction: null })
+    supabase.rpcData(RPC.postReactionSet, { postId: IDS.post, myReaction: null, reactionCount: 4 })
+    expect((await client.posts.react({ postId: POST, reaction: null })).myReaction).toBeNull()
     expect(supabase.lastRpc().args).toEqual({ post_id: IDS.post, reaction_type: null })
     supabase.rpcData(RPC.postHide, null)
     await client.posts.hide(POST)
     expect(supabase.lastRpc()).toEqual({ name: 'post_hide', args: { post_id: IDS.post } })
+  })
+
+  it('byAuthor calls posts_by_author with the normalized handle and the keyset cursor', async () => {
+    const { client, supabase } = createTestClient()
+    supabase.rpcData(RPC.postsByAuthor, {
+      posts: [fixtures.postView()],
+      nextCursor: '2026-09-03T06:00:00.123456+00:00,' + IDS.post,
+    })
+    const page = await client.posts.byAuthor(' @Xavier ')
+    expect(supabase.lastRpc()).toEqual({
+      name: 'posts_by_author',
+      args: { handle: 'xavier', cursor: null, limit: null },
+    })
+    expect(page.posts[0]?.post.id).toBe(IDS.post)
+    expect(page.nextCursor).toBe('2026-09-03T06:00:00.123456+00:00,' + IDS.post)
+    supabase.rpcData(RPC.postsByAuthor, { posts: [] })
+    expect(await client.posts.byAuthor('xavier', page.nextCursor, 10)).toEqual({
+      posts: [],
+      nextCursor: null,
+    })
+    expect(supabase.lastRpc().args).toEqual({
+      handle: 'xavier',
+      cursor: page.nextCursor,
+      limit: 10,
+    })
+    // A malformed handle never reaches the database; not_visible is surfaced as such.
+    expect((await earthRejection(client.posts.byAuthor('no spaces'))).code).toBe('invalid_input')
+    supabase.rpcError(RPC.postsByAuthor, postgrestRaise('not_visible'))
+    expect((await earthRejection(client.posts.byAuthor('hidden'))).code).toBe('not_visible')
   })
 
   it('replies accepts a page or a bare array', async () => {

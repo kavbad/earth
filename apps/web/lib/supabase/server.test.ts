@@ -21,7 +21,8 @@ function fakeStore(options: { throwOnSet?: boolean; withSet?: boolean } = {}) {
       ? {}
       : {
           set: (name: string, value: string, cookieOptions: unknown) => {
-            if (options.throwOnSet === true) throw new Error('Cookies can only be modified in a Server Action')
+            if (options.throwOnSet === true)
+              throw new Error('Cookies can only be modified in a Server Action')
             set.push({ name, value, options: cookieOptions })
           },
         }),
@@ -49,7 +50,9 @@ describe('cookieMethodsFor', () => {
     ).not.toThrow()
 
     const readOnly = fakeStore({ withSet: false })
-    expect(() => cookieMethodsFor(readOnly.store).setAll([{ name: 'x', value: '1', options: {} }])).not.toThrow()
+    expect(() =>
+      cookieMethodsFor(readOnly.store).setAll([{ name: 'x', value: '1', options: {} }]),
+    ).not.toThrow()
   })
 })
 

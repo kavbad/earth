@@ -98,9 +98,9 @@ describe('routeAfterAdvance', () => {
     expect(routeAfterAdvance(gate, label)).toBe(ROUTES.claimStart)
     const credential = claimReducer(label, { type: 'labelSet', label: 'Weekend Crew' })
     expect(routeAfterAdvance(label, credential)).toBe(ROUTES.claimCredential)
-    expect(routeAfterAdvance(gate, claimReducer(gate, { type: 'chooseJoin', inviteToken: 't' }))).toBe(
-      ROUTES.claimCredential,
-    )
+    expect(
+      routeAfterAdvance(gate, claimReducer(gate, { type: 'chooseJoin', inviteToken: 't' })),
+    ).toBe(ROUTES.claimCredential)
     const identity = initialClaimState({ flags, intent: 'start_group', authenticated: true })
     expect(routeAfterAdvance(credential, identity)).toBe(ROUTES.claimIdentity)
     const humanPass = claimReducer(identity, { type: 'identitySet' })

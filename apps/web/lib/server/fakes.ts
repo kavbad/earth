@@ -36,7 +36,11 @@ export const TEST_ANON_KEY = 'anon-key'
 export const TEST_SERVICE_KEY = 'service-role-key'
 export const TEST_CRON_SECRET = 'internal-cron-secret-0123456789'
 export const TEST_VERCEL_CRON_SECRET = 'vercel-cron-secret-abcdefghijkl'
-export const TEST_LIVEKIT = { apiKey: 'devkey', apiSecret: 'secret', url: 'ws://localhost:7880' } as const
+export const TEST_LIVEKIT = {
+  apiKey: 'devkey',
+  apiSecret: 'secret',
+  url: 'ws://localhost:7880',
+} as const
 
 /** The `.env.example` values (mock verification, development) with `overrides` on top. */
 export function testEnvSource(overrides: EnvSource = {}): EnvSource {
@@ -127,7 +131,8 @@ export function createFakeSupabase(
         single: async () => {
           const failed = failure()
           if (failed !== null) return failed
-          if (name !== IDENTITY_REVIEWS_TABLE) return { data: null, error: { message: `no table ${name}` } }
+          if (name !== IDENTITY_REVIEWS_TABLE)
+            return { data: null, error: { message: `no table ${name}` } }
           const id = `review-${nextReviewId}`
           nextReviewId += 1
           reviews.push({ ...row, id })
@@ -140,7 +145,9 @@ export function createFakeSupabase(
         maybeSingle: async () => {
           const failed = failure()
           if (failed !== null) return failed
-          const found = reviews.find((review) => review[column as keyof FakeIdentityReview] === value)
+          const found = reviews.find(
+            (review) => review[column as keyof FakeIdentityReview] === value,
+          )
           return { data: found === undefined ? null : { status: found.status }, error: null }
         },
       }),

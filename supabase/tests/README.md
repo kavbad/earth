@@ -147,6 +147,14 @@ Directories:
 - `geo/` — areas, places, context and location (05xx; DB_API §5): `area_resolve` and area/place RPCs
   (never storing coordinates), location sharing with precision degradation, blocks, expiry and the
   `LOCATION_SHARING_ENABLED` flag, and the RLS matrix over the geo tables.
+- `integration/` — the server tier end to end (ARCHITECTURE §6): `packages/server` handlers run
+  unchanged over harness-backed `ServerDeps` (`server-deps.ts`: every `rpc` is executed by `db.rpc`
+  as the bearer's caller, mock verification provider, recording push sender, LiveKit dev keys) —
+  `GET /api/feed` (ranked pages over `feed_candidates`, keyset cursor, visitor World), `GET /api/live`
+  (Live Home ordering over `live_candidates`), `POST /api/internal/push/dispatch` (`notifications_unsent`
+  → Expo messages → `notifications_mark_pushed`, presence-aware skipping), `POST /api/rooms/:id/token`
+  (LiveKit claims exactly the `room_media_grant`), the verification routes (`human_pass_record_result`,
+  `claim_complete`) and `POST /api/livekit/webhook` (signed bodies → `room_participant_sync`).
 - `map-search/` — `map_objects` (SCREEN 20: Lives pinned to Place or area centroid only, degraded
   friend shares, moments, blocks, visitor World) and `search` (SCREEN 21: people ranking, blocked /
   hidden / pending never appear, groups for members only, 60/min).

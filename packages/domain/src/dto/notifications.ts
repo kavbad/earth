@@ -7,6 +7,7 @@ import {
   PushPlatformSchema,
 } from '../enums'
 import { HumanIdSchema, NotificationIdSchema } from '../ids'
+import { HandleSchema } from './claim'
 import {
   IsoDateTimeSchema,
   JsonObjectSchema,
@@ -22,6 +23,11 @@ export const NotificationDtoSchema = z.object({
   title: z.string().min(1),
   body: z.string(),
   actorHumanId: HumanIdSchema.nullable(),
+  /**
+   * The actor's current handle (route to `/u/<handle>`), resolved when the row is read; `null`
+   * without an actor or when the actor is no longer an active Human. Absent from older servers.
+   */
+  actorHandle: HandleSchema.nullable().optional(),
   objectType: NotificationObjectTypeSchema,
   objectId: z.uuid(),
   payload: JsonObjectSchema,

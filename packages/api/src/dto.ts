@@ -42,6 +42,7 @@ import {
   PostViewDtoSchema,
   ProfileVisibilitySchema,
   PushPlatformSchema,
+  RelationshipChangeDtoSchema,
   RoomContextTypeSchema,
   RoomIdSchema,
   RoomRemoveParticipantInputSchema,
@@ -182,10 +183,28 @@ export const IdentityUpdateInputSchema = z.object({
   profileVisibility: ProfileVisibilitySchema.nullish(),
   publicCityVisibility: z.boolean().nullish(),
   homeCityAreaId: AreaIdSchema.nullish(),
+  /** A new handle (0996): normalized like a lookup; the RPC answers `handle_invalid` / `handle_taken`. */
+  handle: HandleLookupSchema.nullish(),
 })
 export type IdentityUpdateInput = z.input<typeof IdentityUpdateInputSchema>
 
 export const HandleAvailableDtoSchema = z.boolean()
+
+/**
+ * `POST /api/account/delete` (0996 `human_delete_request` as the caller, then the Supabase admin
+ * API deletes the credential): `credentialDeleted` is `false` when the Human is gone but the
+ * credential could not be deleted (the server logged it; signing out is still right).
+ */
+export const AccountDeleteDtoSchema = z.object({
+  humanId: HumanIdSchema,
+  deletedAt: IsoDateTimeSchema,
+  credentialDeleted: z.boolean(),
+})
+export type AccountDeleteDto = z.infer<typeof AccountDeleteDtoSchema>
+
+/** `block_set` (DB_API §1): the relationship after the change plus the block flag. */
+export const BlockChangeDtoSchema = RelationshipChangeDtoSchema.extend({ isBlocked: z.boolean() })
+export type BlockChangeDto = z.infer<typeof BlockChangeDtoSchema>
 
 // ---------------------------------------------------------------------------
 // Media (storage upload + `media_objects` insert)
@@ -351,6 +370,15 @@ export const ReadReceiptDtoSchema = z.object({
 export type ReadReceiptDto = z.infer<typeof ReadReceiptDtoSchema>
 export const ReadReceiptsDtoSchema = z.array(ReadReceiptDtoSchema)
 
+/** `conversation_mark_read` (0270): the caller's read state after the update. */
+export const ConversationReadStateDtoSchema = z.object({
+  conversationId: ConversationIdSchema,
+  lastReadMessageId: MessageIdSchema.nullable(),
+  lastReadAt: IsoDateTimeSchema.nullable(),
+  unreadCount: NonNegativeIntSchema,
+})
+export type ConversationReadStateDto = z.infer<typeof ConversationReadStateDtoSchema>
+
 export const MessagesListInputSchema = z.object({
   conversationId: ConversationIdSchema,
   /** Keyset: messages older than this id. */
@@ -471,6 +499,29 @@ export const PostRepliesPageDtoSchema = z.object({
 })
 export type PostRepliesPageDto = z.infer<typeof PostRepliesPageDtoSchema>
 
+/** `post_reaction_set` (0430): the viewer's reaction and the post's count after the change. */
+export const PostReactionDtoSchema = z.object({
+  postId: PostIdSchema,
+  myReaction: z.string().min(1).nullable(),
+  reactionCount: NonNegativeIntSchema,
+})
+export type PostReactionDto = z.infer<typeof PostReactionDtoSchema>
+
+/** `posts_by_author(handle, cursor, limit)` (0996): `cursor` is a previous page's `nextCursor`. */
+export const PostsByAuthorInputSchema = z.object({
+  handle: HandleLookupSchema,
+  cursor: CursorSchema.nullish(),
+  limit: PositiveIntSchema.max(100).nullish(),
+})
+export type PostsByAuthorInput = z.input<typeof PostsByAuthorInputSchema>
+
+/** An author's visible root posts, newest first, keyset on `(created_at, id)`. */
+export const PostsByAuthorPageDtoSchema = z.object({
+  posts: z.array(PostViewDtoSchema),
+  nextCursor: NullableCursorSchema.optional().transform((value) => value ?? null),
+})
+export type PostsByAuthorPageDto = z.infer<typeof PostsByAuthorPageDtoSchema>
+
 // ---------------------------------------------------------------------------
 // Areas, places, location, map
 // ---------------------------------------------------------------------------
@@ -536,6 +587,10 @@ export const NotificationsListInputSchema = z.object({
   limit: PositiveIntSchema.max(100).nullish(),
 })
 export type NotificationsListInput = z.input<typeof NotificationsListInputSchema>
+
+/** `notifications_unread_count()` (0600). */
+export const UnreadCountDtoSchema = z.object({ unreadCount: NonNegativeIntSchema })
+export type UnreadCountDto = z.infer<typeof UnreadCountDtoSchema>
 
 /** `presence_ping(conversation_id, room_id, platform)` (DB_API §1). */
 export const PresencePingArgsSchema = z.object({

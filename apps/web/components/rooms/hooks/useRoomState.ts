@@ -41,7 +41,9 @@ export function useRoomState(options: UseRoomStateOptions): RoomStateHandle {
   const { runtime } = useRuntime()
   const earth = useEarth()
   const diagnostics = useRtcDiagnostics()
-  const [snapshot, setSnapshot] = useState<Snapshot>(() => initialSnapshot(roomId, options.initial ?? null))
+  const [snapshot, setSnapshot] = useState<Snapshot>(() =>
+    initialSnapshot(roomId, options.initial ?? null),
+  )
   // A different room resets the state during render (React's "adjusting state" pattern).
   if (snapshot.roomId !== roomId) setSnapshot(initialSnapshot(roomId, null))
   const onDeltas = useRef<RoomDeltasHandler | undefined>(options.onDeltas)
@@ -115,7 +117,14 @@ export function useRoomState(options: UseRoomStateOptions): RoomStateHandle {
     }
   }, [earth, roomId])
 
-  return { room: snapshot.room, error: snapshot.error, loading: snapshot.loading, mode: snapshot.mode, setRoom, refresh }
+  return {
+    room: snapshot.room,
+    error: snapshot.error,
+    loading: snapshot.loading,
+    mode: snapshot.mode,
+    setRoom,
+    refresh,
+  }
 }
 
 interface Snapshot {

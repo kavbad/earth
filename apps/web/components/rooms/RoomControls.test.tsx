@@ -48,7 +48,9 @@ describe('RoomControls (SCREEN 14)', () => {
     expect(guest).toContain(`aria-label="${copy.roomControls.microphone}"`)
     expect(guest).toContain(`aria-label="${copy.roomControls.camera}"`)
     expect(guest).not.toContain(`>${copy.openUp}<`)
-    const visitor = renderToStaticMarkup(<RoomControls {...base} mode="visitor" canOpenUp={false} />)
+    const visitor = renderToStaticMarkup(
+      <RoomControls {...base} mode="visitor" canOpenUp={false} />,
+    )
     expect((visitor.match(/<button/g) ?? []).length).toBe(1)
   })
 })

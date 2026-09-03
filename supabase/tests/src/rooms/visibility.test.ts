@@ -29,7 +29,11 @@ interface Candidate {
   contextTitle: string | null
   areaName: string | null
   participantCount: number
-  participants: Array<{ humanId: string | null; relationToViewer: string | null; mediaState: string }>
+  participants: Array<{
+    humanId: string | null
+    relationToViewer: string | null
+    mediaState: string
+  }>
 }
 interface LiveList {
   candidates: Candidate[]
@@ -37,8 +41,17 @@ interface LiveList {
   areaName: string | null
 }
 
-async function liveRoomIds(db: TestDb, scope: string, as: Human | 'visitor', areaId: string | null = null) {
-  const list = await db.rpc<LiveList>('live_candidates', { scope, area_id: areaId }, as === 'visitor' ? 'visitor' : as.as)
+async function liveRoomIds(
+  db: TestDb,
+  scope: string,
+  as: Human | 'visitor',
+  areaId: string | null = null,
+) {
+  const list = await db.rpc<LiveList>(
+    'live_candidates',
+    { scope, area_id: areaId },
+    as === 'visitor' ? 'visitor' : as.as,
+  )
   return list.candidates.map((c) => c.roomId)
 }
 
@@ -76,10 +89,16 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
         pendingVisibility: 'friends',
         pendingParticipantIds: [memberParticipant],
       })
-      expect(await roomRow(db, roomId)).toMatchObject({ visibility: 'group', pending_visibility: 'friends', join_policy: 'group' })
+      expect(await roomRow(db, roomId)).toMatchObject({
+        visibility: 'group',
+        pending_visibility: 'friends',
+        join_policy: 'group',
+      })
       expect((await getRoom(db, roomId, member.as)).pendingVisibility).toBe('friends')
       // The moderator's own consent is recorded by opening up.
-      expect(await participantStatus(db, roomId, owner.humanId)).toMatchObject({ consent: 'friends' })
+      expect(await participantStatus(db, roomId, owner.humanId)).toMatchObject({
+        consent: 'friends',
+      })
 
       // A consent below the pending level changes nothing.
       const still = RoomVisibilityChangeDtoSchema.parse(
@@ -89,8 +108,17 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       const applied = RoomVisibilityChangeDtoSchema.parse(
         await db.rpc('room_consent', { room_id: roomId, level: 'friends' }, member.as),
       )
-      expect(applied).toEqual({ applied: true, visibility: 'friends', pendingVisibility: null, pendingParticipantIds: [] })
-      expect(await roomRow(db, roomId)).toMatchObject({ visibility: 'friends', pending_visibility: null, join_policy: 'friends' })
+      expect(applied).toEqual({
+        applied: true,
+        visibility: 'friends',
+        pendingVisibility: null,
+        pendingParticipantIds: [],
+      })
+      expect(await roomRow(db, roomId)).toMatchObject({
+        visibility: 'friends',
+        pending_visibility: null,
+        join_policy: 'friends',
+      })
       await db.rpc('room_end', { room_id: roomId }, owner.as)
     })
 
@@ -103,9 +131,18 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       )
       expect(pending.applied).toBe(false)
       const applied = RoomVisibilityChangeDtoSchema.parse(
-        await db.rpc('room_set_media_state', { room_id: roomId, media_state: 'watching' }, member.as),
+        await db.rpc(
+          'room_set_media_state',
+          { room_id: roomId, media_state: 'watching' },
+          member.as,
+        ),
       )
-      expect(applied).toEqual({ applied: true, visibility: 'friends', pendingVisibility: null, pendingParticipantIds: [] })
+      expect(applied).toEqual({
+        applied: true,
+        visibility: 'friends',
+        pendingVisibility: null,
+        pendingParticipantIds: [],
+      })
 
       // Leaving works the same way.
       const second = await human(db, 'Leaver')
@@ -116,7 +153,10 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       )
       expect(wider.applied).toBe(false)
       await db.rpc('room_leave', { room_id: roomId }, second.as)
-      expect(await roomRow(db, roomId)).toMatchObject({ visibility: 'extended', pending_visibility: null })
+      expect(await roomRow(db, roomId)).toMatchObject({
+        visibility: 'extended',
+        pending_visibility: null,
+      })
       await db.rpc('room_end', { room_id: roomId }, owner.as)
     })
 
@@ -126,16 +166,33 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       await joinRoom(db, roomId, member, 'camera', 'group')
       await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'friends' }, owner.as)
       const narrowed = RoomVisibilityChangeDtoSchema.parse(
-        await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'group', join_policy: 'invited_only' }, owner.as),
+        await db.rpc(
+          'room_set_visibility',
+          { room_id: roomId, visibility: 'group', join_policy: 'invited_only' },
+          owner.as,
+        ),
       )
-      expect(narrowed).toEqual({ applied: true, visibility: 'group', pendingVisibility: null, pendingParticipantIds: [] })
-      expect(await roomRow(db, roomId)).toMatchObject({ visibility: 'group', pending_visibility: null, join_policy: 'invited_only' })
+      expect(narrowed).toEqual({
+        applied: true,
+        visibility: 'group',
+        pendingVisibility: null,
+        pendingParticipantIds: [],
+      })
+      expect(await roomRow(db, roomId)).toMatchObject({
+        visibility: 'group',
+        pending_visibility: null,
+        join_policy: 'invited_only',
+      })
       await db.expectError(
         db.rpc('room_set_visibility', { room_id: roomId, visibility: 'invited' }, owner.as),
         'visibility_not_allowed',
       )
       await db.expectError(
-        db.rpc('room_set_visibility', { room_id: roomId, visibility: 'friends', join_policy: 'anyone' }, owner.as),
+        db.rpc(
+          'room_set_visibility',
+          { room_id: roomId, visibility: 'friends', join_policy: 'anyone' },
+          owner.as,
+        ),
         'invalid_input',
       )
       await db.expectError(
@@ -190,19 +247,32 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       const started = await startGroupRoom(db, owner, group)
       const roomId = started.room.id
       for (const policy of allowedJoinPoliciesFor('group', 'group')) {
-        const room = RoomDtoSchema.parse(await db.rpc('room_set_join_policy', { room_id: roomId, join_policy: policy }, owner.as))
+        const room = RoomDtoSchema.parse(
+          await db.rpc('room_set_join_policy', { room_id: roomId, join_policy: policy }, owner.as),
+        )
         expect(room.joinPolicy).toBe(policy)
       }
-      for (const policy of ['friends', 'anyone', 'anyone_with_link', 'friends_of_friends'] as const) {
+      for (const policy of [
+        'friends',
+        'anyone',
+        'anyone_with_link',
+        'friends_of_friends',
+      ] as const) {
         expect(allowedJoinPoliciesFor('group', 'group')).not.toContain(policy)
-        await db.expectError(db.rpc('room_set_join_policy', { room_id: roomId, join_policy: policy }, owner.as), 'invalid_input')
+        await db.expectError(
+          db.rpc('room_set_join_policy', { room_id: roomId, join_policy: policy }, owner.as),
+          'invalid_input',
+        )
       }
       await db.rpc('room_end', { room_id: roomId }, owner.as)
 
       const solo = await startStandaloneRoom(db, owner)
       // `group` is not offered for rooms without a group.
       expect(allowedJoinPoliciesFor('friends', 'standalone')).not.toContain('group')
-      await db.expectError(db.rpc('room_set_join_policy', { room_id: solo.room.id, join_policy: 'group' }, owner.as), 'invalid_input')
+      await db.expectError(
+        db.rpc('room_set_join_policy', { room_id: solo.room.id, join_policy: 'group' }, owner.as),
+        'invalid_input',
+      )
       await db.rpc('room_end', { room_id: solo.room.id }, owner.as)
     })
   })
@@ -249,15 +319,30 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       // Viewers are never revealed to someone outside the room.
       expect(room.participants.some((p) => p.humanId === watcher.humanId)).toBe(false)
       const list = await db.rpc<LiveList>('live_candidates', { scope: 'friends' }, friendOfB.as)
-      expect(list.candidates[0]).toMatchObject({ roomId, visibility: 'friends', contextTitle: null, participantCount: 2 })
-      expect(list.candidates[0]?.participants.map((p) => p.relationToViewer)).toEqual(['other', 'friend'])
+      expect(list.candidates[0]).toMatchObject({
+        roomId,
+        visibility: 'friends',
+        contextTitle: null,
+        participantCount: 2,
+      })
+      expect(list.candidates[0]?.participants.map((p) => p.relationToViewer)).toEqual([
+        'other',
+        'friend',
+      ])
     })
 
     it('a friend of a watching-only viewer does not see the room', async () => {
       expect(await liveRoomIds(db, 'friends', friendOfWatcher)).toEqual([])
-      await db.expectError(db.rpc('room_get', { room_id: roomId }, friendOfWatcher.as), 'room_not_found')
+      await db.expectError(
+        db.rpc('room_get', { room_id: roomId }, friendOfWatcher.as),
+        'room_not_found',
+      )
       // Once the viewer publishes, their friends become eligible (spec §59).
-      await db.rpc('room_set_media_state', { room_id: roomId, media_state: 'audio', consent_level: 'friends' }, watcher.as)
+      await db.rpc(
+        'room_set_media_state',
+        { room_id: roomId, media_state: 'audio', consent_level: 'friends' },
+        watcher.as,
+      )
       expect(await liveRoomIds(db, 'friends', friendOfWatcher)).toEqual([roomId])
       await db.rpc('room_set_media_state', { room_id: roomId, media_state: 'watching' }, watcher.as)
       expect(await liveRoomIds(db, 'friends', friendOfWatcher)).toEqual([])
@@ -267,17 +352,26 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       expect(await liveRoomIds(db, 'friends', blockedByB)).toEqual([])
       await db.expectError(db.rpc('room_get', { room_id: roomId }, blockedByB.as), 'room_not_found')
       await db.expectError(
-        db.rpc('room_join', { room_id: roomId, media_state: 'camera', consent_level: 'friends' }, blockedByB.as),
+        db.rpc(
+          'room_join',
+          { room_id: roomId, media_state: 'camera', consent_level: 'friends' },
+          blockedByB.as,
+        ),
         'room_not_found',
       )
-      const visible = await db.asRole(blockedByB.as, (c) => c.query('select id from public.rooms where id = $1', [roomId]))
+      const visible = await db.asRole(blockedByB.as, (c) =>
+        c.query('select id from public.rooms where id = $1', [roomId]),
+      )
       expect(visible.rowCount).toBe(0)
       // Visitors and guests never see a friends room; strangers neither.
       await db.expectError(db.rpc('room_get', { room_id: roomId }, 'visitor'), 'room_not_found')
       const stranger = await human(db, 'Stranger')
       expect(await liveRoomIds(db, 'friends', stranger)).toEqual([])
       const guest = await createGuest(db)
-      await db.expectError(db.rpc('live_candidates', { scope: 'friends' }, guest.as), 'guest_not_allowed')
+      await db.expectError(
+        db.rpc('live_candidates', { scope: 'friends' }, guest.as),
+        'guest_not_allowed',
+      )
     })
   })
 
@@ -297,8 +391,18 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
 
     beforeAll(async () => {
       city = await createArea(db, { name: 'San Francisco', slug: 'sf', type: 'city' })
-      mission = await createArea(db, { name: 'Mission', slug: 'mission', type: 'neighborhood', parentAreaId: city })
-      castro = await createArea(db, { name: 'Castro', slug: 'castro', type: 'neighborhood', parentAreaId: city })
+      mission = await createArea(db, {
+        name: 'Mission',
+        slug: 'mission',
+        type: 'neighborhood',
+        parentAreaId: city,
+      })
+      castro = await createArea(db, {
+        name: 'Castro',
+        slug: 'castro',
+        type: 'neighborhood',
+        parentAreaId: city,
+      })
       otherCity = await createArea(db, { name: 'Oakland', slug: 'oakland', type: 'city' })
       host = await human(db, 'Host')
       local = await human(db, 'Local')
@@ -313,7 +417,11 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
 
       const n = await startStandaloneRoom(db, host, 'Block party')
       neighborhoodRoom = n.room.id
-      await db.rpc('room_set_visibility', { room_id: neighborhoodRoom, visibility: 'neighborhood' }, host.as)
+      await db.rpc(
+        'room_set_visibility',
+        { room_id: neighborhoodRoom, visibility: 'neighborhood' },
+        host.as,
+      )
       const c = await startStandaloneRoom(db, host, 'City walk')
       cityRoom = c.room.id
       await db.rpc('room_set_visibility', { room_id: cityRoom, visibility: 'city' }, host.as)
@@ -329,30 +437,56 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
     })
 
     it('opening up takes the area from the moderator context: neighborhood precision or city precision', async () => {
-      expect(await roomRow(db, neighborhoodRoom)).toMatchObject({ visibility: 'neighborhood', area_id: mission, area_precision: 'neighborhood' })
-      expect(await roomRow(db, cityRoom)).toMatchObject({ visibility: 'city', area_id: city, area_precision: 'city' })
-      expect(await roomRow(db, worldRoom)).toMatchObject({ visibility: 'world', area_id: city, area_precision: 'city' })
+      expect(await roomRow(db, neighborhoodRoom)).toMatchObject({
+        visibility: 'neighborhood',
+        area_id: mission,
+        area_precision: 'neighborhood',
+      })
+      expect(await roomRow(db, cityRoom)).toMatchObject({
+        visibility: 'city',
+        area_id: city,
+        area_precision: 'city',
+      })
+      expect(await roomRow(db, worldRoom)).toMatchObject({
+        visibility: 'world',
+        area_id: city,
+        area_precision: 'city',
+      })
     })
 
     it('neighborhood scope: rooms in the viewer area (context or explicit area_id)', async () => {
       expect(await liveRoomIds(db, 'neighborhood', local)).toEqual([neighborhoodRoom])
       expect(await liveRoomIds(db, 'neighborhood', sameCity)).toEqual([])
       expect(await liveRoomIds(db, 'neighborhood', sameCity, mission)).toEqual([neighborhoodRoom])
-      await db.expectError(db.rpc('live_candidates', { scope: 'neighborhood' }, elsewhere.as), 'area_not_found')
+      await db.expectError(
+        db.rpc('live_candidates', { scope: 'neighborhood' }, elsewhere.as),
+        'area_not_found',
+      )
       const list = await db.rpc<LiveList>('live_candidates', { scope: 'neighborhood' }, local.as)
       expect(list).toMatchObject({ scope: 'neighborhood', areaName: 'Mission' })
       expect(list.candidates[0]).toMatchObject({ areaName: 'Mission', participantCount: 1 })
-      expect(list.candidates[0]?.participants[0]).toMatchObject({ humanId: host.humanId, relationToViewer: 'other', mediaState: 'camera' })
+      expect(list.candidates[0]?.participants[0]).toMatchObject({
+        humanId: host.humanId,
+        relationToViewer: 'other',
+        mediaState: 'camera',
+      })
     })
 
     it('city scope: city and world Lives located in the city, plus the neighborhood Lives the viewer is eligible for', async () => {
       expect((await liveRoomIds(db, 'city', sameCity)).sort()).toEqual([cityRoom, worldRoom].sort())
-      expect((await liveRoomIds(db, 'city', local)).sort()).toEqual([cityRoom, neighborhoodRoom, worldRoom].sort())
+      expect((await liveRoomIds(db, 'city', local)).sort()).toEqual(
+        [cityRoom, neighborhoodRoom, worldRoom].sort(),
+      )
       expect(await liveRoomIds(db, 'city', elsewhere)).toEqual([])
       // Browsing another city explicitly is a browsing context (spec §52): its city Lives open up.
-      expect((await liveRoomIds(db, 'city', elsewhere, city)).sort()).toEqual([cityRoom, worldRoom].sort())
+      expect((await liveRoomIds(db, 'city', elsewhere, city)).sort()).toEqual(
+        [cityRoom, worldRoom].sort(),
+      )
       expect((await liveRoomIds(db, 'city', elsewhere, otherCity)).sort()).toEqual([])
-      await db.expectError(db.rpc('room_get', { room_id: cityRoom }, elsewhere.as), 'room_not_found')
+      await db.expectError(
+        db.rpc('room_get', { room_id: cityRoom }, elsewhere.as),
+        'room_not_found',
+      )
       expect((await getRoom(db, cityRoom, sameCity.as)).visibility).toBe('city')
     })
 
@@ -362,14 +496,23 @@ describe('room visibility, consent and Live discovery (spec §58–§60; ARCHITE
       const asVisitor = await getRoom(db, worldRoom, 'visitor')
       expect(asVisitor.participants[0]?.relationToViewer).toBeNull()
       expect(asVisitor.myParticipant).toBeNull()
-      await db.expectError(db.rpc('live_candidates', { scope: 'friends' }, 'visitor'), 'not_authenticated')
+      await db.expectError(
+        db.rpc('live_candidates', { scope: 'friends' }, 'visitor'),
+        'not_authenticated',
+      )
       await setFlag(db, 'PUBLIC_LIVE_ENABLED', false)
-      await db.expectError(db.rpc('live_candidates', { scope: 'world' }, 'visitor'), 'feature_disabled')
+      await db.expectError(
+        db.rpc('live_candidates', { scope: 'world' }, 'visitor'),
+        'feature_disabled',
+      )
       await db.expectError(db.rpc('room_get', { room_id: worldRoom }, 'visitor'), 'room_not_found')
       expect(await liveRoomIds(db, 'world', elsewhere)).toEqual([worldRoom])
       await setFlag(db, 'PUBLIC_LIVE_ENABLED', true)
       await setFlag(db, 'WORLD_ENABLED', false)
-      await db.expectError(db.rpc('live_candidates', { scope: 'world' }, elsewhere.as), 'feature_disabled')
+      await db.expectError(
+        db.rpc('live_candidates', { scope: 'world' }, elsewhere.as),
+        'feature_disabled',
+      )
       await setFlag(db, 'WORLD_ENABLED', true)
     })
 

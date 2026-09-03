@@ -66,7 +66,11 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
       const meId = room.myParticipant?.id
       for (const delta of deltas) {
         if (delta.kind === 'room_ended') void finish('room_ended')
-        if (delta.kind === 'participant_left' && delta.participant.id === meId && delta.participant.status === 'removed') {
+        if (
+          delta.kind === 'participant_left' &&
+          delta.participant.id === meId &&
+          delta.participant.status === 'removed'
+        ) {
           void finish('removed')
         }
       }
@@ -85,11 +89,18 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
       const ok = await media.connect(roomId)
       if (!ok) return
       const mic = await media.setMicrophone(true)
-      if (!mic.ok) setNotice(mic.kind === 'media_permission_denied' ? roomCopy.micPermission : roomCopy.couldntChange)
+      if (!mic.ok)
+        setNotice(
+          mic.kind === 'media_permission_denied' ? roomCopy.micPermission : roomCopy.couldntChange,
+        )
       if (wantsCamera) {
         const cam = await media.setCamera(true)
         if (!cam.ok) {
-          setNotice(cam.kind === 'media_permission_denied' ? roomCopy.cameraPermission : roomCopy.couldntChange)
+          setNotice(
+            cam.kind === 'media_permission_denied'
+              ? roomCopy.cameraPermission
+              : roomCopy.couldntChange,
+          )
           await earth.rooms.setMediaState({ roomId, mediaState: 'audio' }).catch(() => undefined)
         }
       }
@@ -110,10 +121,16 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
     const next = !media.cameraEnabled
     const result = await media.setCamera(next)
     if (!result.ok) {
-      setNotice(result.kind === 'media_permission_denied' ? roomCopy.cameraPermission : roomCopy.couldntChange)
+      setNotice(
+        result.kind === 'media_permission_denied'
+          ? roomCopy.cameraPermission
+          : roomCopy.couldntChange,
+      )
       return
     }
-    await earth.rooms.setMediaState({ roomId, mediaState: next ? 'camera' : 'audio' }).catch(() => undefined)
+    await earth.rooms
+      .setMediaState({ roomId, mediaState: next ? 'camera' : 'audio' })
+      .catch(() => undefined)
     await roomState.refresh()
   }, [media, earth, roomId, roomState])
 
@@ -135,7 +152,13 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
 
   if (room === null) {
     if (roomState.error !== null && roomState.error !== 'room_ended') {
-      return <RoomEnded kind="error" backHref={guestRoomRoute(token)} onRetry={() => void roomState.refresh()} />
+      return (
+        <RoomEnded
+          kind="error"
+          backHref={guestRoomRoute(token)}
+          onRetry={() => void roomState.refresh()}
+        />
+      )
     }
     return (
       <div className="flex h-dvh items-center justify-center bg-background">

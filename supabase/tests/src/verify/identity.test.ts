@@ -293,7 +293,9 @@ describe('identity invariants — adversarial verification', () => {
   // -------------------------------------------------------------------------------------------------
   describe('Public identity is not Human identity', () => {
     it('changing the public identity never changes the Human or its relationships', async () => {
-      const before = ProfileDtoSchema.parse(await db.rpc('profile_get', { handle: 'alice' }, bob.as))
+      const before = ProfileDtoSchema.parse(
+        await db.rpc('profile_get', { handle: 'alice' }, bob.as),
+      )
       expect(before.identity.humanId).toBe(alice.humanId)
       await db.rpc('identity_update', { display_name: 'Alicia', bio: 'moved' }, alice.as)
       const after = ProfileDtoSchema.parse(await db.rpc('profile_get', { handle: 'alice' }, bob.as))
@@ -332,7 +334,9 @@ describe('identity invariants — adversarial verification', () => {
       expect(
         await scalar(db, 'auth_user_id from public.humans where id = $1', [carol.humanId]),
       ).toBeNull()
-      const seenByBob = ProfileDtoSchema.parse(await db.rpc('profile_get', { handle: 'carol' }, bob.as))
+      const seenByBob = ProfileDtoSchema.parse(
+        await db.rpc('profile_get', { handle: 'carol' }, bob.as),
+      )
       expect(seenByBob.relationship.isFriend).toBe(true)
 
       const replacement = await db.createAuthUser({ email })
@@ -476,9 +480,11 @@ describe('identity invariants — adversarial verification', () => {
       ).toBe(erin.humanId)
       // The existing Human keeps her email row; the newcomer does not take it over.
       expect(
-        await scalar(db, `human_id from public.auth_identities where provider = 'email' and provider_subject = $1`, [
-          email,
-        ]),
+        await scalar(
+          db,
+          `human_id from public.auth_identities where provider = 'email' and provider_subject = $1`,
+          [email],
+        ),
       ).toBe(erin.humanId)
 
       // Even a fully verified pass cannot complete while the conflict is unresolved.
@@ -543,9 +549,11 @@ describe('identity invariants — adversarial verification', () => {
       )
       expect(await openDuplicateReviews(db, started.humanId)).toBe(0)
       expect(
-        await scalar(db, `human_id from public.auth_identities where provider = 'email' and provider_subject = $1`, [
-          email,
-        ]),
+        await scalar(
+          db,
+          `human_id from public.auth_identities where provider = 'email' and provider_subject = $1`,
+          [email],
+        ),
       ).toBe(started.humanId)
     })
 
@@ -645,7 +653,13 @@ describe('identity invariants — adversarial verification', () => {
     it('nobody but the pending Human sees their identity or row', async () => {
       const guest = await createGuest(db)
       const unclaimed = await createUnclaimed(db)
-      for (const as of ['visitor', guest.as, unclaimed.as, alice.as, hiddenFriend.as] as RoleSpec[]) {
+      for (const as of [
+        'visitor',
+        guest.as,
+        unclaimed.as,
+        alice.as,
+        hiddenFriend.as,
+      ] as RoleSpec[]) {
         await db.expectError(db.rpc('profile_get', { handle: 'pend' }, as), 'not_visible')
         const identity = await db.asRole(as, (c) =>
           c.query('select human_id from public.public_identities where human_id = $1', [
@@ -667,7 +681,9 @@ describe('identity invariants — adversarial verification', () => {
         expect(row.rowCount).toBe(0)
       }
       // Self still works (claim step).
-      const own = ProfileDtoSchema.parse(await db.rpc('profile_get', { handle: 'pend' }, pending.as))
+      const own = ProfileDtoSchema.parse(
+        await db.rpc('profile_get', { handle: 'pend' }, pending.as),
+      )
       expect(own.relationship.isSelf).toBe(true)
       expect(MeDtoSchema.parse(await db.rpc('me_get', {}, pending.as))).toMatchObject({
         roleKind: 'claiming',
@@ -683,13 +699,20 @@ describe('identity invariants — adversarial verification', () => {
         db.rpc('follow_set', { ...target, following: true }, alice.as),
         'not_visible',
       )
-      await db.expectError(db.rpc('block_set', { ...target, blocked: true }, alice.as), 'not_visible')
+      await db.expectError(
+        db.rpc('block_set', { ...target, blocked: true }, alice.as),
+        'not_visible',
+      )
       await db.expectError(
         db.rpc('conversation_direct_get_or_create', { other_human_id: pending.humanId }, alice.as),
         'not_visible',
       )
       await db.expectError(
-        db.rpc('conversation_group_create', { human_ids: [pending.humanId, bob.humanId] }, alice.as),
+        db.rpc(
+          'conversation_group_create',
+          { human_ids: [pending.humanId, bob.humanId] },
+          alice.as,
+        ),
         'not_visible',
       )
       await db.expectError(
@@ -738,7 +761,10 @@ describe('identity invariants — adversarial verification', () => {
       expect(preview.alreadyMember).toBe(false)
       expect(await count(db, 'public.group_members', 'human_id = $1', [pending.humanId])).toBe(0)
       // A pending Human sees no more of others than a visitor does.
-      await db.expectError(db.rpc('profile_get', { handle: 'hidfriend' }, pending.as), 'not_visible')
+      await db.expectError(
+        db.rpc('profile_get', { handle: 'hidfriend' }, pending.as),
+        'not_visible',
+      )
     })
   })
 
@@ -762,11 +788,14 @@ describe('identity invariants — adversarial verification', () => {
       const surfaces = [
         await db.rpc('claim_get', {}, user.as),
         await db.rpc('me_get', {}, user.as),
-        await db.asRole(user.as, async (c) =>
-          (await c.query('select to_jsonb(hp) as row from public.human_passes hp')).rows,
+        await db.asRole(
+          user.as,
+          async (c) =>
+            (await c.query('select to_jsonb(hp) as row from public.human_passes hp')).rows,
         ),
-        await db.asRole(user.as, async (c) =>
-          (await c.query('select to_jsonb(h) as row from public.humans h')).rows,
+        await db.asRole(
+          user.as,
+          async (c) => (await c.query('select to_jsonb(h) as row from public.humans h')).rows,
         ),
       ]
       for (const surface of surfaces) {
@@ -987,7 +1016,11 @@ describe('identity invariants — adversarial verification', () => {
       )
       expect(await count(db, 'public.humans', 'true')).toBe(before + 1)
       // A self-opened duplicate review blocks the claimant, it does not help them.
-      await db.rpc('claim_set_identity', { display_name: 'S', handle: freshHandle('selfdup') }, user.as)
+      await db.rpc(
+        'claim_set_identity',
+        { display_name: 'S', handle: freshHandle('selfdup') },
+        user.as,
+      )
       await recordResult(db, review.humanId, 'verified')
       await db.expectError(db.rpc('claim_complete', {}, user.as), 'duplicate_human')
     })

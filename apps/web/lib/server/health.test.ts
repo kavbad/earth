@@ -67,7 +67,11 @@ describe('healthResponse', () => {
       createLogger({ sink: createMemorySink().sink }),
     )
     expect(response.status).toBe(HTTP_STATUS_SERVICE_UNAVAILABLE)
-    expect(response.body).toMatchObject({ ok: false, serverTier: ServerTierStates.failed, issues: [] })
+    expect(response.body).toMatchObject({
+      ok: false,
+      serverTier: ServerTierStates.failed,
+      issues: [],
+    })
   })
 })
 

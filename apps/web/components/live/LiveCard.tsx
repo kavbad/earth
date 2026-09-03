@@ -25,7 +25,8 @@ export function cardFaces(card: LiveCardDto): FaceStackPerson[] {
 /** The second line: the context when the title already names people, the area for public Lives. */
 export function cardContextLine(card: LiveCardDto): string {
   const parts: string[] = []
-  if (card.contextTitle !== null && !card.title.startsWith(card.contextTitle)) parts.push(card.contextTitle)
+  if (card.contextTitle !== null && !card.title.startsWith(card.contextTitle))
+    parts.push(card.contextTitle)
   const scope = discoveryScopeForVisibility(card.visibility)
   if (card.areaName !== null && scope !== null && scope !== 'friends') parts.push(card.areaName)
   return parts.join(' · ')
@@ -57,7 +58,9 @@ export function LiveCard({ card, onSeen, onOpen }: LiveCardProps) {
       ) : null}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-body font-medium text-text-primary">{card.title}</span>
-        {context !== '' ? <span className="truncate text-secondary text-text-secondary">{context}</span> : null}
+        {context !== '' ? (
+          <span className="truncate text-secondary text-text-secondary">{context}</span>
+        ) : null}
       </span>
       <LiveMark />
     </Link>

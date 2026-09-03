@@ -565,7 +565,10 @@ describe('messages (spec §53–56; DB_API §2)', () => {
     )
 
     // Plain members cannot delete others' messages; a moderator can.
-    await db.expectError(db.rpc('message_delete', { message_id: original.id }, dave.as), 'forbidden')
+    await db.expectError(
+      db.rpc('message_delete', { message_id: original.id }, dave.as),
+      'forbidden',
+    )
     const tombstone = MessageDtoSchema.parse(
       await db.rpc('message_delete', { message_id: original.id }, carol.as),
     )
@@ -623,9 +626,11 @@ describe('messages (spec §53–56; DB_API §2)', () => {
     const scrap = await sent(dave.as, group.conversationId, 'scrap', { payload: { b: 2 } })
     await db.sql.query('update public.messages set deleted_at = now() where id = $1', [scrap.id])
     expect(
-      await scalar(db, "text is null and payload = '{}'::jsonb from public.messages where id = $1", [
-        scrap.id,
-      ]),
+      await scalar(
+        db,
+        "text is null and payload = '{}'::jsonb from public.messages where id = $1",
+        [scrap.id],
+      ),
     ).toBe(true)
 
     // The sender may delete their own message; no audit row for that.
@@ -643,7 +648,10 @@ describe('messages (spec §53–56; DB_API §2)', () => {
     // In a DM only the sender may delete.
     const dm = await dmBetween(alice, bob)
     const dmMessage = await sent(alice.as, dm, 'dm')
-    await db.expectError(db.rpc('message_delete', { message_id: dmMessage.id }, bob.as), 'forbidden')
+    await db.expectError(
+      db.rpc('message_delete', { message_id: dmMessage.id }, bob.as),
+      'forbidden',
+    )
     await db.expectError(db.rpc('message_delete', { message_id: NIL }, bob.as), 'message_not_found')
     await db.expectError(
       db.rpc('message_delete', { message_id: dmMessage.id }, guest.as),
@@ -672,9 +680,11 @@ describe('messages (spec §53–56; DB_API §2)', () => {
     ])
     expect(await count(db, 'public.message_reactions', 'message_id = $1', [message.id])).toBe(2)
     expect(
-      await scalar(db, 'conversation_id from public.message_reactions where message_id = $1 limit 1', [
-        message.id,
-      ]),
+      await scalar(
+        db,
+        'conversation_id from public.message_reactions where message_id = $1 limit 1',
+        [message.id],
+      ),
     ).toBe(dm)
     // The unique key holds below the RPC too, and the trigger fills conversation_id.
     await expect(
@@ -786,7 +796,9 @@ describe('messages (spec §53–56; DB_API §2)', () => {
     ).toBeNull()
     let failure: unknown
     try {
-      await db.asRole(alice.as, (c) => c.query('delete from public.messages where id = $1', [reply.id]))
+      await db.asRole(alice.as, (c) =>
+        c.query('delete from public.messages where id = $1', [reply.id]),
+      )
     } catch (error) {
       failure = error
     }

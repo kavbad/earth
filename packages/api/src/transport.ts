@@ -13,6 +13,8 @@ import {
 } from '@earth/domain'
 import type { z } from 'zod'
 
+import type { ArgNames, ArgsOf, RouteSpec, RpcSpec } from './manifest'
+import { fillRoute } from './rpc'
 import type {
   AccessTokenGetter,
   PostgrestErrorLike,
@@ -168,6 +170,14 @@ export interface ServerRequest {
   readonly auth: ServerAuthMode
 }
 
+/** What a `RouteSpec` call adds to the spec: path parameters, query and body. */
+export interface RouteRequest {
+  /** Values for the `:name` segments of the spec's path. */
+  readonly params?: Readonly<Record<string, string>> | undefined
+  readonly query?: Readonly<Record<string, string | null | undefined>> | undefined
+  readonly body?: unknown
+}
+
 const HEADER_ACCEPT = 'accept' as const
 const HEADER_CONTENT_TYPE = 'content-type' as const
 const HEADER_AUTHORIZATION = 'authorization' as const
@@ -204,6 +214,14 @@ export interface TransportOptions {
 /** What every namespace is built on. */
 export interface Transport {
   readonly supabase: SupabaseLike
+  /**
+   * Calls the RPC of a manifest spec: `args` must carry exactly the spec's argument names (an
+   * `undefined` value is not sent) and the result is parsed with the spec's schema, or ignored
+   * when the spec's result is `void`.
+   */
+  call<A extends ArgNames, T>(spec: RpcSpec<A, T>, args: ArgsOf<A>): Promise<T>
+  /** Calls the server route of a manifest spec (method, path template and auth come from the spec). */
+  route<A extends ArgNames, T>(spec: RouteSpec<A, T>, request?: RouteRequest): Promise<T>
   /** Calls an RPC with snake_case args and validates the result. */
   rpc<T>(name: string, args: RpcArgs, schema: z.ZodType<T>): Promise<T>
   /** Calls an RPC whose result is not part of the contract; only errors matter. */
@@ -320,6 +338,24 @@ export function createTransport(options: TransportOptions): Transport {
 
   return {
     supabase,
+    async call(spec, args) {
+      const data = await rawRpc(spec.rpc, args)
+      if (spec.schema === null) return undefined as never
+      return parseOutput(spec.schema, data, `rpc ${spec.rpc}`)
+    },
+    async route(spec, request = {}) {
+      const base: ServerRequest = {
+        method: spec.httpMethod,
+        path: fillRoute(spec.path, request.params ?? {}),
+        query: request.query,
+        auth: spec.auth,
+      }
+      const serverRequest: ServerRequest =
+        request.body === undefined ? base : { ...base, body: request.body }
+      const { body } = await rawServer(serverRequest)
+      if (spec.schema === null) return undefined as never
+      return parseOutput(spec.schema, body, `${spec.httpMethod} ${spec.path}`)
+    },
     async rpc(name, args, schema) {
       const data = await rawRpc(name, args)
       return parseOutput(schema, data, `rpc ${name}`)

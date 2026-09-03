@@ -104,7 +104,11 @@ export interface EventRow {
   created_at: string
 }
 
-export async function eventRows(db: TestDb, where = 'true', values: unknown[] = []): Promise<EventRow[]> {
+export async function eventRows(
+  db: TestDb,
+  where = 'true',
+  values: unknown[] = [],
+): Promise<EventRow[]> {
   const { rows } = await db.sql.query<EventRow>(
     `select id, human_id, anonymous_visitor_id, guest_session_id, name, properties, platform, app_version,
             to_json(client_timestamp)::text as client_timestamp, to_json(created_at)::text as created_at
@@ -126,7 +130,10 @@ export async function trackOne(
   options: TrackOptions = {},
 ): Promise<EventRow> {
   const marker = randomUUID()
-  const properties = { ...((envelope['properties'] as Record<string, unknown> | undefined) ?? {}), marker }
+  const properties = {
+    ...((envelope['properties'] as Record<string, unknown> | undefined) ?? {}),
+    marker,
+  }
   const result = await track(db, [{ ...envelope, properties }], as, options)
   if (result.accepted !== 1) throw new Error(`expected 1 accepted event, got ${result.accepted}`)
   const rows = await eventRows(db, "properties ->> 'marker' = $1", [marker])
@@ -144,7 +151,11 @@ export interface DiagnosticRow {
   payload: Record<string, unknown>
 }
 
-export async function diagnosticRows(db: TestDb, where = 'true', values: unknown[] = []): Promise<DiagnosticRow[]> {
+export async function diagnosticRows(
+  db: TestDb,
+  where = 'true',
+  values: unknown[] = [],
+): Promise<DiagnosticRow[]> {
   const { rows } = await db.sql.query<DiagnosticRow>(
     `select id, human_id, guest_session_id, room_id, kind, payload
        from public.rtc_diagnostics where ${where} order by created_at, id`,
@@ -172,7 +183,12 @@ export function sqlstate(error: unknown): string | undefined {
   return error instanceof pg.DatabaseError ? error.code : undefined
 }
 
-export async function setCreatedAt(db: TestDb, table: string, id: string, at: string): Promise<void> {
+export async function setCreatedAt(
+  db: TestDb,
+  table: string,
+  id: string,
+  at: string,
+): Promise<void> {
   await db.sql.query(`update ${table} set created_at = $2 where id = $1`, [id, at])
 }
 

@@ -45,10 +45,11 @@ describe('system messages', () => {
     ).rows
 
   const unreadOf = (conversationId: string, human: Human) =>
-    scalar<number>(db, 'unread_count from public.conversation_members where conversation_id = $1 and human_id = $2', [
-      conversationId,
-      human.humanId,
-    ])
+    scalar<number>(
+      db,
+      'unread_count from public.conversation_members where conversation_id = $1 and human_id = $2',
+      [conversationId, human.humanId],
+    )
 
   beforeAll(async () => {
     db = await createTestDb()
@@ -93,11 +94,17 @@ describe('system messages', () => {
     expect(await unreadOf(group.conversationId, alice)).toBe(1)
     expect(await unreadOf(group.conversationId, carol)).toBe(1)
     expect(await unreadOf(group.conversationId, bob)).toBe(0)
-    expect(await scalar<Date | null>(db, 'last_message_at from public.conversations where id = $1', [group.conversationId])).not.toBeNull()
+    expect(
+      await scalar<Date | null>(db, 'last_message_at from public.conversations where id = $1', [
+        group.conversationId,
+      ]),
+    ).not.toBeNull()
     expect(await count(db, 'public.notifications')).toBe(0)
 
     // Everyone in the group reads it through the RPC and the policy, shaped as a MessageDto.
-    const pageForCarol = MessagesPageDtoSchema.parse(await db.rpc('messages_list', { conversation_id: group.conversationId }, carol.as))
+    const pageForCarol = MessagesPageDtoSchema.parse(
+      await db.rpc('messages_list', { conversation_id: group.conversationId }, carol.as),
+    )
     expect(pageForCarol.messages).toHaveLength(1)
     expect(pageForCarol.messages[0]).toMatchObject({
       type: 'system',
@@ -106,18 +113,36 @@ describe('system messages', () => {
       clientId: null,
       payload: { kind: 'member_joined', actorHumanId: bob.humanId },
     })
-    const direct = await db.asRole(bob.as, (c) => c.query('select id from public.messages where conversation_id = $1', [group.conversationId]))
+    const direct = await db.asRole(bob.as, (c) =>
+      c.query('select id from public.messages where conversation_id = $1', [group.conversationId]),
+    )
     expect(direct.rowCount).toBe(1)
 
     // Joining again as a member adds nothing.
-    const again = await db.rpc<{ alreadyMember: boolean }>('group_invite_join', { token: invite.token }, bob.as)
+    const again = await db.rpc<{ alreadyMember: boolean }>(
+      'group_invite_join',
+      { token: invite.token },
+      bob.as,
+    )
     expect(again.alreadyMember).toBe(true)
     expect(await systemRows(group.conversationId)).toHaveLength(1)
 
     // The actor may not edit a system line, but clients cannot fake one either.
-    await db.expectError(db.rpc('message_edit', { message_id: rows[0]?.id, text: 'x' }, bob.as), 'forbidden')
     await db.expectError(
-      db.rpc('message_send', { conversation_id: group.conversationId, client_id: randomUUID(), type: 'system', text: 'fake' }, bob.as),
+      db.rpc('message_edit', { message_id: rows[0]?.id, text: 'x' }, bob.as),
+      'forbidden',
+    )
+    await db.expectError(
+      db.rpc(
+        'message_send',
+        {
+          conversation_id: group.conversationId,
+          client_id: randomUUID(),
+          type: 'system',
+          text: 'fake',
+        },
+        bob.as,
+      ),
       'invalid_input',
     )
   })
@@ -136,42 +161,80 @@ describe('system messages', () => {
     })
     expect(await unreadOf(group.conversationId, alice)).toBe(1)
     expect(await unreadOf(group.conversationId, carol)).toBe(1)
-    expect(await count(db, 'public.conversation_members', 'conversation_id = $1 and human_id = $2', [group.conversationId, bob.humanId])).toBe(0)
-    await db.expectError(db.rpc('messages_list', { conversation_id: group.conversationId }, bob.as), 'conversation_not_found')
-    const aliceView = MessagesPageDtoSchema.parse(await db.rpc('messages_list', { conversation_id: group.conversationId }, alice.as))
+    expect(
+      await count(db, 'public.conversation_members', 'conversation_id = $1 and human_id = $2', [
+        group.conversationId,
+        bob.humanId,
+      ]),
+    ).toBe(0)
+    await db.expectError(
+      db.rpc('messages_list', { conversation_id: group.conversationId }, bob.as),
+      'conversation_not_found',
+    )
+    const aliceView = MessagesPageDtoSchema.parse(
+      await db.rpc('messages_list', { conversation_id: group.conversationId }, alice.as),
+    )
     expect(aliceView.messages.map((m) => m.text)).toEqual(['Bob left'])
-    expect(await scalar<Date | null>(db, 'last_activity_at from public.groups where id = $1', [group.groupId])).not.toBeNull()
+    expect(
+      await scalar<Date | null>(db, 'last_activity_at from public.groups where id = $1', [
+        group.groupId,
+      ]),
+    ).not.toBeNull()
 
     // The last member leaving still records the line before the group is archived.
     await db.rpc('group_leave', { group_id: group.groupId }, carol.as)
-    const left = await db.rpc<{ archived: boolean }>('group_leave', { group_id: group.groupId }, alice.as)
+    const left = await db.rpc<{ archived: boolean }>(
+      'group_leave',
+      { group_id: group.groupId },
+      alice.as,
+    )
     expect(left.archived).toBe(true)
-    expect((await systemRows(group.conversationId)).map((r) => r.text)).toEqual(['Bob left', 'Carol left', 'Alice left'])
+    expect((await systemRows(group.conversationId)).map((r) => r.text)).toEqual([
+      'Bob left',
+      'Carol left',
+      'Alice left',
+    ])
   })
 
   it('claim_complete with a join_group intent also writes "<name> joined"', async () => {
     const group = await createGroup(db, alice, 'Claimers')
     const invite = await createInvite(db, group, alice)
-    const newcomer = await createHuman(db, { handle: 'newbie', displayName: 'Newbie', status: 'pending' })
+    const newcomer = await createHuman(db, {
+      handle: 'newbie',
+      displayName: 'Newbie',
+      status: 'pending',
+    })
     await db.sql.query(
       `update public.humans set claim_intent = 'join_group', claim_invite_token_hash = earth.sha256_hex($2) where id = $1`,
       [newcomer.humanId, invite.token],
     )
-    const done = await db.rpc<{ groupId: string; conversationId: string }>('claim_complete', {}, newcomer.as)
+    const done = await db.rpc<{ groupId: string; conversationId: string }>(
+      'claim_complete',
+      {},
+      newcomer.as,
+    )
     expect(done).toMatchObject({ groupId: group.groupId, conversationId: group.conversationId })
     const rows = await systemRows(group.conversationId)
     expect(rows.map((r) => r.text)).toEqual(['Newbie joined'])
     expect(rows[0]?.sender_human_id).toBe(newcomer.humanId)
-    const page = MessagesPageDtoSchema.parse(await db.rpc('messages_list', { conversation_id: group.conversationId }, newcomer.as))
+    const page = MessagesPageDtoSchema.parse(
+      await db.rpc('messages_list', { conversation_id: group.conversationId }, newcomer.as),
+    )
     expect(page.messages.map((m) => m.text)).toEqual(['Newbie joined'])
   })
 
   it('earth.system_message validates its input and resolves the acting Human', async () => {
     const group = await createGroup(db, alice, 'Probe')
     await addMember(db, group, bob)
-    const probe = (args: Record<string, unknown>) => db.rpc<string>('probe_system_message', args, 'service')
+    const probe = (args: Record<string, unknown>) =>
+      db.rpc<string>('probe_system_message', args, 'service')
 
-    const explicit = await probe({ conversation_id: group.conversationId, text: 'Room started', payload: { kind: 'room_started' }, actor: alice.humanId })
+    const explicit = await probe({
+      conversation_id: group.conversationId,
+      text: 'Room started',
+      payload: { kind: 'room_started' },
+      actor: alice.humanId,
+    })
     const fromPayload = await probe({
       conversation_id: group.conversationId,
       text: 'Room ended',
@@ -184,13 +247,28 @@ describe('system messages', () => {
     )
     const rows = await systemRows(group.conversationId)
     expect(rows.map((r) => [r.id, r.text, r.sender_human_id, r.payload])).toEqual([
-      [explicit, 'Room started', alice.humanId, { kind: 'room_started', actorHumanId: alice.humanId }],
+      [
+        explicit,
+        'Room started',
+        alice.humanId,
+        { kind: 'room_started', actorHumanId: alice.humanId },
+      ],
       [fromPayload, 'Room ended', bob.humanId, { kind: 'room_ended', actorHumanId: bob.humanId }],
       [legacy, 'Legacy line', alice.humanId, { actorHumanId: alice.humanId }],
     ])
     // A Human caller is the default actor.
-    const mine = await db.rpc<string>('probe_system_message', { conversation_id: group.conversationId, text: 'By me' }, bob.as)
-    expect(MessageDtoSchema.parse(await db.rpc('messages_list', { conversation_id: group.conversationId, limit: 1 }, bob.as).then((p) => (p as { messages: unknown[] }).messages[0]))).toMatchObject({
+    const mine = await db.rpc<string>(
+      'probe_system_message',
+      { conversation_id: group.conversationId, text: 'By me' },
+      bob.as,
+    )
+    expect(
+      MessageDtoSchema.parse(
+        await db
+          .rpc('messages_list', { conversation_id: group.conversationId, limit: 1 }, bob.as)
+          .then((p) => (p as { messages: unknown[] }).messages[0]),
+      ),
+    ).toMatchObject({
       id: mine,
       senderHumanId: bob.humanId,
       type: 'system',
@@ -200,11 +278,28 @@ describe('system messages', () => {
     expect(await unreadOf(group.conversationId, alice)).toBe(2)
     expect(await unreadOf(group.conversationId, bob)).toBe(2)
 
-    await db.expectError(probe({ conversation_id: NIL, text: 'x', actor: alice.humanId }), 'conversation_not_found')
-    await db.expectError(probe({ conversation_id: group.conversationId, text: '   ', actor: alice.humanId }), 'invalid_input')
-    await db.expectError(probe({ conversation_id: group.conversationId, text: 'x', payload: '[1]', actor: alice.humanId }), 'invalid_input')
+    await db.expectError(
+      probe({ conversation_id: NIL, text: 'x', actor: alice.humanId }),
+      'conversation_not_found',
+    )
+    await db.expectError(
+      probe({ conversation_id: group.conversationId, text: '   ', actor: alice.humanId }),
+      'invalid_input',
+    )
+    await db.expectError(
+      probe({
+        conversation_id: group.conversationId,
+        text: 'x',
+        payload: '[1]',
+        actor: alice.humanId,
+      }),
+      'invalid_input',
+    )
     // The service has no Human of its own: an actor is required.
-    await db.expectError(probe({ conversation_id: group.conversationId, text: 'x' }), 'invalid_input')
+    await db.expectError(
+      probe({ conversation_id: group.conversationId, text: 'x' }),
+      'invalid_input',
+    )
     // The helper is not reachable by API roles.
     for (const [signature, role] of [
       ['earth.system_message(uuid, text, jsonb, uuid)', 'anon'],
@@ -212,7 +307,10 @@ describe('system messages', () => {
       ['earth.system_message(uuid, uuid, text)', 'anon'],
       ['earth.system_message(uuid, uuid, text)', 'authenticated'],
     ]) {
-      expect(await scalar(db, 'has_function_privilege($1, $2, $3)', [role, signature, 'EXECUTE']), `${role} on ${signature}`).toBe(false)
+      expect(
+        await scalar(db, 'has_function_privilege($1, $2, $3)', [role, signature, 'EXECUTE']),
+        `${role} on ${signature}`,
+      ).toBe(false)
     }
   })
 })

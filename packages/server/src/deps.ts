@@ -39,6 +39,19 @@ export interface SupabaseRpcClient {
   rpc(name: string, args?: RpcArgs): PromiseLike<RpcResult>
 }
 
+/**
+ * `auth.admin` of the service-role supabase-js client, structurally: only what the account
+ * deletion route uses (`POST /api/account/delete` → `human_delete_request`, then the credential).
+ */
+export interface AuthAdminLike {
+  deleteUser(userId: string): PromiseLike<{ readonly error: { readonly message: string } | null }>
+}
+
+/** A client that carries `auth.admin` (the real service-role client does; the RPC-only fakes do not). */
+export interface AuthAdminHostLike {
+  readonly auth?: { readonly admin?: AuthAdminLike | undefined } | undefined
+}
+
 // ---------------------------------------------------------------------------
 // LiveKit
 // ---------------------------------------------------------------------------
@@ -154,6 +167,11 @@ export interface ServerDeps {
   readonly env: ServerEnv
   /** `INTERNAL_CRON_SECRET`; compared in constant time against `x-earth-cron-secret`. */
   readonly cronSecret: string
+  /**
+   * The Supabase admin auth API (service role) for `POST /api/account/delete`. Optional: without
+   * it the Human is still deleted and the response says `credentialDeleted: false`.
+   */
+  readonly authAdmin?: AuthAdminLike | undefined
 }
 
 export type { AnalyticsSink, Logger, ServerEnv, HumanVerificationProvider }

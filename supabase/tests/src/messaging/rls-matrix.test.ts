@@ -8,10 +8,27 @@ import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { addMember, befriend, block, createGroup, createGuest, createHuman, type Human } from '../admission/fixtures'
+import {
+  addMember,
+  befriend,
+  block,
+  createGroup,
+  createGuest,
+  createHuman,
+  type Human,
+} from '../admission/fixtures'
 import { createTestDb, type RoleSpec, type TestDb } from '../harness'
 
-const ACTORS = ['visitor', 'guest', 'claiming', 'self', 'other', 'friend', 'blocked', 'member'] as const
+const ACTORS = [
+  'visitor',
+  'guest',
+  'claiming',
+  'self',
+  'other',
+  'friend',
+  'blocked',
+  'member',
+] as const
 type Actor = (typeof ACTORS)[number]
 type Outcome = 'denied' | number
 
@@ -23,7 +40,8 @@ interface TableCase {
   delete: string
 }
 
-const all = <T>(value: T): Record<Actor, T> => Object.fromEntries(ACTORS.map((a) => [a, value])) as Record<Actor, T>
+const all = <T>(value: T): Record<Actor, T> =>
+  Object.fromEntries(ACTORS.map((a) => [a, value])) as Record<Actor, T>
 
 describe('RLS matrix: messages and message_reactions', () => {
   let db: TestDb
@@ -36,7 +54,11 @@ describe('RLS matrix: messages and message_reactions', () => {
   let humans: Record<'self' | 'member' | 'friend', Human>
 
   const send = (as: RoleSpec, conversationId: string, text: string) =>
-    db.rpc<{ id: string }>('message_send', { conversation_id: conversationId, client_id: randomUUID(), type: 'text', text }, as)
+    db.rpc<{ id: string }>(
+      'message_send',
+      { conversation_id: conversationId, client_id: randomUUID(), type: 'text', text },
+      as,
+    )
 
   beforeAll(async () => {
     db = await createTestDb()
@@ -53,8 +75,20 @@ describe('RLS matrix: messages and message_reactions', () => {
     const group = await createGroup(db, self, 'Crew')
     await addMember(db, group, member)
     groupConversation = group.conversationId
-    friendDm = (await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: friend.humanId }, self.as)).id
-    blockedDm = (await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: blocked.humanId }, self.as)).id
+    friendDm = (
+      await db.rpc<{ id: string }>(
+        'conversation_direct_get_or_create',
+        { other_human_id: friend.humanId },
+        self.as,
+      )
+    ).id
+    blockedDm = (
+      await db.rpc<{ id: string }>(
+        'conversation_direct_get_or_create',
+        { other_human_id: blocked.humanId },
+        self.as,
+      )
+    ).id
 
     groupMessage = (await send(self.as, groupConversation, 'group one')).id
     await send(self.as, groupConversation, 'group two')
@@ -84,7 +118,10 @@ describe('RLS matrix: messages and message_reactions', () => {
     await db.drop()
   })
 
-  async function run(actor: Actor, sql: string): Promise<{ kind: 'denied' | 'rls' | 'ok'; rows: number }> {
+  async function run(
+    actor: Actor,
+    sql: string,
+  ): Promise<{ kind: 'denied' | 'rls' | 'ok'; rows: number }> {
     try {
       const result = await db.asRole(actorSpec[actor], (c) => c.query(sql), { rollback: true })
       return { kind: 'ok', rows: result.rowCount ?? 0 }
@@ -100,7 +137,16 @@ describe('RLS matrix: messages and message_reactions', () => {
     {
       table: 'messages',
       // self: 3 group + 1 friend DM (the blocked DM is hidden both ways); member: 3; friend: 1.
-      select: { visitor: 'denied', guest: 0, claiming: 0, self: 4, other: 0, friend: 1, blocked: 0, member: 3 },
+      select: {
+        visitor: 'denied',
+        guest: 0,
+        claiming: 0,
+        self: 4,
+        other: 0,
+        friend: 1,
+        blocked: 0,
+        member: 3,
+      },
       insert: `insert into public.messages (conversation_id, sender_human_id, type, text) values ('${groupConversation}', '${humans.self.humanId}', 'text', 'direct')`,
       update: `update public.messages set text = 'edited' where id = '${groupMessage}'`,
       delete: `delete from public.messages where id = '${groupMessage}'`,
@@ -108,7 +154,16 @@ describe('RLS matrix: messages and message_reactions', () => {
     {
       table: 'message_reactions',
       // self: 2 group + 1 friend DM; member: 2; friend: 1; blocked: its own reaction is hidden by the block.
-      select: { visitor: 'denied', guest: 0, claiming: 0, self: 3, other: 0, friend: 1, blocked: 0, member: 2 },
+      select: {
+        visitor: 'denied',
+        guest: 0,
+        claiming: 0,
+        self: 3,
+        other: 0,
+        friend: 1,
+        blocked: 0,
+        member: 2,
+      },
       insert: `insert into public.message_reactions (message_id, human_id, reaction) values ('${dmMessage}', '${humans.friend.humanId}', '🔥')`,
       update: `update public.message_reactions set reaction = '🔥'`,
       delete: `delete from public.message_reactions`,
@@ -118,9 +173,10 @@ describe('RLS matrix: messages and message_reactions', () => {
   for (const table of ['messages', 'message_reactions']) {
     describe(`public.${table}`, () => {
       it('has row level security enabled', async () => {
-        const { rows } = await db.sql.query<{ rls: boolean }>('select relrowsecurity as rls from pg_class where oid = $1::regclass', [
-          `public.${table}`,
-        ])
+        const { rows } = await db.sql.query<{ rls: boolean }>(
+          'select relrowsecurity as rls from pg_class where oid = $1::regclass',
+          [`public.${table}`],
+        )
         expect(rows[0]?.rls).toBe(true)
       })
       for (const actor of ACTORS) {
@@ -158,9 +214,10 @@ describe('RLS matrix: messages and message_reactions', () => {
     expect((await run('self', 'select * from public.messages')).rows).toBe(5)
     expect((await run('blocked', 'select * from public.message_reactions')).rows).toBe(1)
     expect((await run('self', 'select * from public.message_reactions')).rows).toBe(4)
-    await db.sql.query(`insert into public.blocks (blocker_human_id, blocked_human_id) select $1, human_id from public.public_identities where handle = 'blocked'`, [
-      humans.self.humanId,
-    ])
+    await db.sql.query(
+      `insert into public.blocks (blocker_human_id, blocked_human_id) select $1, human_id from public.public_identities where handle = 'blocked'`,
+      [humans.self.humanId],
+    )
     expect(blockedDm).toBeTruthy()
   })
 })

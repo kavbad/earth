@@ -10,7 +10,9 @@ describe('device fingerprint (spec §34)', () => {
     const storage = createMemoryStorage()
     expect(deviceId(storage, crypto)).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
     expect(storage.values.get(DEVICE_ID_KEY)).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
-    expect(deviceId(storage, { randomUUID: () => 'other' })).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+    expect(deviceId(storage, { randomUUID: () => 'other' })).toBe(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    )
     expect(deviceId(null, crypto)).toBeNull()
   })
 

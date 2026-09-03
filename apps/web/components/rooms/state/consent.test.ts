@@ -111,7 +111,9 @@ describe('pendingConsentFor (Open up awaiting participants)', () => {
     expect(pendingConsentFor(room, participant({ audienceConsentLevel: 'world' }))).toBeNull()
     expect(pendingConsentFor(room, participant({ status: 'left' }))).toBeNull()
     expect(pendingConsentFor(room, null)).toBeNull()
-    expect(pendingConsentFor({ visibility: 'group', pendingVisibility: null }, participant())).toBeNull()
+    expect(
+      pendingConsentFor({ visibility: 'group', pendingVisibility: null }, participant()),
+    ).toBeNull()
   })
 })
 
@@ -136,7 +138,9 @@ describe('moderation helpers (spec §61, SCREEN 18)', () => {
     const initiator = participant({ humanId: OTHER, displayName: 'Maya', mediaState: 'audio' })
     const room = { initiatedByHumanId: OTHER, participants: [participant(), initiator] }
     expect(initiatorName(room)).toBe('Maya')
-    expect(initiatorName({ initiatedByHumanId: OTHER, participants: [participant()] })).toBe('Xavier')
+    expect(initiatorName({ initiatedByHumanId: OTHER, participants: [participant()] })).toBe(
+      'Xavier',
+    )
     expect(initiatorName({ initiatedByHumanId: OTHER, participants: [] })).toBeNull()
   })
 })

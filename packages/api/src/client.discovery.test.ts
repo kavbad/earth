@@ -156,18 +156,16 @@ describe('location', () => {
     expect(context.currentCityName).toBe('San Francisco')
   })
 
-  it('resolveAndSetContext resolves then sets the ids', async () => {
+  it('resolveAndSetContext is one RPC, context_resolve_and_set(lat, lng), answering the context', async () => {
     const { client, supabase } = createTestClient()
-    supabase.rpcData(RPC.areaResolve, fixtures.areaResolution({ neighborhood: null }))
-    supabase.rpcData(RPC.contextSet, fixtures.humanContext())
-    const resolution = await client.location.resolveAndSetContext({ lat: 37.76, lng: -122.42 })
-    expect(resolution.neighborhood).toBeNull()
-    expect(supabase.rpcCalls.map((call) => call.name)).toEqual(['area_resolve', 'context_set'])
-    expect(supabase.lastRpc().args).toEqual({
-      current_area_id: null,
-      current_city_id: IDS.city,
-      home_city_id: null,
-    })
+    supabase.rpcData(RPC.contextResolveAndSet, fixtures.humanContext())
+    const context = await client.location.resolveAndSetContext({ lat: 37.76, lng: -122.42 })
+    expect(context.currentCityName).toBe('San Francisco')
+    expect(supabase.rpcCalls.map((call) => call.name)).toEqual(['context_resolve_and_set'])
+    expect(supabase.lastRpc().args).toEqual({ lat: 37.76, lng: -122.42 })
+    expect(
+      (await earthRejection(client.location.resolveAndSetContext({ lat: 91, lng: 0 }))).code,
+    ).toBe('invalid_input')
   })
 
   it('setScope maps to scope_set(surface, scope)', async () => {
@@ -244,14 +242,16 @@ describe('location', () => {
 
   it('updateShare, revokeShare and visibleShares map their rpcs', async () => {
     const { client, supabase } = createTestClient()
-    supabase.rpcData(RPC.locationShareUpdate, null)
-    await client.location.updateShare({ shareId: IDS.share, position: { lat: 1, lng: 2 } })
+    supabase.rpcData(RPC.locationShareUpdate, fixtures.locationShare())
+    expect(
+      (await client.location.updateShare({ shareId: IDS.share, position: { lat: 1, lng: 2 } })).id,
+    ).toBe(IDS.share)
     expect(supabase.lastRpc()).toEqual({
       name: 'location_share_update',
       args: { share_id: IDS.share, lat: 1, lng: 2 },
     })
-    supabase.rpcData(RPC.locationShareRevoke, null)
-    await client.location.revokeShare(IDS.share)
+    supabase.rpcData(RPC.locationShareRevoke, fixtures.locationShare({ revokedAt: fixtures.AT }))
+    expect((await client.location.revokeShare(IDS.share)).revokedAt).toBe(fixtures.AT)
     expect(supabase.lastRpc()).toEqual({
       name: 'location_share_revoke',
       args: { share_id: IDS.share },
@@ -259,5 +259,20 @@ describe('location', () => {
     supabase.rpcData(RPC.locationSharesVisible, [fixtures.mapFriend()])
     expect((await client.location.visibleShares())[0]?.displayName).toBe('Maya')
     expect(supabase.lastRpc()).toEqual({ name: 'location_shares_visible', args: {} })
+  })
+
+  it('myShares calls location_shares_mine and accepts an array, { shares } or null', async () => {
+    const { client, supabase } = createTestClient()
+    supabase.rpcData(RPC.locationSharesMine, [fixtures.locationShare()])
+    const mine = await client.location.myShares()
+    expect(supabase.lastRpc()).toEqual({ name: 'location_shares_mine', args: {} })
+    expect(mine.map((share) => share.id)).toEqual([IDS.share])
+    expect(mine[0]?.audienceId).toBe(IDS.maya)
+    supabase.rpcData(RPC.locationSharesMine, { shares: [fixtures.locationShare()] })
+    expect(await client.location.myShares()).toHaveLength(1)
+    supabase.rpcData(RPC.locationSharesMine, null)
+    expect(await client.location.myShares()).toEqual([])
+    supabase.rpcError(RPC.locationSharesMine, postgrestRaise('not_authenticated'))
+    expect((await earthRejection(client.location.myShares())).code).toBe('not_authenticated')
   })
 })

@@ -54,12 +54,18 @@ export function ParticipantsSheet({
           return (
             <ListRow
               key={participant.id}
-              leading={<Avatar name={participant.displayName} src={participant.avatarUrl} decorative />}
+              leading={
+                <Avatar name={participant.displayName} src={participant.avatarUrl} decorative />
+              }
               title={
                 <span className="flex items-center gap-2">
                   <span className="truncate">{participant.displayName}</span>
-                  {participant.isGuest ? <span className="text-meta text-text-secondary">{copy.guest}</span> : null}
-                  {isMe ? <span className="text-meta text-text-secondary">{roomCopy.you}</span> : null}
+                  {participant.isGuest ? (
+                    <span className="text-meta text-text-secondary">{copy.guest}</span>
+                  ) : null}
+                  {isMe ? (
+                    <span className="text-meta text-text-secondary">{roomCopy.you}</span>
+                  ) : null}
                 </span>
               }
               subtitle={line === '' ? undefined : line}
@@ -67,11 +73,19 @@ export function ParticipantsSheet({
                 canModerate && !isMe ? (
                   <span className="flex items-center gap-1">
                     {participant.status === 'waiting' ? (
-                      <Button variant="secondary" loading={busy} onClick={() => onAdmit(participant)}>
+                      <Button
+                        variant="secondary"
+                        loading={busy}
+                        onClick={() => onAdmit(participant)}
+                      >
                         {roomCopy.admit}
                       </Button>
                     ) : null}
-                    <Button variant="quiet" loading={busy} onClick={() => onRemove(participant, false)}>
+                    <Button
+                      variant="quiet"
+                      loading={busy}
+                      onClick={() => onRemove(participant, false)}
+                    >
                       {copy.safety.remove}
                     </Button>
                     <button

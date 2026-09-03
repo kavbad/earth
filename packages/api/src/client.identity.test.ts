@@ -248,9 +248,56 @@ describe('identity', () => {
         profile_visibility: 'limited',
         public_city_visibility: null,
         home_city_area_id: null,
+        handle: null,
       },
     })
     expect(updated.bio).toBe('hi')
+  })
+
+  it('update sends a normalized handle and surfaces handle_taken / handle_invalid', async () => {
+    const { client, supabase } = createTestClient()
+    supabase.rpcData(RPC.identityUpdate, fixtures.identity({ handle: 'xav' }))
+    const updated = await client.identity.update({ handle: ' @Xav ' })
+    expect(supabase.lastRpc().args).toMatchObject({ handle: 'xav', display_name: null })
+    expect(updated.handle).toBe('xav')
+    // Malformed beyond case / whitespace / '@' never reaches the database.
+    expect((await earthRejection(client.identity.update({ handle: 'no spaces' }))).code).toBe(
+      'invalid_input',
+    )
+    expect(supabase.rpcCalls).toHaveLength(1)
+    supabase.rpcError(RPC.identityUpdate, postgrestRaise('handle_taken'))
+    expect((await earthRejection(client.identity.update({ handle: 'maya' }))).code).toBe(
+      'handle_taken',
+    )
+  })
+
+  it('deleteAccount posts to /api/account/delete with a bearer and parses the outcome', async () => {
+    const { client, fetch } = createTestClient({
+      accessToken: 'tok',
+      fetchHandler: {
+        json: { humanId: IDS.xavier, deletedAt: AT, credentialDeleted: true },
+      },
+    })
+    const result = await client.identity.deleteAccount()
+    expect(result).toEqual({ humanId: IDS.xavier, deletedAt: AT, credentialDeleted: true })
+    const request = fetch.lastRequest()
+    expect(request.url).toBe(`https://api.earth.test${SERVER_ROUTES.accountDelete}`)
+    expect(request.method).toBe('POST')
+    expect(request.headers['authorization']).toBe('Bearer tok')
+    expect(request.body).toEqual({})
+  })
+
+  it('deleteAccount needs a session and maps route errors', async () => {
+    const visitor = createTestClient()
+    expect((await earthRejection(visitor.client.identity.deleteAccount())).code).toBe(
+      'not_authenticated',
+    )
+    expect(visitor.fetch.requests).toHaveLength(0)
+    const { client } = createTestClient({
+      accessToken: 'tok',
+      fetchHandler: { status: 403, json: { error: { code: 'not_a_human', message: 'x' } } },
+    })
+    expect((await earthRejection(client.identity.deleteAccount())).code).toBe('not_a_human')
   })
 
   it('handleAvailable answers false locally for malformed handles', async () => {

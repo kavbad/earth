@@ -33,7 +33,11 @@ export interface ParticipantTileProps {
 }
 
 /** One face: video when there is a camera track, otherwise the avatar; name and Guest tag below. */
-export function ParticipantTile({ participant, featured = false, className }: ParticipantTileProps) {
+export function ParticipantTile({
+  participant,
+  featured = false,
+  className,
+}: ParticipantTileProps) {
   const label = participant.isSelf ? roomCopy.you : participant.displayName
   return (
     <div
@@ -61,9 +65,16 @@ export function ParticipantTile({ participant, featured = false, className }: Pa
       )}
       <div className="absolute bottom-2 left-2 flex max-w-[calc(100%-var(--earth-space-4))] items-center gap-1 rounded-small bg-background/85 px-2 py-0.5 text-meta text-text-primary">
         <span className="truncate">{label}</span>
-        {participant.isGuest ? <span className="shrink-0 text-text-secondary">{copy.guest}</span> : null}
+        {participant.isGuest ? (
+          <span className="shrink-0 text-text-secondary">{copy.guest}</span>
+        ) : null}
         {!participant.micOn ? (
-          <Icon name="micOff" size="small" title={copy.roomControls.microphone} className="shrink-0 text-text-secondary" />
+          <Icon
+            name="micOff"
+            size="small"
+            title={copy.roomControls.microphone}
+            className="shrink-0 text-text-secondary"
+          />
         ) : null}
       </div>
     </div>

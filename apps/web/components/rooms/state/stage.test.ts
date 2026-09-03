@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { ADAPTIVE_FROM, type StageTile, featuredTileId, orderStageTiles, stageLayout } from './stage'
+import {
+  ADAPTIVE_FROM,
+  type StageTile,
+  featuredTileId,
+  orderStageTiles,
+  stageLayout,
+} from './stage'
 
 function tile(id: string, overrides: Partial<StageTile> = {}): StageTile {
   return { id, isSelf: false, isSpeaking: false, hasVideo: true, ...overrides }
@@ -42,7 +48,11 @@ describe('featuredTileId (active-speaker emphasis)', () => {
   })
 
   it('never features self while others are present, and prefers video otherwise', () => {
-    const tiles = [tile('me', { isSelf: true, isSpeaking: true }), tile('a', { hasVideo: false }), tile('b')]
+    const tiles = [
+      tile('me', { isSelf: true, isSpeaking: true }),
+      tile('a', { hasVideo: false }),
+      tile('b'),
+    ]
     expect(featuredTileId(tiles, null)).toBe('b')
     expect(featuredTileId([tile('me', { isSelf: true })], null)).toBe('me')
     expect(featuredTileId([], null)).toBeNull()

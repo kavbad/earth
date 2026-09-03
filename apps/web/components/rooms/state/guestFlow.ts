@@ -3,7 +3,12 @@
  * post-room → done. The component only dispatches; every rule (name validation, which step a
  * failure returns to, the outcome recorded on leaving) lives here and is unit-tested.
  */
-import { GUEST_DISPLAY_NAME_MAX, type GuestSessionId, type MediaState, type RoomId } from '@earth/domain'
+import {
+  GUEST_DISPLAY_NAME_MAX,
+  type GuestSessionId,
+  type MediaState,
+  type RoomId,
+} from '@earth/domain'
 import type { GuestOutcome } from '@earth/analytics'
 
 export const GUEST_STEPS = ['preview', 'name', 'joining', 'in_room', 'post_room', 'done'] as const
@@ -61,7 +66,11 @@ export function guestFlowReducer(state: GuestFlowState, event: GuestFlowEvent): 
     case 'start':
       return state.step === 'preview' ? { ...state, step: 'name', error: null } : state
     case 'name_changed':
-      return { ...state, name: event.name, error: state.error === 'name_missing' ? null : state.error }
+      return {
+        ...state,
+        name: event.name,
+        error: state.error === 'name_missing' ? null : state.error,
+      }
     case 'camera_toggled':
       return { ...state, wantsCamera: event.on }
     case 'submit': {

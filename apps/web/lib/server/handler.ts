@@ -57,8 +57,7 @@ export function contextFailureResponse(cause: unknown, logger: Logger): EarthRes
 
 export function makeRouteHandler(options: MakeRouteHandlerOptions = {}): EarthRouteHandlers {
   const getContext = options.context ?? getServerContext
-  const fallbackLogger =
-    options.fallbackLogger ?? createLogger({ base: { service: WEB_APP_NAME } })
+  const fallbackLogger = options.fallbackLogger ?? createLogger({ base: { service: WEB_APP_NAME } })
 
   const handle: NextRouteHandler = async (request) => {
     let context: WebServerContext

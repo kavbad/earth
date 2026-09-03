@@ -4,6 +4,7 @@
  * path segments (`:param` captures one segment); handlers are wrapped so any thrown value becomes
  * the JSON error shape of `./http.ts`.
  */
+import { handleAccountDelete } from './account/delete'
 import { handleAnalyticsIngest } from './analytics/ingest'
 import {
   handleVerificationResult,
@@ -100,6 +101,12 @@ export const ROUTES: readonly RouteDefinition[] = [
   },
   { name: 'feed', method: 'GET', pattern: '/api/feed', handler: handleFeed },
   { name: 'live', method: 'GET', pattern: '/api/live', handler: handleLive },
+  {
+    name: 'account.delete',
+    method: 'POST',
+    pattern: '/api/account/delete',
+    handler: handleAccountDelete,
+  },
   {
     name: 'internal.push.dispatch',
     method: 'POST',

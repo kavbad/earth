@@ -124,7 +124,7 @@ describe('rooms', () => {
     expect(supabase.rpcCalls).toHaveLength(0)
   })
 
-  it('moderator actions map their rpcs', async () => {
+  it('moderator actions map their rpcs and return the room', async () => {
     const { client, supabase } = createTestClient()
     for (const name of [
       RPC.roomSetJoinPolicy,
@@ -133,9 +133,11 @@ describe('rooms', () => {
       RPC.roomEnd,
       RPC.roomRemoveParticipant,
     ]) {
-      supabase.rpcData(name, null)
+      supabase.rpcData(name, fixtures.roomDto())
     }
-    await client.rooms.setJoinPolicy({ roomId: ROOM, joinPolicy: 'request' })
+    expect((await client.rooms.setJoinPolicy({ roomId: ROOM, joinPolicy: 'request' })).id).toBe(
+      IDS.room,
+    )
     expect(supabase.lastRpc()).toEqual({
       name: 'room_set_join_policy',
       args: { room_id: IDS.room, join_policy: 'request' },
@@ -150,7 +152,7 @@ describe('rooms', () => {
       name: 'room_admit',
       args: { room_id: IDS.room, participant_id: IDS.participant },
     })
-    await client.rooms.end({ roomId: ROOM })
+    expect((await client.rooms.end({ roomId: ROOM })).id).toBe(IDS.room)
     expect(supabase.lastRpc()).toEqual({
       name: 'room_end',
       args: { room_id: IDS.room, reason: null },

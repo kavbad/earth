@@ -86,12 +86,26 @@ describe('areas, places and context (DB_API §5)', () => {
       }
       const bySlug = Object.fromEntries(rows.map((r) => [r.slug, r]))
       expect(bySlug[BASE_AREA_SLUGS.unitedStates]).toMatchObject({ type: 'country', parent: null })
-      expect(bySlug[BASE_AREA_SLUGS.california]).toMatchObject({ type: 'region', parent: BASE_AREA_SLUGS.unitedStates })
-      expect(bySlug[BASE_AREA_SLUGS.newYorkState]).toMatchObject({ type: 'region', parent: BASE_AREA_SLUGS.unitedStates })
-      for (const slug of [BASE_AREA_SLUGS.sanFrancisco, BASE_AREA_SLUGS.oakland, BASE_AREA_SLUGS.losAngeles]) {
+      expect(bySlug[BASE_AREA_SLUGS.california]).toMatchObject({
+        type: 'region',
+        parent: BASE_AREA_SLUGS.unitedStates,
+      })
+      expect(bySlug[BASE_AREA_SLUGS.newYorkState]).toMatchObject({
+        type: 'region',
+        parent: BASE_AREA_SLUGS.unitedStates,
+      })
+      for (const slug of [
+        BASE_AREA_SLUGS.sanFrancisco,
+        BASE_AREA_SLUGS.oakland,
+        BASE_AREA_SLUGS.losAngeles,
+      ]) {
         expect(bySlug[slug]).toMatchObject({ type: 'city', parent: BASE_AREA_SLUGS.california })
       }
-      expect(bySlug[BASE_AREA_SLUGS.newYork]).toMatchObject({ type: 'city', name: 'New York', parent: BASE_AREA_SLUGS.newYorkState })
+      expect(bySlug[BASE_AREA_SLUGS.newYork]).toMatchObject({
+        type: 'city',
+        name: 'New York',
+        parent: BASE_AREA_SLUGS.newYorkState,
+      })
       for (const slug of [
         BASE_AREA_SLUGS.northBeach,
         BASE_AREA_SLUGS.mission,
@@ -100,7 +114,10 @@ describe('areas, places and context (DB_API §5)', () => {
         BASE_AREA_SLUGS.soma,
         BASE_AREA_SLUGS.marina,
       ]) {
-        expect(bySlug[slug]).toMatchObject({ type: 'neighborhood', parent: BASE_AREA_SLUGS.sanFrancisco })
+        expect(bySlug[slug]).toMatchObject({
+          type: 'neighborhood',
+          parent: BASE_AREA_SLUGS.sanFrancisco,
+        })
       }
       expect(bySlug[BASE_AREA_SLUGS.soma]?.name).toBe('SoMa')
     })
@@ -124,22 +141,44 @@ describe('areas, places and context (DB_API §5)', () => {
       ).toBe('0')
       for (const slug of Object.values(BASE_AREA_SLUGS)) {
         expect(
-          await scalar<boolean>(db, 'select st_contains(geometry, centroid) from public.areas where slug = $1', [slug]),
+          await scalar<boolean>(
+            db,
+            'select st_contains(geometry, centroid) from public.areas where slug = $1',
+            [slug],
+          ),
           slug,
         ).toBe(true)
       }
     })
 
     it('ships Dolores Park, Washington Square Park and the Ferry Building as public places', async () => {
-      const { rows } = await db.sql.query<{ key: string; name: string; area: string; visibility: string; is_fixture: boolean }>(
+      const { rows } = await db.sql.query<{
+        key: string
+        name: string
+        area: string
+        visibility: string
+        is_fixture: boolean
+      }>(
         `select p.provider_reference as key, p.name, a.slug as area, p.visibility, p.is_fixture
            from public.places p join public.areas a on a.id = p.area_id
           where p.provider_reference = any($1) order by p.name`,
         [BASE_PLACE_KEYS.map((key) => `earth:${key}`)],
       )
       expect(rows).toEqual([
-        { key: 'earth:dolores-park', name: 'Dolores Park', area: BASE_AREA_SLUGS.mission, visibility: 'public', is_fixture: false },
-        { key: 'earth:ferry-building', name: 'Ferry Building', area: BASE_AREA_SLUGS.sanFrancisco, visibility: 'public', is_fixture: false },
+        {
+          key: 'earth:dolores-park',
+          name: 'Dolores Park',
+          area: BASE_AREA_SLUGS.mission,
+          visibility: 'public',
+          is_fixture: false,
+        },
+        {
+          key: 'earth:ferry-building',
+          name: 'Ferry Building',
+          area: BASE_AREA_SLUGS.sanFrancisco,
+          visibility: 'public',
+          is_fixture: false,
+        },
         {
           key: 'earth:washington-square-park',
           name: 'Washington Square Park',
@@ -156,7 +195,14 @@ describe('areas, places and context (DB_API §5)', () => {
           'earth.area_upsert(text, public.area_type, text, text, double precision, double precision, text, boolean)',
           'earth.place_upsert(text, text, text, double precision, double precision, text, boolean)',
         ]) {
-          expect(await scalar<boolean>(db, 'select has_function_privilege($1, $2, $3)', [role, fn, 'EXECUTE']), `${role} ${fn}`).toBe(false)
+          expect(
+            await scalar<boolean>(db, 'select has_function_privilege($1, $2, $3)', [
+              role,
+              fn,
+              'EXECUTE',
+            ]),
+            `${role} ${fn}`,
+          ).toBe(false)
         }
       }
     })
@@ -176,18 +222,16 @@ describe('areas, places and context (DB_API §5)', () => {
       expect(await count(db, 'public.areas')).toBe(areas)
       expect(await count(db, 'public.places')).toBe(places)
       // Fixture neighborhoods resolve like base ones and hang off the base cities.
-      const temescal = await db.rpc<{ neighborhood: { name: string } | null; city: { name: string } | null }>(
-        'area_resolve',
-        { lat: 37.834, lng: -122.262 },
-        alice.as,
-      )
+      const temescal = await db.rpc<{
+        neighborhood: { name: string } | null
+        city: { name: string } | null
+      }>('area_resolve', { lat: 37.834, lng: -122.262 }, alice.as)
       expect(temescal.neighborhood?.name).toBe('Temescal')
       expect(temescal.city?.name).toBe('Oakland')
-      const williamsburg = await db.rpc<{ neighborhood: { name: string } | null; city: { name: string } | null }>(
-        'area_resolve',
-        { lat: 40.7081, lng: -73.9571 },
-        alice.as,
-      )
+      const williamsburg = await db.rpc<{
+        neighborhood: { name: string } | null
+        city: { name: string } | null
+      }>('area_resolve', { lat: 40.7081, lng: -73.9571 }, alice.as)
       expect(williamsburg.neighborhood?.name).toBe('Williamsburg')
       expect(williamsburg.city?.name).toBe('New York')
       // Remove the fixtures again so the remaining tests see the production shape.
@@ -200,19 +244,40 @@ describe('areas, places and context (DB_API §5)', () => {
 
   describe('area_resolve', () => {
     it('is for signed-in callers of every kind, never visitors', async () => {
-      await db.expectError(db.rpc('area_resolve', { lat: 37.8, lng: -122.4 }, 'visitor'), 'not_authenticated')
+      await db.expectError(
+        db.rpc('area_resolve', { lat: 37.8, lng: -122.4 }, 'visitor'),
+        'not_authenticated',
+      )
       for (const as of [guest, claiming.as, unclaimed, alice.as, 'service' as const]) {
-        const result = await db.rpc<{ city: { name: string } | null }>('area_resolve', POINTS.northBeach, as)
+        const result = await db.rpc<{ city: { name: string } | null }>(
+          'area_resolve',
+          POINTS.northBeach,
+          as,
+        )
         expect(result.city?.name).toBe('San Francisco')
       }
     })
 
     it('returns North Beach + San Francisco for a coordinate in North Beach', async () => {
-      const result = await db.rpc<{ neighborhood: unknown; city: unknown }>('area_resolve', POINTS.northBeach, alice.as)
+      const result = await db.rpc<{ neighborhood: unknown; city: unknown }>(
+        'area_resolve',
+        POINTS.northBeach,
+        alice.as,
+      )
       const neighborhood = AreaDtoSchema.parse(result.neighborhood)
       const city = AreaDtoSchema.parse(result.city)
-      expect(neighborhood).toMatchObject({ id: northBeach, type: 'neighborhood', name: 'North Beach', parentAreaId: sf })
-      expect(city).toMatchObject({ id: sf, type: 'city', name: 'San Francisco', centroid: { lat: 37.7749, lng: -122.4194 } })
+      expect(neighborhood).toMatchObject({
+        id: northBeach,
+        type: 'neighborhood',
+        name: 'North Beach',
+        parentAreaId: sf,
+      })
+      expect(city).toMatchObject({
+        id: sf,
+        type: 'city',
+        name: 'San Francisco',
+        centroid: { lat: 37.7749, lng: -122.4194 },
+      })
     })
 
     it('returns only the city for a San Francisco coordinate outside the seeded neighborhoods', async () => {
@@ -223,13 +288,20 @@ describe('areas, places and context (DB_API §5)', () => {
       )
       expect(result.neighborhood).toBeNull()
       expect(result.city?.id).toBe(sf)
-      const eastBay = await db.rpc<{ neighborhood: unknown; city: { id: string } | null }>('area_resolve', POINTS.oakland, alice.as)
+      const eastBay = await db.rpc<{ neighborhood: unknown; city: { id: string } | null }>(
+        'area_resolve',
+        POINTS.oakland,
+        alice.as,
+      )
       expect(eastBay.neighborhood).toBeNull()
       expect(eastBay.city?.id).toBe(oakland)
     })
 
     it('returns null/null for the ocean', async () => {
-      expect(await db.rpc('area_resolve', POINTS.ocean, alice.as)).toEqual({ neighborhood: null, city: null })
+      expect(await db.rpc('area_resolve', POINTS.ocean, alice.as)).toEqual({
+        neighborhood: null,
+        city: null,
+      })
     })
 
     it('prefers the smallest containing area and resolves the city through the neighborhood', async () => {
@@ -243,18 +315,21 @@ describe('areas, places and context (DB_API §5)', () => {
         [sf],
       )
       const everywhere = rows[0]?.id
-      const result = await db.rpc<{ neighborhood: { id: string } | null }>('area_resolve', POINTS.mission, alice.as)
+      const result = await db.rpc<{ neighborhood: { id: string } | null }>(
+        'area_resolve',
+        POINTS.mission,
+        alice.as,
+      )
       expect(result.neighborhood?.id).toBe(mission)
       // A neighborhood whose polygon lies outside its city's coarse polygon still yields its city.
       await db.sql.query(
         `update public.areas set geometry = st_multi(st_geomfromtext('POLYGON((10 10, 11 10, 11 11, 10 11, 10 10))', 4326)) where id = $1`,
         [everywhere],
       )
-      const outside = await db.rpc<{ neighborhood: { id: string } | null; city: { id: string } | null }>(
-        'area_resolve',
-        { lat: 10.5, lng: 10.5 },
-        alice.as,
-      )
+      const outside = await db.rpc<{
+        neighborhood: { id: string } | null
+        city: { id: string } | null
+      }>('area_resolve', { lat: 10.5, lng: 10.5 }, alice.as)
       expect(outside.neighborhood?.id).toBe(everywhere)
       expect(outside.city?.id).toBe(sf)
       await db.sql.query('delete from public.areas where id = $1', [everywhere])
@@ -269,13 +344,20 @@ describe('areas, places and context (DB_API §5)', () => {
     it('stores nothing: no coordinate-typed column changes and no row mentions the input', async () => {
       const before = await coordinateDigest(db)
       const positions = await count(db, 'public.location_share_positions')
-      const probed = await db.rpc<{ neighborhood: { id: string } | null; city: { id: string } | null }>(
-        'area_resolve',
-        POINTS.northBeachProbe,
-        alice.as,
-      )
+      const probed = await db.rpc<{
+        neighborhood: { id: string } | null
+        city: { id: string } | null
+      }>('area_resolve', POINTS.northBeachProbe, alice.as)
       expect(probed.neighborhood?.id).toBe(northBeach)
-      expect((await db.rpc<{ neighborhood: unknown; city: { id: string } | null }>('area_resolve', POINTS.parkProbe, guest)).city?.id).toBe(sf)
+      expect(
+        (
+          await db.rpc<{ neighborhood: unknown; city: { id: string } | null }>(
+            'area_resolve',
+            POINTS.parkProbe,
+            guest,
+          )
+        ).city?.id,
+      ).toBe(sf)
       await db.rpc('area_resolve', POINTS.ocean, alice.as)
       expect(await coordinateDigest(db)).toEqual(before)
       expect(await count(db, 'public.location_share_positions')).toBe(positions)
@@ -287,9 +369,17 @@ describe('areas, places and context (DB_API §5)', () => {
     it('finds areas by name for everyone, best match first', async () => {
       const results = await db.rpc<unknown[]>('areas_search', { q: 'miss' }, 'visitor')
       expect(results.map((r) => AreaDtoSchema.parse(r).name)[0]).toBe('Mission')
-      const sanFrancisco = await db.rpc<Array<{ id: string }>>('areas_search', { q: 'san fran' }, guest)
+      const sanFrancisco = await db.rpc<Array<{ id: string }>>(
+        'areas_search',
+        { q: 'san fran' },
+        guest,
+      )
       expect(sanFrancisco.map((r) => r.id)).toContain(sf)
-      const fuzzy = await db.rpc<Array<{ name: string }>>('areas_search', { q: 'Hayes Vally' }, alice.as)
+      const fuzzy = await db.rpc<Array<{ name: string }>>(
+        'areas_search',
+        { q: 'Hayes Vally' },
+        alice.as,
+      )
       expect(fuzzy[0]?.name).toBe('Hayes Valley')
       expect(await db.rpc('areas_search', { q: 'zzzzqqq' }, alice.as)).toEqual([])
       // Wildcards are literal characters, not patterns.
@@ -298,19 +388,27 @@ describe('areas, places and context (DB_API §5)', () => {
 
     it('validates the query', async () => {
       await db.expectError(db.rpc('areas_search', { q: '   ' }, alice.as), 'invalid_input')
-      await db.expectError(db.rpc('areas_search', { q: 'x'.repeat(101) }, alice.as), 'invalid_input')
+      await db.expectError(
+        db.rpc('areas_search', { q: 'x'.repeat(101) }, alice.as),
+        'invalid_input',
+      )
       await db.expectError(db.rpc('areas_search', { q: null }, alice.as), 'invalid_input')
     })
 
     it('area_get returns an AreaDto to everyone and area_not_found otherwise', async () => {
       for (const as of ['visitor' as const, guest, alice.as]) {
-        expect(AreaDtoSchema.parse(await db.rpc('area_get', { id: northBeach }, as))).toMatchObject({
-          id: northBeach,
-          name: 'North Beach',
-          parentAreaId: sf,
-        })
+        expect(AreaDtoSchema.parse(await db.rpc('area_get', { id: northBeach }, as))).toMatchObject(
+          {
+            id: northBeach,
+            name: 'North Beach',
+            parentAreaId: sf,
+          },
+        )
       }
-      await db.expectError(db.rpc('area_get', { id: '00000000-0000-0000-0000-000000000000' }, alice.as), 'area_not_found')
+      await db.expectError(
+        db.rpc('area_get', { id: '00000000-0000-0000-0000-000000000000' }, alice.as),
+        'area_not_found',
+      )
     })
   })
 
@@ -329,24 +427,45 @@ describe('areas, places and context (DB_API §5)', () => {
     })
 
     it('searches public places by name, optionally inside an area, for everyone', async () => {
-      const parks = await db.rpc<unknown[]>('places_search', { q: 'park', area_id: null }, 'visitor')
+      const parks = await db.rpc<unknown[]>(
+        'places_search',
+        { q: 'park', area_id: null },
+        'visitor',
+      )
       const names = parks.map((p) => PlaceDtoSchema.parse(p).name)
       expect(names).toContain('Dolores Park')
       expect(names).toContain('Washington Square Park')
       expect(names).not.toContain('Secret Park')
-      const inNorthBeach = await db.rpc<Array<{ name: string }>>('places_search', { q: 'park', area_id: northBeach }, guest)
+      const inNorthBeach = await db.rpc<Array<{ name: string }>>(
+        'places_search',
+        { q: 'park', area_id: northBeach },
+        guest,
+      )
       expect(inNorthBeach.map((p) => p.name)).toEqual(['Washington Square Park'])
-      const inCity = await db.rpc<Array<{ name: string }>>('places_search', { q: 'park', area_id: sf }, alice.as)
-      expect(inCity.map((p) => p.name)).toEqual(expect.arrayContaining(['Dolores Park', 'Washington Square Park', 'Secret Park']))
+      const inCity = await db.rpc<Array<{ name: string }>>(
+        'places_search',
+        { q: 'park', area_id: sf },
+        alice.as,
+      )
+      expect(inCity.map((p) => p.name)).toEqual(
+        expect.arrayContaining(['Dolores Park', 'Washington Square Park', 'Secret Park']),
+      )
       expect(await db.rpc('places_search', { q: 'park', area_id: oakland }, alice.as)).toEqual([])
       await db.expectError(
-        db.rpc('places_search', { q: 'park', area_id: '00000000-0000-0000-0000-000000000000' }, alice.as),
+        db.rpc(
+          'places_search',
+          { q: 'park', area_id: '00000000-0000-0000-0000-000000000000' },
+          alice.as,
+        ),
         'area_not_found',
       )
-      await db.expectError(db.rpc('places_search', { q: '', area_id: null }, alice.as), 'invalid_input')
+      await db.expectError(
+        db.rpc('places_search', { q: '', area_id: null }, alice.as),
+        'invalid_input',
+      )
     })
 
-    it('place_get returns a PlaceDto; private places are the creator\'s only', async () => {
+    it("place_get returns a PlaceDto; private places are the creator's only", async () => {
       const dto = PlaceDtoSchema.parse(await db.rpc('place_get', { id: doloresPark }, 'visitor'))
       expect(dto).toMatchObject({
         id: doloresPark,
@@ -358,15 +477,26 @@ describe('areas, places and context (DB_API §5)', () => {
         category: 'park',
         visibility: 'public',
       })
-      expect(PlaceDtoSchema.parse(await db.rpc('place_get', { id: privatePlace }, alice.as)).visibility).toBe('private')
+      expect(
+        PlaceDtoSchema.parse(await db.rpc('place_get', { id: privatePlace }, alice.as)).visibility,
+      ).toBe('private')
       const bob = await human(db, 'Bob')
       await db.expectError(db.rpc('place_get', { id: privatePlace }, bob.as), 'not_visible')
       await db.expectError(db.rpc('place_get', { id: privatePlace }, 'visitor'), 'not_visible')
-      await db.expectError(db.rpc('place_get', { id: '00000000-0000-0000-0000-000000000000' }, alice.as), 'not_visible')
+      await db.expectError(
+        db.rpc('place_get', { id: '00000000-0000-0000-0000-000000000000' }, alice.as),
+        'not_visible',
+      )
     })
 
     it('place_create is for active Humans only', async () => {
-      const args = { name: 'Caffe Trieste', lat: POINTS.northBeach.lat, lng: POINTS.northBeach.lng, area_id: null, category: 'cafe' }
+      const args = {
+        name: 'Caffe Trieste',
+        lat: POINTS.northBeach.lat,
+        lng: POINTS.northBeach.lng,
+        area_id: null,
+        category: 'cafe',
+      }
       await db.expectError(db.rpc('place_create', args, 'visitor'), 'not_authenticated')
       await db.expectError(db.rpc('place_create', args, guest), 'not_a_human')
       await db.expectError(db.rpc('place_create', args, claiming.as), 'not_a_human')
@@ -379,7 +509,13 @@ describe('areas, places and context (DB_API §5)', () => {
       const created = PlaceDtoSchema.parse(
         await db.rpc(
           'place_create',
-          { name: '  Caffe Trieste ', lat: POINTS.northBeach.lat, lng: POINTS.northBeach.lng, area_id: null, category: 'cafe' },
+          {
+            name: '  Caffe Trieste ',
+            lat: POINTS.northBeach.lat,
+            lng: POINTS.northBeach.lng,
+            area_id: null,
+            category: 'cafe',
+          },
           alice.as,
         ),
       )
@@ -392,12 +528,22 @@ describe('areas, places and context (DB_API §5)', () => {
         category: 'cafe',
         visibility: 'public',
       })
-      expect(await scalar<string>(db, 'created_by_human_id from public.places where id = $1', [created.id])).toBe(alice.humanId)
+      expect(
+        await scalar<string>(db, 'created_by_human_id from public.places where id = $1', [
+          created.id,
+        ]),
+      ).toBe(alice.humanId)
       // The same public place in the same area is reused rather than duplicated.
       const again = PlaceDtoSchema.parse(
         await db.rpc(
           'place_create',
-          { name: 'caffe trieste', lat: POINTS.northBeach.lat + 0.0001, lng: POINTS.northBeach.lng, area_id: null, category: null },
+          {
+            name: 'caffe trieste',
+            lat: POINTS.northBeach.lat + 0.0001,
+            lng: POINTS.northBeach.lng,
+            area_id: null,
+            category: null,
+          },
           alice.as,
         ),
       )
@@ -406,7 +552,13 @@ describe('areas, places and context (DB_API §5)', () => {
       const inCity = PlaceDtoSchema.parse(
         await db.rpc(
           'place_create',
-          { name: 'Conservatory of Flowers', lat: POINTS.goldenGatePark.lat, lng: POINTS.goldenGatePark.lng, area_id: null, category: null },
+          {
+            name: 'Conservatory of Flowers',
+            lat: POINTS.goldenGatePark.lat,
+            lng: POINTS.goldenGatePark.lng,
+            area_id: null,
+            category: null,
+          },
           alice.as,
         ),
       )
@@ -414,49 +566,124 @@ describe('areas, places and context (DB_API §5)', () => {
       const explicit = PlaceDtoSchema.parse(
         await db.rpc(
           'place_create',
-          { name: 'Somewhere', lat: POINTS.goldenGatePark.lat, lng: POINTS.goldenGatePark.lng, area_id: mission, category: null },
+          {
+            name: 'Somewhere',
+            lat: POINTS.goldenGatePark.lat,
+            lng: POINTS.goldenGatePark.lng,
+            area_id: mission,
+            category: null,
+          },
           alice.as,
         ),
       )
       expect(explicit.areaId).toBe(mission)
       await db.expectError(
-        db.rpc('place_create', { name: 'Raft', lat: POINTS.ocean.lat, lng: POINTS.ocean.lng, area_id: null, category: null }, alice.as),
-        'area_not_found',
-      )
-      await db.expectError(
         db.rpc(
           'place_create',
-          { name: 'Raft', lat: POINTS.ocean.lat, lng: POINTS.ocean.lng, area_id: '00000000-0000-0000-0000-000000000000', category: null },
+          {
+            name: 'Raft',
+            lat: POINTS.ocean.lat,
+            lng: POINTS.ocean.lng,
+            area_id: null,
+            category: null,
+          },
           alice.as,
         ),
         'area_not_found',
       )
       await db.expectError(
-        db.rpc('place_create', { name: '   ', lat: POINTS.northBeach.lat, lng: POINTS.northBeach.lng, area_id: null, category: null }, alice.as),
-        'invalid_input',
+        db.rpc(
+          'place_create',
+          {
+            name: 'Raft',
+            lat: POINTS.ocean.lat,
+            lng: POINTS.ocean.lng,
+            area_id: '00000000-0000-0000-0000-000000000000',
+            category: null,
+          },
+          alice.as,
+        ),
+        'area_not_found',
       )
       await db.expectError(
-        db.rpc('place_create', { name: 'x'.repeat(121), lat: POINTS.northBeach.lat, lng: POINTS.northBeach.lng, area_id: null, category: null }, alice.as),
+        db.rpc(
+          'place_create',
+          {
+            name: '   ',
+            lat: POINTS.northBeach.lat,
+            lng: POINTS.northBeach.lng,
+            area_id: null,
+            category: null,
+          },
+          alice.as,
+        ),
         'invalid_input',
       )
       await db.expectError(
         db.rpc(
           'place_create',
-          { name: 'Spot', lat: POINTS.northBeach.lat, lng: POINTS.northBeach.lng, area_id: null, category: 'c'.repeat(61) },
+          {
+            name: 'x'.repeat(121),
+            lat: POINTS.northBeach.lat,
+            lng: POINTS.northBeach.lng,
+            area_id: null,
+            category: null,
+          },
           alice.as,
         ),
         'invalid_input',
       )
-      await db.expectError(db.rpc('place_create', { name: 'Spot', lat: 95, lng: 0, area_id: null, category: null }, alice.as), 'invalid_input')
+      await db.expectError(
+        db.rpc(
+          'place_create',
+          {
+            name: 'Spot',
+            lat: POINTS.northBeach.lat,
+            lng: POINTS.northBeach.lng,
+            area_id: null,
+            category: 'c'.repeat(61),
+          },
+          alice.as,
+        ),
+        'invalid_input',
+      )
+      await db.expectError(
+        db.rpc(
+          'place_create',
+          { name: 'Spot', lat: 95, lng: 0, area_id: null, category: null },
+          alice.as,
+        ),
+        'invalid_input',
+      )
     })
 
     it('place_create is rate limited (20 per hour)', async () => {
       const carol = await human(db, 'Carol')
       for (let i = 0; i < 20; i += 1) {
-        await db.rpc('place_create', { name: `Spot ${i}`, lat: POINTS.mission.lat, lng: POINTS.mission.lng, area_id: null, category: null }, carol.as)
+        await db.rpc(
+          'place_create',
+          {
+            name: `Spot ${i}`,
+            lat: POINTS.mission.lat,
+            lng: POINTS.mission.lng,
+            area_id: null,
+            category: null,
+          },
+          carol.as,
+        )
       }
       await db.expectError(
-        db.rpc('place_create', { name: 'Spot 20', lat: POINTS.mission.lat, lng: POINTS.mission.lng, area_id: null, category: null }, carol.as),
+        db.rpc(
+          'place_create',
+          {
+            name: 'Spot 20',
+            lat: POINTS.mission.lat,
+            lng: POINTS.mission.lng,
+            area_id: null,
+            category: null,
+          },
+          carol.as,
+        ),
         'rate_limited',
       )
     })
@@ -464,10 +691,22 @@ describe('areas, places and context (DB_API §5)', () => {
 
   describe('context_resolve_and_set', () => {
     it('is for active Humans only', async () => {
-      await db.expectError(db.rpc('context_resolve_and_set', POINTS.northBeach, 'visitor'), 'not_authenticated')
-      await db.expectError(db.rpc('context_resolve_and_set', POINTS.northBeach, guest), 'not_a_human')
-      await db.expectError(db.rpc('context_resolve_and_set', POINTS.northBeach, claiming.as), 'not_a_human')
-      await db.expectError(db.rpc('context_resolve_and_set', { lat: 200, lng: 0 }, alice.as), 'invalid_input')
+      await db.expectError(
+        db.rpc('context_resolve_and_set', POINTS.northBeach, 'visitor'),
+        'not_authenticated',
+      )
+      await db.expectError(
+        db.rpc('context_resolve_and_set', POINTS.northBeach, guest),
+        'not_a_human',
+      )
+      await db.expectError(
+        db.rpc('context_resolve_and_set', POINTS.northBeach, claiming.as),
+        'not_a_human',
+      )
+      await db.expectError(
+        db.rpc('context_resolve_and_set', { lat: 200, lng: 0 }, alice.as),
+        'invalid_input',
+      )
     })
 
     it('stores only the resolved area ids and returns the HumanContextDto', async () => {
@@ -475,7 +714,9 @@ describe('areas, places and context (DB_API §5)', () => {
       expect(await contextRow(db, dave)).toBeNull()
       const before = await coordinateDigest(db)
 
-      const inNorthBeach = HumanContextDtoSchema.parse(await db.rpc('context_resolve_and_set', POINTS.northBeachProbe, dave.as))
+      const inNorthBeach = HumanContextDtoSchema.parse(
+        await db.rpc('context_resolve_and_set', POINTS.northBeachProbe, dave.as),
+      )
       expect(inNorthBeach).toEqual({
         currentAreaId: northBeach,
         currentAreaName: 'North Beach',
@@ -483,22 +724,48 @@ describe('areas, places and context (DB_API §5)', () => {
         currentCityName: 'San Francisco',
         homeCityId: null,
       })
-      expect(await contextRow(db, dave)).toEqual({ current_area_id: northBeach, current_city_id: sf, home_city_id: null })
+      expect(await contextRow(db, dave)).toEqual({
+        current_area_id: northBeach,
+        current_city_id: sf,
+        home_city_id: null,
+      })
 
       // Inside the city but outside every seeded neighborhood: the neighborhood clears, the city stays.
-      const inPark = HumanContextDtoSchema.parse(await db.rpc('context_resolve_and_set', POINTS.parkProbe, dave.as))
-      expect(inPark).toMatchObject({ currentAreaId: null, currentAreaName: null, currentCityId: sf })
-      expect(await contextRow(db, dave)).toEqual({ current_area_id: null, current_city_id: sf, home_city_id: null })
+      const inPark = HumanContextDtoSchema.parse(
+        await db.rpc('context_resolve_and_set', POINTS.parkProbe, dave.as),
+      )
+      expect(inPark).toMatchObject({
+        currentAreaId: null,
+        currentAreaName: null,
+        currentCityId: sf,
+      })
+      expect(await contextRow(db, dave)).toEqual({
+        current_area_id: null,
+        current_city_id: sf,
+        home_city_id: null,
+      })
 
       // Back in North Beach, then somewhere unknown: an unresolvable position changes nothing.
       await db.rpc('context_resolve_and_set', POINTS.northBeachProbe, dave.as)
-      const atSea = HumanContextDtoSchema.parse(await db.rpc('context_resolve_and_set', POINTS.ocean, dave.as))
+      const atSea = HumanContextDtoSchema.parse(
+        await db.rpc('context_resolve_and_set', POINTS.ocean, dave.as),
+      )
       expect(atSea).toMatchObject({ currentAreaId: northBeach, currentCityId: sf })
-      expect(await contextRow(db, dave)).toEqual({ current_area_id: northBeach, current_city_id: sf, home_city_id: null })
+      expect(await contextRow(db, dave)).toEqual({
+        current_area_id: northBeach,
+        current_city_id: sf,
+        home_city_id: null,
+      })
 
       // Another city replaces both.
-      const eastBay = HumanContextDtoSchema.parse(await db.rpc('context_resolve_and_set', POINTS.oakland, dave.as))
-      expect(eastBay).toMatchObject({ currentAreaId: null, currentCityId: oakland, currentCityName: 'Oakland' })
+      const eastBay = HumanContextDtoSchema.parse(
+        await db.rpc('context_resolve_and_set', POINTS.oakland, dave.as),
+      )
+      expect(eastBay).toMatchObject({
+        currentAreaId: null,
+        currentCityId: oakland,
+        currentCityName: 'Oakland',
+      })
 
       // me_get reflects the same context.
       const me = await db.rpc<{ context: unknown }>('me_get', {}, dave.as)
@@ -529,9 +796,21 @@ describe('areas, places and context (DB_API §5)', () => {
 
     it('a fresh Human without context gets a row of nulls for an unknown position', async () => {
       const erin = await human(db, 'Erin')
-      const dto = HumanContextDtoSchema.parse(await db.rpc('context_resolve_and_set', POINTS.ocean, erin.as))
-      expect(dto).toEqual({ currentAreaId: null, currentAreaName: null, currentCityId: null, currentCityName: null, homeCityId: null })
-      expect(await contextRow(db, erin)).toEqual({ current_area_id: null, current_city_id: null, home_city_id: null })
+      const dto = HumanContextDtoSchema.parse(
+        await db.rpc('context_resolve_and_set', POINTS.ocean, erin.as),
+      )
+      expect(dto).toEqual({
+        currentAreaId: null,
+        currentAreaName: null,
+        currentCityId: null,
+        currentCityName: null,
+        homeCityId: null,
+      })
+      expect(await contextRow(db, erin)).toEqual({
+        current_area_id: null,
+        current_city_id: null,
+        home_city_id: null,
+      })
     })
   })
 })

@@ -58,7 +58,14 @@ export {
 } from '../rooms/fixtures'
 export { createPost, feed, feedIds, getPost, canSee, type FeedResult } from '../posts/fixtures'
 export { sendMessage } from '../notifications/fixtures'
-export { BASE_AREA_SLUGS, POINTS, areaBySlug, createShare, shareRow, visibleShares } from '../geo/fixtures'
+export {
+  BASE_AREA_SLUGS,
+  POINTS,
+  areaBySlug,
+  createShare,
+  shareRow,
+  visibleShares,
+} from '../geo/fixtures'
 
 export type { ReportReason, ReportStatus, ReportTargetType }
 
@@ -98,12 +105,20 @@ export function reportArgs(input: ReportInputArgs): Record<string, unknown> {
 }
 
 /** `report_create` as `as`, parsed. */
-export async function createReport(db: TestDb, as: RoleSpec, input: ReportInputArgs): Promise<ReportRow> {
+export async function createReport(
+  db: TestDb,
+  as: RoleSpec,
+  input: ReportInputArgs,
+): Promise<ReportRow> {
   return ReportRowSchema.parse(await db.rpc('report_create', reportArgs(input), as))
 }
 
 /** `report_create` that only cares about the error code (`null` when the call succeeded). */
-export async function reportErrorCode(db: TestDb, as: RoleSpec, input: ReportInputArgs): Promise<string | null> {
+export async function reportErrorCode(
+  db: TestDb,
+  as: RoleSpec,
+  input: ReportInputArgs,
+): Promise<string | null> {
   try {
     await db.rpc('report_create', reportArgs(input), as)
     return null
@@ -121,7 +136,12 @@ export async function blocksList(db: TestDb, as: RoleSpec): Promise<BlocksListWi
   return BlocksListWithIdentitiesSchema.parse(await db.rpc('blocks_list', {}, as))
 }
 
-export async function resolveReport(db: TestDb, reportId: string, status: ReportStatus, as: RoleSpec = 'service'): Promise<ReportRow> {
+export async function resolveReport(
+  db: TestDb,
+  reportId: string,
+  status: ReportStatus,
+  as: RoleSpec = 'service',
+): Promise<ReportRow> {
   return ReportRowSchema.parse(await db.rpc('report_resolve', { report_id: reportId, status }, as))
 }
 
@@ -159,7 +179,11 @@ export interface AuditRow {
 }
 
 /** Audit rows for an action (newest last), optionally for one target. */
-export async function auditRows(db: TestDb, action: string, targetId: string | null = null): Promise<AuditRow[]> {
+export async function auditRows(
+  db: TestDb,
+  action: string,
+  targetId: string | null = null,
+): Promise<AuditRow[]> {
   const { rows } = await db.sql.query<AuditRow>(
     `select actor_human_id, actor_role, actor_auth_user_id, action, target_type, target_id, details
        from private.audit_log
@@ -171,8 +195,15 @@ export async function auditRows(db: TestDb, action: string, targetId: string | n
 }
 
 /** Clears the rate-limit windows of one subject through the service helper of 0730. */
-export async function resetRateLimitsFor(db: TestDb, subject: string, action: string | null = null): Promise<number> {
-  const { rows } = await db.sql.query<{ n: number }>('select earth.rate_limit_reset($1, $2) as n', [subject, action])
+export async function resetRateLimitsFor(
+  db: TestDb,
+  subject: string,
+  action: string | null = null,
+): Promise<number> {
+  const { rows } = await db.sql.query<{ n: number }>('select earth.rate_limit_reset($1, $2) as n', [
+    subject,
+    action,
+  ])
   return Number(rows[0]?.n ?? 0)
 }
 

@@ -27,7 +27,16 @@ import {
   type Human,
 } from './fixtures'
 
-const ACTORS = ['visitor', 'guest', 'claiming', 'self', 'other', 'friend', 'blocked', 'member'] as const
+const ACTORS = [
+  'visitor',
+  'guest',
+  'claiming',
+  'self',
+  'other',
+  'friend',
+  'blocked',
+  'member',
+] as const
 type Actor = (typeof ACTORS)[number]
 
 /** `denied` = no privilege (42501); `rls` = privilege but the row policy refused; `ok` = written. */
@@ -42,7 +51,8 @@ interface TableCase {
   delete: { sql: () => string; expect: Record<Actor, CountOutcome> }
 }
 
-const all = <T>(value: T): Record<Actor, T> => Object.fromEntries(ACTORS.map((a) => [a, value])) as Record<Actor, T>
+const all = <T>(value: T): Record<Actor, T> =>
+  Object.fromEntries(ACTORS.map((a) => [a, value])) as Record<Actor, T>
 
 function q(value: string): string {
   return `'${value.replace(/'/g, "''")}'`
@@ -73,8 +83,15 @@ describe('RLS matrix over the geo tables', () => {
     await addMember(db, group, member)
     mission = await areaBySlug(db, BASE_AREA_SLUGS.mission)
 
-    const toFriend = await createShare(db, self, { audienceId: friend.humanId, precision: 'precise' })
-    const toGroup = await createShare(db, self, { audienceType: 'group', audienceId: group.groupId, precision: 'city' })
+    const toFriend = await createShare(db, self, {
+      audienceId: friend.humanId,
+      precision: 'precise',
+    })
+    const toGroup = await createShare(db, self, {
+      audienceType: 'group',
+      audienceId: group.groupId,
+      precision: 'city',
+    })
     shareIds = [toFriend.id, toGroup.id]
     // A share by someone else, so "self" really only sees their own.
     await befriend(db, other, friend)
@@ -115,7 +132,8 @@ describe('RLS matrix over the geo tables', () => {
       table: 'areas',
       select: all(areaCount),
       insert: {
-        sql: () => `insert into public.areas (type, name, slug, centroid) values ('city', 'X', 'probe-x', st_setsrid(st_makepoint(0, 0), 4326))`,
+        sql: () =>
+          `insert into public.areas (type, name, slug, centroid) values ('city', 'X', 'probe-x', st_setsrid(st_makepoint(0, 0), 4326))`,
         expect: all('denied'),
       },
       update: { sql: () => `update public.areas set name = 'x'`, expect: all('denied') },
@@ -125,7 +143,8 @@ describe('RLS matrix over the geo tables', () => {
       table: 'places',
       select: all(placeCount),
       insert: {
-        sql: () => `insert into public.places (name, area_id, location) values ('X', ${q(mission)}, st_setsrid(st_makepoint(0, 0), 4326))`,
+        sql: () =>
+          `insert into public.places (name, area_id, location) values ('X', ${q(mission)}, st_setsrid(st_makepoint(0, 0), 4326))`,
         expect: all('denied'),
       },
       update: { sql: () => `update public.places set name = 'x'`, expect: all('denied') },
@@ -133,13 +152,25 @@ describe('RLS matrix over the geo tables', () => {
     },
     {
       table: 'location_shares',
-      select: { visitor: 'denied', guest: 0, claiming: 0, self: 2, other: 1, friend: 0, blocked: 0, member: 0 },
+      select: {
+        visitor: 'denied',
+        guest: 0,
+        claiming: 0,
+        self: 2,
+        other: 1,
+        friend: 0,
+        blocked: 0,
+        member: 0,
+      },
       insert: {
         sql: () =>
           `insert into public.location_shares (human_id, audience_type, audience_id, precision, expires_at) values (${q(self.humanId)}, 'friend', gen_random_uuid(), 'city', now() + interval '1 hour')`,
         expect: all('denied'),
       },
-      update: { sql: () => `update public.location_shares set revoked_at = now()`, expect: all('denied') },
+      update: {
+        sql: () => `update public.location_shares set revoked_at = now()`,
+        expect: all('denied'),
+      },
       delete: { sql: () => `delete from public.location_shares`, expect: all('denied') },
     },
     {
@@ -150,7 +181,10 @@ describe('RLS matrix over the geo tables', () => {
           `insert into public.location_share_positions (share_id, location) values (${q(shareIds[0] ?? '')}, st_setsrid(st_makepoint(0, 0), 4326))`,
         expect: all('denied'),
       },
-      update: { sql: () => `update public.location_share_positions set updated_at = now()`, expect: all('denied') },
+      update: {
+        sql: () => `update public.location_share_positions set updated_at = now()`,
+        expect: all('denied'),
+      },
       delete: { sql: () => `delete from public.location_share_positions`, expect: all('denied') },
     },
   ]
@@ -164,9 +198,10 @@ describe('RLS matrix over the geo tables', () => {
       }
 
       it('has row level security enabled', async () => {
-        const { rows } = await db.sql.query<{ rls: boolean }>('select relrowsecurity as rls from pg_class where oid = $1::regclass', [
-          `public.${tableName}`,
-        ])
+        const { rows } = await db.sql.query<{ rls: boolean }>(
+          'select relrowsecurity as rls from pg_class where oid = $1::regclass',
+          [`public.${tableName}`],
+        )
         expect(rows[0]?.rls).toBe(true)
       })
 
@@ -200,16 +235,22 @@ describe('RLS matrix over the geo tables', () => {
   }
 
   it('the sharer reads only their own shares and never a position row', async () => {
-    const own = await db.asRole(actorSpec.self, (c) => c.query('select id from public.location_shares order by created_at'))
+    const own = await db.asRole(actorSpec.self, (c) =>
+      c.query('select id from public.location_shares order by created_at'),
+    )
     expect(own.rows.map((r) => (r as { id: string }).id).sort()).toEqual([...shareIds].sort())
     const denied = await run('self', 'select * from public.location_share_positions')
     expect(denied.kind).toBe('denied')
   })
 
   it('service_role bypasses the policies for sweeps and support tooling', async () => {
-    const shares = await db.asRole('service', (c) => c.query('select count(*)::int as n from public.location_shares'))
+    const shares = await db.asRole('service', (c) =>
+      c.query('select count(*)::int as n from public.location_shares'),
+    )
     expect((shares.rows[0] as { n: number }).n).toBe(3)
-    const positions = await db.asRole('service', (c) => c.query('select count(*)::int as n from public.location_share_positions'))
+    const positions = await db.asRole('service', (c) =>
+      c.query('select count(*)::int as n from public.location_share_positions'),
+    )
     expect((positions.rows[0] as { n: number }).n).toBe(3)
   })
 })

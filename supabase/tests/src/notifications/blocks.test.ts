@@ -38,18 +38,38 @@ describe('blocked actors never create notifications', () => {
 
   it('friend_request_send after being blocked by the target raises blocked and writes nothing', async () => {
     await db.rpc('block_set', { target_human_id: alice.humanId }, bob.as)
-    await db.expectError(db.rpc('friend_request_send', { target_human_id: bob.humanId }, alice.as), 'blocked')
-    await db.expectError(db.rpc('follow_set', { target_human_id: bob.humanId }, alice.as), 'blocked')
-    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [bob.humanId])).toBe(0)
-    expect(await listNotifications(db, bob.as, {})).toEqual({ notifications: [], nextCursor: null, unreadCount: 0 })
+    await db.expectError(
+      db.rpc('friend_request_send', { target_human_id: bob.humanId }, alice.as),
+      'blocked',
+    )
+    await db.expectError(
+      db.rpc('follow_set', { target_human_id: bob.humanId }, alice.as),
+      'blocked',
+    )
+    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [bob.humanId])).toBe(
+      0,
+    )
+    expect(await listNotifications(db, bob.as, {})).toEqual({
+      notifications: [],
+      nextCursor: null,
+      unreadCount: 0,
+    })
     expect(await unsent(db)).toEqual([])
     expect(await count(db, 'public.relationships', 'source_human_id = $1', [alice.humanId])).toBe(0)
   })
 
   it('the blocker cannot notify the blocked Human either', async () => {
-    await db.expectError(db.rpc('friend_request_send', { target_human_id: alice.humanId }, bob.as), 'blocked')
-    await db.expectError(db.rpc('friend_request_accept', { source_human_id: alice.humanId }, bob.as), 'blocked')
-    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [alice.humanId])).toBe(0)
+    await db.expectError(
+      db.rpc('friend_request_send', { target_human_id: alice.humanId }, bob.as),
+      'blocked',
+    )
+    await db.expectError(
+      db.rpc('friend_request_accept', { source_human_id: alice.humanId }, bob.as),
+      'blocked',
+    )
+    expect(
+      await count(db, 'public.notifications', 'recipient_human_id = $1', [alice.humanId]),
+    ).toBe(0)
     expect((await listNotifications(db, alice.as, {})).unreadCount).toBe(0)
   })
 
@@ -94,8 +114,13 @@ describe('blocked actors never create notifications', () => {
     expect(queued.map((r) => r.id)).toEqual([page.notifications[0]?.id])
     // Blocking again stops anything new (the pending request is dropped by block_set).
     await db.rpc('block_set', { target_human_id: alice.humanId }, bob.as)
-    await db.expectError(db.rpc('follow_set', { target_human_id: bob.humanId }, alice.as), 'blocked')
-    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [bob.humanId])).toBe(1)
+    await db.expectError(
+      db.rpc('follow_set', { target_human_id: bob.humanId }, alice.as),
+      'blocked',
+    )
+    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [bob.humanId])).toBe(
+      1,
+    )
     expect(await count(db, 'public.relationships', "type = 'friend_pending'")).toBe(0)
   })
 })

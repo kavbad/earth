@@ -73,6 +73,7 @@ const CLIENT_FUNCTIONS = [
   'guest_session_create',
   'guest_session_get',
   'handle_available',
+  'human_delete_request',
   'human_pass_record_result',
   'identity_review_create',
   'identity_update',
@@ -80,6 +81,7 @@ const CLIENT_FUNCTIONS = [
   'location_share_create',
   'location_share_revoke',
   'location_share_update',
+  'location_shares_mine',
   'location_shares_visible',
   'map_objects',
   'me_get',
@@ -102,6 +104,7 @@ const CLIENT_FUNCTIONS = [
   'post_hide',
   'post_reaction_set',
   'post_replies',
+  'posts_by_author',
   'presence_ping',
   'profile_get',
   'public_feed',
@@ -150,6 +153,7 @@ const CONTRACT_PUBLIC_SURFACE = [
   'me_get',
   'place_get',
   'places_search',
+  'posts_by_author',
   'profile_get',
   'public_feed',
   'room_get',
@@ -209,7 +213,9 @@ describe('execute-privilege matrix over public RPCs', () => {
     const service = new Set<string>(SERVICE_ONLY)
     const overlap = CLIENT_FUNCTIONS.filter((n) => service.has(n))
     expect(overlap, 'a function cannot be both client and service').toEqual([])
-    expect(CONTRACT_PUBLIC_SURFACE.every((n) => (CLIENT_FUNCTIONS as readonly string[]).includes(n))).toBe(true)
+    expect(
+      CONTRACT_PUBLIC_SURFACE.every((n) => (CLIENT_FUNCTIONS as readonly string[]).includes(n)),
+    ).toBe(true)
   })
 
   describe('per-function grants', () => {
@@ -224,13 +230,19 @@ describe('execute-privilege matrix over public RPCs', () => {
         // PUBLIC never has EXECUTE.
         expect(fn.pub, `${name} not executable by PUBLIC`).toBe(false)
         if (service.has(name)) {
-          expect({ anon: fn.anon, authenticated: fn.authenticated, service_role: fn.service_role }, name).toEqual({
+          expect(
+            { anon: fn.anon, authenticated: fn.authenticated, service_role: fn.service_role },
+            name,
+          ).toEqual({
             anon: false,
             authenticated: false,
             service_role: true,
           })
         } else {
-          expect({ anon: fn.anon, authenticated: fn.authenticated, service_role: fn.service_role }, name).toEqual({
+          expect(
+            { anon: fn.anon, authenticated: fn.authenticated, service_role: fn.service_role },
+            name,
+          ).toEqual({
             anon: true,
             authenticated: true,
             service_role: true,
@@ -255,12 +267,23 @@ describe('execute-privilege matrix over public RPCs', () => {
       ['notifications_prune', { days: 90 }],
       ['notifications_unsent', { limit: 10 }],
       ['report_resolve', { report_id: '00000000-0000-0000-0000-000000000000', status: 'resolved' }],
-      ['room_participant_sync', { room_id: '00000000-0000-0000-0000-000000000000', livekit_identity: 'h:x', event: 'participant_left', at: null }],
+      [
+        'room_participant_sync',
+        {
+          room_id: '00000000-0000-0000-0000-000000000000',
+          livekit_identity: 'h:x',
+          event: 'participant_left',
+          at: null,
+        },
+      ],
       ['rooms_sweep', {}],
     ]
     for (const [name, args] of cases) {
       for (const as of ['visitor', { userId: guest, isAnonymous: true }] as const) {
-        await expect(db.rpc(name, args, as), `${name} as ${typeof as === 'string' ? as : 'guest'}`).rejects.toMatchObject({
+        await expect(
+          db.rpc(name, args, as),
+          `${name} as ${typeof as === 'string' ? as : 'guest'}`,
+        ).rejects.toMatchObject({
           code: '42501',
         })
       }

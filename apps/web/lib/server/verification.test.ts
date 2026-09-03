@@ -77,7 +77,10 @@ describe('createIdentityReviewCallbacks', () => {
         locale: 'en-US',
         platform: 'web',
       }),
-    ).rejects.toMatchObject({ code: 'internal', details: { what: `${IDENTITY_REVIEWS_TABLE} insert` } })
+    ).rejects.toMatchObject({
+      code: 'internal',
+      details: { what: `${IDENTITY_REVIEWS_TABLE} insert` },
+    })
     await expect(callbacks.getReviewStatus('review-1')).rejects.toBeInstanceOf(EarthError)
   })
 })

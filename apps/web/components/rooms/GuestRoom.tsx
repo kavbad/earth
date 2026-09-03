@@ -74,7 +74,9 @@ export function previewTitle(preview: RoomInvitePreviewDto): string {
 }
 
 function viewerState(roleKind: string): ViewerRoleKind {
-  return roleKind === 'human' || roleKind === 'guest' || roleKind === 'claiming' ? roleKind : 'visitor'
+  return roleKind === 'human' || roleKind === 'guest' || roleKind === 'claiming'
+    ? roleKind
+    : 'visitor'
 }
 
 function isSignedInPerson(session: AuthSessionLike | null): boolean {
@@ -103,7 +105,10 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
   useEffect(() => {
     if (session.status !== 'ready' || opened.current) return
     opened.current = true
-    analytics.track('guest_room_opened', { roomId: preview.roomId, viewerState: viewerState(session.roleKind) })
+    analytics.track('guest_room_opened', {
+      roomId: preview.roomId,
+      viewerState: viewerState(session.roleKind),
+    })
   }, [session.status, session.roleKind, analytics, preview.roomId])
 
   const warmCredential = useCallback(() => {
@@ -140,7 +145,12 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
           guestSessionId: created.guestSessionId,
           mediaState,
         })
-        dispatch({ type: 'joined', guestSessionId: created.guestSessionId, roomId: created.roomId, at: Date.now() })
+        dispatch({
+          type: 'joined',
+          guestSessionId: created.guestSessionId,
+          roomId: created.roomId,
+          at: Date.now(),
+        })
       } catch (cause) {
         const code = errorCode(cause)
         dispatch({
@@ -187,8 +197,16 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
     setHumanBusy(true)
     setHumanError(null)
     try {
-      const room = await earth.rooms.joinWithInvite({ token, mediaState: 'watching', consentLevel: 'invited' })
-      analytics.track('live_join_requested', { roomId: room.id, mediaState: 'watching', source: 'invite' })
+      const room = await earth.rooms.joinWithInvite({
+        token,
+        mediaState: 'watching',
+        consentLevel: 'invited',
+      })
+      analytics.track('live_join_requested', {
+        roomId: room.id,
+        mediaState: 'watching',
+        source: 'invite',
+      })
       router.push(roomRoute(room.id))
     } catch (cause) {
       const code = errorCode(cause)
@@ -210,7 +228,14 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
 
   // ------------------------------------------------------------------ render
   if (state.step === 'in_room' && state.roomId !== null) {
-    return <GuestInRoom token={token} roomId={state.roomId} wantsCamera={state.wantsCamera} onLeft={onLeft} />
+    return (
+      <GuestInRoom
+        token={token}
+        roomId={state.roomId}
+        wantsCamera={state.wantsCamera}
+        onLeft={onLeft}
+      />
+    )
   }
   if (state.step === 'post_room' || state.step === 'done') {
     return <GuestPostRoom onClaim={claim} onDone={() => router.push(asRoute(ROUTES.home))} />
@@ -248,7 +273,12 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
 
       {preview.ended ? null : signedIn ? (
         <div className="flex flex-col gap-3">
-          <Button variant="primary" fullWidth loading={humanBusy || session.status === 'loading'} onClick={() => void joinAsHuman()}>
+          <Button
+            variant="primary"
+            fullWidth
+            loading={humanBusy || session.status === 'loading'}
+            onClick={() => void joinAsHuman()}
+          >
             {copy.joinThem}
           </Button>
           {humanError !== null ? (
@@ -260,12 +290,19 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
       ) : state.step === 'preview' ? (
         <div className="flex flex-col gap-3">
           {guestsOk && finalError === null ? (
-            <Button variant="primary" fullWidth loading={session.status === 'loading'} onClick={start}>
+            <Button
+              variant="primary"
+              fullWidth
+              loading={session.status === 'loading'}
+              onClick={start}
+            >
               {copy.joinAsGuest}
             </Button>
           ) : (
             <>
-              <p className="text-body text-text-secondary">{finalError ?? roomCopy.guestsNotAllowed}</p>
+              <p className="text-body text-text-secondary">
+                {finalError ?? roomCopy.guestsNotAllowed}
+              </p>
               <Button variant="primary" fullWidth onClick={() => gate.open('room_invite')}>
                 {copy.claimYourPlace}
               </Button>
@@ -290,11 +327,17 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
       )}
 
       {isMobile && !preview.ended ? (
-        <a href={appRoomLink(token)} className="min-h-touch-target inline-flex items-center self-start text-body text-earth-accent">
+        <a
+          href={appRoomLink(token)}
+          className="min-h-touch-target inline-flex items-center self-start text-body text-earth-accent"
+        >
           {copy.openInEarth}
         </a>
       ) : null}
-      <Link href={ROUTES.home} className="min-h-touch-target inline-flex items-center self-start text-secondary text-text-secondary">
+      <Link
+        href={ROUTES.home}
+        className="min-h-touch-target inline-flex items-center self-start text-secondary text-text-secondary"
+      >
         {webCopy.backToEarth}
       </Link>
     </section>

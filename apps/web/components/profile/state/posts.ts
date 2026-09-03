@@ -1,9 +1,9 @@
 /**
- * A profile's posts (SCREEN 22 "Now / posts"). DB_API §4 has no posts-by-author RPC in V1, so
- * the list is a visible-rows read of `posts` through the typed client's transport (RLS applies
- * `earth.can_view_post`), shaped into `PostViewDto`s with the profile's own identity. Media and
- * the viewer's reaction are not in the row; media posts fetch `post_get` when they scroll into
- * view. Pure so the shaping is tested without a database.
+ * A profile's posts (SCREEN 22 "Now / posts"). The list comes from `posts_by_author` (DB_API §4,
+ * 0996) through `earth.posts.byAuthor`, which answers full `PostViewDto`s; `useProfilePosts` no
+ * longer reads the `posts` table. The row helpers below shape a bare `posts` row into a
+ * `PostViewDto` (media and the viewer's reaction absent, fetched by `post_get` on demand) and stay
+ * pure so the shaping is tested without a database.
  */
 import {
   AudienceSchema,

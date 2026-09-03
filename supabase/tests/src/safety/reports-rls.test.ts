@@ -26,7 +26,18 @@ import {
   type Human,
 } from './fixtures'
 
-const ACTORS = ['visitor', 'guest1', 'guest2', 'claiming', 'self', 'other', 'friend', 'blocked', 'member', 'service'] as const
+const ACTORS = [
+  'visitor',
+  'guest1',
+  'guest2',
+  'claiming',
+  'self',
+  'other',
+  'friend',
+  'blocked',
+  'member',
+  'service',
+] as const
 type Actor = (typeof ACTORS)[number]
 
 /** `denied` = no privilege (42501); `rls` = privilege but the row policy refused; `ok` = written. */
@@ -34,7 +45,10 @@ type WriteOutcome = 'denied' | 'rls' | 'ok'
 type CountOutcome = 'denied' | number
 
 const clientsDenied = (service: WriteOutcome): Record<Actor, WriteOutcome> =>
-  Object.fromEntries(ACTORS.map((a) => [a, a === 'service' ? service : 'denied'])) as Record<Actor, WriteOutcome>
+  Object.fromEntries(ACTORS.map((a) => [a, a === 'service' ? service : 'denied'])) as Record<
+    Actor,
+    WriteOutcome
+  >
 
 describe('RLS matrix over public.reports', () => {
   let db: TestDb
@@ -66,8 +80,16 @@ describe('RLS matrix over public.reports', () => {
     await createGuestSession(db, guest1, invite.token, 'Sam')
     await createGuestSession(db, guest2, invite.token, 'Pat')
 
-    selfReportId = (await createReport(db, self.as, { targetType: 'human', targetId: other.humanId, reason: 'harassment' })).id
-    guestReportId = (await createReport(db, guest1.as, { targetType: 'room', targetId: roomId, reason: 'hate' })).id
+    selfReportId = (
+      await createReport(db, self.as, {
+        targetType: 'human',
+        targetId: other.humanId,
+        reason: 'harassment',
+      })
+    ).id
+    guestReportId = (
+      await createReport(db, guest1.as, { targetType: 'room', targetId: roomId, reason: 'hate' })
+    ).id
 
     actorSpec = {
       visitor: 'visitor',
@@ -132,7 +154,10 @@ describe('RLS matrix over public.reports', () => {
     })
 
     it(`update as ${actor}`, async () => {
-      const outcome = await run(actor, `update public.reports set status = 'resolved', resolved_at = now()`)
+      const outcome = await run(
+        actor,
+        `update public.reports set status = 'resolved', resolved_at = now()`,
+      )
       expect(outcome.kind).toBe(clientsDenied('ok')[actor])
       if (actor === 'service') expect(outcome.rows).toBe(2)
     })
@@ -145,22 +170,36 @@ describe('RLS matrix over public.reports', () => {
   }
 
   it('the reporter sees exactly their own row, a Guest exactly theirs', async () => {
-    const mine = await db.asRole(self.as, (c) => c.query<{ id: string }>('select id from public.reports'))
+    const mine = await db.asRole(self.as, (c) =>
+      c.query<{ id: string }>('select id from public.reports'),
+    )
     expect(mine.rows.map((r) => r.id)).toEqual([selfReportId])
-    const guest = await db.asRole(actorSpec.guest1, (c) => c.query<{ id: string }>('select id from public.reports'))
+    const guest = await db.asRole(actorSpec.guest1, (c) =>
+      c.query<{ id: string }>('select id from public.reports'),
+    )
     expect(guest.rows.map((r) => r.id)).toEqual([guestReportId])
     // The reported Human never learns about the report.
-    const target = await db.asRole(other.as, (c) => c.query('select id from public.reports where target_id = $1', [other.humanId]))
+    const target = await db.asRole(other.as, (c) =>
+      c.query('select id from public.reports where target_id = $1', [other.humanId]),
+    )
     expect(target.rowCount).toBe(0)
   })
 
   it('has row level security, a select policy for authenticated only, and no client grants beyond select', async () => {
-    const { rows: rls } = await db.sql.query<{ rls: boolean }>(`select relrowsecurity as rls from pg_class where oid = 'public.reports'::regclass`)
+    const { rows: rls } = await db.sql.query<{ rls: boolean }>(
+      `select relrowsecurity as rls from pg_class where oid = 'public.reports'::regclass`,
+    )
     expect(rls[0]?.rls).toBe(true)
-    const { rows: policies } = await db.sql.query<{ policyname: string; cmd: string; roles: string[] }>(
+    const { rows: policies } = await db.sql.query<{
+      policyname: string
+      cmd: string
+      roles: string[]
+    }>(
       `select policyname, cmd, roles::text[] as roles from pg_policies where schemaname = 'public' and tablename = 'reports' order by policyname`,
     )
-    expect(policies).toEqual([{ policyname: 'reports_select_own', cmd: 'SELECT', roles: ['authenticated'] }])
+    expect(policies).toEqual([
+      { policyname: 'reports_select_own', cmd: 'SELECT', roles: ['authenticated'] },
+    ])
     const { rows: grants } = await db.sql.query<{ grantee: string; privilege_type: string }>(
       `select grantee, privilege_type from information_schema.role_table_grants
         where table_schema = 'public' and table_name = 'reports' and grantee in ('anon', 'authenticated') order by 1, 2`,

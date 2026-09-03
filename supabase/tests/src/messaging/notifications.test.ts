@@ -44,7 +44,12 @@ describe('message notifications (spec §86)', () => {
   let henry: Human
   let crew: GroupFixture
 
-  const send = (as: RoleSpec, conversationId: string, text: string | null, extra: Record<string, unknown> = {}) =>
+  const send = (
+    as: RoleSpec,
+    conversationId: string,
+    text: string | null,
+    extra: Record<string, unknown> = {},
+  ) =>
     db.rpc<{ id: string; createdAt: string }>(
       'message_send',
       { conversation_id: conversationId, client_id: randomUUID(), type: 'text', text, ...extra },
@@ -52,7 +57,13 @@ describe('message notifications (spec §86)', () => {
     )
 
   const dmBetween = async (a: Human, b: Human): Promise<string> =>
-    (await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: b.humanId }, a.as)).id
+    (
+      await db.rpc<{ id: string }>(
+        'conversation_direct_get_or_create',
+        { other_human_id: b.humanId },
+        a.as,
+      )
+    ).id
 
   const notificationsForMessage = async (messageId: string): Promise<NotificationRow[]> =>
     (
@@ -75,11 +86,24 @@ describe('message notifications (spec §86)', () => {
     george = await createHuman(db, { handle: 'george', displayName: 'George' })
     henry = await createHuman(db, { handle: 'henry', displayName: 'Henry' })
     crew = await createGroup(db, alice, 'Weekend Crew')
-    for (const member of [bob, carol, dave, erin, frank, george, henry]) await addMember(db, crew, member)
+    for (const member of [bob, carol, dave, erin, frank, george, henry])
+      await addMember(db, crew, member)
     await block(db, erin, alice)
-    await db.rpc('conversation_set_prefs', { conversation_id: crew.conversationId, mute_state: 'muted' }, frank.as)
-    await db.rpc('conversation_set_prefs', { conversation_id: crew.conversationId, notification_level: 'none' }, george.as)
-    await db.rpc('conversation_set_prefs', { conversation_id: crew.conversationId, notification_level: 'mentions' }, henry.as)
+    await db.rpc(
+      'conversation_set_prefs',
+      { conversation_id: crew.conversationId, mute_state: 'muted' },
+      frank.as,
+    )
+    await db.rpc(
+      'conversation_set_prefs',
+      { conversation_id: crew.conversationId, notification_level: 'none' },
+      george.as,
+    )
+    await db.rpc(
+      'conversation_set_prefs',
+      { conversation_id: crew.conversationId, notification_level: 'mentions' },
+      henry.as,
+    )
   })
 
   beforeEach(async () => {
@@ -93,7 +117,9 @@ describe('message notifications (spec §86)', () => {
   it('group messages notify members with notification_level=all and mute_state=none, never the sender or a blocked pair', async () => {
     const message = await send(alice.as, crew.conversationId, 'hello crew')
     const rows = await notificationsForMessage(message.id)
-    expect(rows.map((r) => r.recipient_human_id).sort()).toEqual([bob.humanId, carol.humanId, dave.humanId].sort())
+    expect(rows.map((r) => r.recipient_human_id).sort()).toEqual(
+      [bob.humanId, carol.humanId, dave.humanId].sort(),
+    )
     for (const row of rows) {
       expect(row).toMatchObject({
         type: 'group_message',
@@ -112,18 +138,25 @@ describe('message notifications (spec §86)', () => {
     // Preferences suppress notifications but never unread counts.
     for (const quiet of [frank, george, henry]) {
       expect(
-        await scalar(db, 'unread_count from public.conversation_members where conversation_id = $1 and human_id = $2', [
-          crew.conversationId,
-          quiet.humanId,
-        ]),
+        await scalar(
+          db,
+          'unread_count from public.conversation_members where conversation_id = $1 and human_id = $2',
+          [crew.conversationId, quiet.humanId],
+        ),
       ).toBe(1)
     }
-    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [alice.humanId])).toBe(0)
-    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [erin.humanId])).toBe(0)
+    expect(
+      await count(db, 'public.notifications', 'recipient_human_id = $1', [alice.humanId]),
+    ).toBe(0)
+    expect(await count(db, 'public.notifications', 'recipient_human_id = $1', [erin.humanId])).toBe(
+      0,
+    )
 
     // The blocked member's own message reaches everyone but the Human on the other side of the block.
     const fromErin = await send(erin.as, crew.conversationId, 'erin here')
-    const recipients = (await notificationsForMessage(fromErin.id)).map((r) => r.recipient_human_id).sort()
+    const recipients = (await notificationsForMessage(fromErin.id))
+      .map((r) => r.recipient_human_id)
+      .sort()
     expect(recipients).toEqual([bob.humanId, carol.humanId, dave.humanId].sort())
     expect(recipients).not.toContain(alice.humanId)
 
@@ -134,9 +167,17 @@ describe('message notifications (spec §86)', () => {
       { conversation_id: crew.conversationId, client_id: clientId, type: 'text', text: 'once' },
       bob.as,
     )
-    await db.rpc('message_send', { conversation_id: crew.conversationId, client_id: clientId, type: 'text', text: 'once' }, bob.as)
+    await db.rpc(
+      'message_send',
+      { conversation_id: crew.conversationId, client_id: clientId, type: 'text', text: 'once' },
+      bob.as,
+    )
     // Bob's message reaches alice, carol, dave and erin (frank, george and henry opted out).
-    expect(await count(db, 'public.notifications', "object_type = 'message' and object_id = $1", [once.id])).toBe(4)
+    expect(
+      await count(db, 'public.notifications', "object_type = 'message' and object_id = $1", [
+        once.id,
+      ]),
+    ).toBe(4)
   })
 
   it('direct messages notify the other Human with a high priority direct_message', async () => {
@@ -154,7 +195,11 @@ describe('message notifications (spec §86)', () => {
       senderName: 'Alice',
       preview: 'just you',
     })
-    expect(rows[0]?.payload).toEqual({ senderName: 'Alice', preview: 'just you', conversationId: dm })
+    expect(rows[0]?.payload).toEqual({
+      senderName: 'Alice',
+      preview: 'just you',
+      conversationId: dm,
+    })
     // A muted DM stays silent.
     await db.rpc('conversation_set_prefs', { conversation_id: dm, mute_state: 'muted' }, bob.as)
     const silent = await send(alice.as, dm, 'muted')
@@ -177,7 +222,10 @@ describe('message notifications (spec §86)', () => {
     const [multilineRow] = await notificationsForMessage(multiline.id)
     expect(multilineRow?.payload['preview']).toBe('first line second line')
 
-    const photo = await send(alice.as, dm, null, { type: 'image', payload: { mediaId: randomUUID() } })
+    const photo = await send(alice.as, dm, null, {
+      type: 'image',
+      payload: { mediaId: randomUUID() },
+    })
     const [photoRow] = await notificationsForMessage(photo.id)
     expect(photoRow?.payload['preview']).toBe('Photo')
 
@@ -206,18 +254,29 @@ describe('message notifications (spec §86)', () => {
     )
     const message = await send(alice.as, summary.id, 'no name here')
     const rows = await notificationsForMessage(message.id)
-    const byRecipient = Object.fromEntries(rows.map((r) => [r.recipient_human_id, r.payload['groupName']]))
+    const byRecipient = Object.fromEntries(
+      rows.map((r) => [r.recipient_human_id, r.payload['groupName']]),
+    )
     expect(byRecipient).toEqual({ [bob.humanId]: 'Alice + Carol', [carol.humanId]: 'Alice + Bob' })
-    for (const row of rows) expect(NOTIFICATION_PAYLOAD_SCHEMAS.group_message.safeParse(row.payload).success).toBe(true)
+    for (const row of rows)
+      expect(NOTIFICATION_PAYLOAD_SCHEMAS.group_message.safeParse(row.payload).success).toBe(true)
   })
 
   it('system messages create no notifications', async () => {
     const before = await count(db, 'public.notifications')
     const ian = await createHuman(db, { handle: 'ian', displayName: 'Ian' })
     const invite = await createInvite(db, crew, alice)
-    const joined = await db.rpc<{ conversationId: string }>('group_invite_join', { token: invite.token }, ian.as)
+    const joined = await db.rpc<{ conversationId: string }>(
+      'group_invite_join',
+      { token: invite.token },
+      ian.as,
+    )
     expect(joined.conversationId).toBe(crew.conversationId)
-    expect(await count(db, 'public.messages', "conversation_id = $1 and type = 'system'", [crew.conversationId])).toBe(1)
+    expect(
+      await count(db, 'public.messages', "conversation_id = $1 and type = 'system'", [
+        crew.conversationId,
+      ]),
+    ).toBe(1)
     expect(await count(db, 'public.notifications')).toBe(before)
     await db.rpc('group_leave', { group_id: crew.groupId }, ian.as)
     expect(await count(db, 'public.notifications')).toBe(before)

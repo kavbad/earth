@@ -10,10 +10,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { REPO_ROOT } from '../../../../scripts/db/migrate-lib'
 import { createTestDb, type TestDb } from '../harness'
-import { createGuest, errorCode, human, resetRateLimitsFor, rpcAt, secondsFromNow, type Human } from './fixtures'
+import {
+  createGuest,
+  errorCode,
+  human,
+  resetRateLimitsFor,
+  rpcAt,
+  secondsFromNow,
+  type Human,
+} from './fixtures'
 
 /** RPC names that mutate by convention (ARCHITECTURE §5 `<noun>_<verb>`). */
-const MUTATING_NAME = /^(.*_(create|send|set|join|start|toggle|register|share|request|remove|end|hide|update|revoke))$/
+const MUTATING_NAME =
+  /^(.*_(create|send|set|join|start|toggle|register|share|request|remove|end|hide|update|revoke))$/
 
 /**
  * Functions matching MUTATING_NAME that may skip earth.rate_limit_for_caller, with the reason. Empty
@@ -28,7 +37,8 @@ const MUTATING_EXEMPT: Readonly<Record<string, string>> = {}
  * whose body refuses every caller but the service qualify (the service is never limited).
  */
 const VOLATILE_EXEMPT: Readonly<Record<string, string>> = {
-  human_pass_record_result: 'service-only by role check (DB_API §1); granted to the API roles for PostgREST discovery only',
+  human_pass_record_result:
+    'service-only by role check (DB_API §1); granted to the API roles for PostgREST discovery only',
 }
 
 interface FunctionRow {
@@ -69,7 +79,10 @@ async function limitCalls(db: TestDb): Promise<Set<string>> {
 
 /** Rows of the 0730 inventory: `-- | action | max | window_seconds | notes |`. */
 async function documentedLimits(): Promise<Set<string>> {
-  const text = await readFile(path.join(REPO_ROOT, 'supabase', 'migrations', '0730_rate_limit_audit.sql'), 'utf8')
+  const text = await readFile(
+    path.join(REPO_ROOT, 'supabase', 'migrations', '0730_rate_limit_audit.sql'),
+    'utf8',
+  )
   const rows = new Set<string>()
   for (const line of text.split('\n')) {
     const match = /^--\s*\|\s*([a-z_]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|/.exec(line)
@@ -97,7 +110,10 @@ describe('rate limit review (0730)', () => {
     const missing = mutating
       .filter((f) => !f.source.includes('rate_limit') && !(f.name in MUTATING_EXEMPT))
       .map((f) => f.signature)
-    expect(missing, 'mutating RPCs without a rate limit (add earth.rate_limit_for_caller or a justified exemption)').toEqual([])
+    expect(
+      missing,
+      'mutating RPCs without a rate limit (add earth.rate_limit_for_caller or a justified exemption)',
+    ).toEqual([])
     // Every rate-limited RPC goes through the caller-aware wrapper, never the raw earth.rate_limit.
     for (const f of mutating.filter((f) => f.source.includes('rate_limit'))) {
       expect(f.source, f.signature).toContain('earth.rate_limit_for_caller(')
@@ -113,29 +129,41 @@ describe('rate limit review (0730)', () => {
     for (const name of Object.keys(VOLATILE_EXEMPT)) {
       const fn = functions.find((f) => f.name === name)
       expect(fn, `stale exemption ${name}`).toBeDefined()
-      expect(fn?.source, `${name} must refuse non-service callers`).toMatch(/current_role_kind\(\)\s*(<>|!=)\s*'service'|forbidden/)
+      expect(fn?.source, `${name} must refuse non-service callers`).toMatch(
+        /current_role_kind\(\)\s*(<>|!=)\s*'service'|forbidden/,
+      )
     }
   })
 
   it('exemption lists only name functions that exist', () => {
     const names = new Set(functions.map((f) => f.name))
-    for (const name of Object.keys(MUTATING_EXEMPT)) expect(names.has(name), `stale exemption ${name}`).toBe(true)
-    for (const name of Object.keys(VOLATILE_EXEMPT)) expect(names.has(name), `stale exemption ${name}`).toBe(true)
+    for (const name of Object.keys(MUTATING_EXEMPT))
+      expect(names.has(name), `stale exemption ${name}`).toBe(true)
+    for (const name of Object.keys(VOLATILE_EXEMPT))
+      expect(names.has(name), `stale exemption ${name}`).toBe(true)
   })
 
   it('the inventory in 0730 lists exactly the limits found in the function sources', async () => {
     const actual = await limitCalls(db)
     const documented = await documentedLimits()
     expect(actual.size).toBeGreaterThan(50)
-    expect([...actual].filter((c) => !documented.has(c)), 'limits missing from the 0730 inventory').toEqual([])
-    expect([...documented].filter((c) => !actual.has(c)), 'inventory rows with no matching call').toEqual([])
+    expect(
+      [...actual].filter((c) => !documented.has(c)),
+      'limits missing from the 0730 inventory',
+    ).toEqual([])
+    expect(
+      [...documented].filter((c) => !actual.has(c)),
+      'inventory rows with no matching call',
+    ).toEqual([])
   })
 
   it('no function calls earth.rate_limit_for_caller with a non-literal budget (the inventory would miss it)', () => {
     for (const f of functions) {
       const calls = f.source.match(/rate_limit_for_caller\([^)]*\)/g) ?? []
       for (const call of calls) {
-        expect(call, f.signature).toMatch(/rate_limit_for_caller\(\s*'[a-z_]+'\s*,\s*\d+\s*,\s*\d+\s*\)/)
+        expect(call, f.signature).toMatch(
+          /rate_limit_for_caller\(\s*'[a-z_]+'\s*,\s*\d+\s*,\s*\d+\s*\)/,
+        )
       }
     }
   })
@@ -165,32 +193,56 @@ describe('rate limit review (0730)', () => {
 
     it('is not executable by anon/authenticated; executable by the owner and the service', async () => {
       for (const role of ['anon', 'authenticated', 'public']) {
-        const { rows } = await db.sql.query<{ ok: boolean }>(`select has_function_privilege($1, 'earth.rate_limit_reset(text, text)', 'execute') as ok`, [role])
+        const { rows } = await db.sql.query<{ ok: boolean }>(
+          `select has_function_privilege($1, 'earth.rate_limit_reset(text, text)', 'execute') as ok`,
+          [role],
+        )
         expect(rows[0]?.ok, role).toBe(false)
       }
-      const { rows } = await db.sql.query<{ ok: boolean }>(`select has_function_privilege('service_role', 'earth.rate_limit_reset(text, text)', 'execute') as ok`)
+      const { rows } = await db.sql.query<{ ok: boolean }>(
+        `select has_function_privilege('service_role', 'earth.rate_limit_reset(text, text)', 'execute') as ok`,
+      )
       expect(rows[0]?.ok).toBe(true)
-      const viaService = await db.asRole('service', (c) => c.query<{ n: number }>(`select earth.rate_limit_reset('nobody') as n`))
+      const viaService = await db.asRole('service', (c) =>
+        c.query<{ n: number }>(`select earth.rate_limit_reset('nobody') as n`),
+      )
       expect(Number(viaService.rows[0]?.n)).toBe(0)
     })
 
     it('refuses non-service callers even through a security definer wrapper', async () => {
-      expect(await errorCode(db.rpc('probe_reset', { subject: alice.userId }, alice.as))).toBe('forbidden')
-      expect(await errorCode(db.rpc('probe_reset', { subject: 'anon' }, 'visitor'))).toBe('forbidden')
-      expect(await errorCode(db.rpc('probe_reset', { subject: alice.userId }, (await createGuest(db)).as))).toBe('forbidden')
+      expect(await errorCode(db.rpc('probe_reset', { subject: alice.userId }, alice.as))).toBe(
+        'forbidden',
+      )
+      expect(await errorCode(db.rpc('probe_reset', { subject: 'anon' }, 'visitor'))).toBe(
+        'forbidden',
+      )
+      expect(
+        await errorCode(
+          db.rpc('probe_reset', { subject: alice.userId }, (await createGuest(db)).as),
+        ),
+      ).toBe('forbidden')
     })
 
     it('validates its arguments', async () => {
-      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset(null)`))).toBe('invalid_input')
-      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset('')`))).toBe('invalid_input')
-      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset('x', 'a:b')`))).toBe('invalid_input')
+      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset(null)`))).toBe(
+        'invalid_input',
+      )
+      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset('')`))).toBe(
+        'invalid_input',
+      )
+      expect(await errorCode(db.sql.query(`select earth.rate_limit_reset('x', 'a:b')`))).toBe(
+        'invalid_input',
+      )
     })
 
     it('clears the windows of one subject (all actions or one), leaving other subjects alone', async () => {
       const bob = await human(db, 'Bob')
       const at = secondsFromNow(0)
-      for (let i = 0; i < 3; i += 1) await rpcAt(db, 'probe_limited', { max_count: 3 }, alice.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 3 }, alice.as, at))).toBe('rate_limited')
+      for (let i = 0; i < 3; i += 1)
+        await rpcAt(db, 'probe_limited', { max_count: 3 }, alice.as, at)
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 3 }, alice.as, at))).toBe(
+        'rate_limited',
+      )
       await rpcAt(db, 'probe_limited', { max_count: 3 }, bob.as, at)
       await db.rpc('scope_set', { surface: 'home', scope: 'world' }, alice.as)
       expect(await resetRateLimitsFor(db, alice.userId, 'probe')).toBe(1)
@@ -200,14 +252,18 @@ describe('rate limit review (0730)', () => {
       // Bob's window is untouched: two more attempts fit, the fourth does not.
       await rpcAt(db, 'probe_limited', { max_count: 3 }, bob.as, at)
       await rpcAt(db, 'probe_limited', { max_count: 3 }, bob.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 3 }, bob.as, at))).toBe('rate_limited')
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 3 }, bob.as, at))).toBe(
+        'rate_limited',
+      )
     })
 
     it('resets the shared visitor key and a client address', async () => {
       const at = secondsFromNow(0)
       await db.asRole('visitor', async (c) => {
         await c.query(`select set_config('earth.now', $1, true)`, [at])
-        await c.query(`select set_config('request.headers', '{"cf-connecting-ip": "203.0.113.9"}', true)`)
+        await c.query(
+          `select set_config('request.headers', '{"cf-connecting-ip": "203.0.113.9"}', true)`,
+        )
         await c.query('select public.probe_limited(2)')
       })
       await db.asRole('visitor', async (c) => {
@@ -216,10 +272,16 @@ describe('rate limit review (0730)', () => {
       })
       // Without a trusted header the visitor is keyed by the socket peer (PostgREST in production, this
       // test's connection here), and by the shared 'anon' key only when even that is unknown.
-      const { rows: peer } = await db.sql.query<{ subject: string }>(`select coalesce(host(inet_client_addr()), 'anon') as subject`)
+      const { rows: peer } = await db.sql.query<{ subject: string }>(
+        `select coalesce(host(inet_client_addr()), 'anon') as subject`,
+      )
       const peerSubject = peer[0]?.subject ?? 'anon'
-      const { rows } = await db.sql.query<{ key: string }>(`select key from private.rate_limits where key like 'probe:%' order by key`)
-      expect(rows.map((r) => r.key)).toEqual(expect.arrayContaining(['probe:203.0.113.9', `probe:${peerSubject}`]))
+      const { rows } = await db.sql.query<{ key: string }>(
+        `select key from private.rate_limits where key like 'probe:%' order by key`,
+      )
+      expect(rows.map((r) => r.key)).toEqual(
+        expect.arrayContaining(['probe:203.0.113.9', `probe:${peerSubject}`]),
+      )
       expect(await resetRateLimitsFor(db, '203.0.113.9')).toBe(1)
       expect(await resetRateLimitsFor(db, peerSubject)).toBe(1)
       expect(await resetRateLimitsFor(db, '203.0.113.9')).toBe(0)
@@ -231,23 +293,37 @@ describe('rate limit review (0730)', () => {
       const carol = await human(db, 'Carol')
       const guest = await createGuest(db)
       const at = secondsFromNow(0)
-      for (let i = 0; i < 4; i += 1) await rpcAt(db, 'probe_limited', { max_count: 4 }, carol.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 4 }, carol.as, at))).toBe('rate_limited')
-      for (let i = 0; i < 2; i += 1) await rpcAt(db, 'probe_limited', { max_count: 4 }, guest.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 4 }, guest.as, at))).toBe('rate_limited')
+      for (let i = 0; i < 4; i += 1)
+        await rpcAt(db, 'probe_limited', { max_count: 4 }, carol.as, at)
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 4 }, carol.as, at))).toBe(
+        'rate_limited',
+      )
+      for (let i = 0; i < 2; i += 1)
+        await rpcAt(db, 'probe_limited', { max_count: 4 }, guest.as, at)
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 4 }, guest.as, at))).toBe(
+        'rate_limited',
+      )
       // An odd budget rounds up so a positive limit never becomes zero.
       const guest2 = await createGuest(db)
       await rpcAt(db, 'probe_limited', { max_count: 1 }, guest2.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 1 }, guest2.as, at))).toBe('rate_limited')
-      for (let i = 0; i < 10; i += 1) expect(await db.rpc('probe_limited', { max_count: 1 }, 'service')).toBe(1)
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 1 }, guest2.as, at))).toBe(
+        'rate_limited',
+      )
+      for (let i = 0; i < 10; i += 1)
+        expect(await db.rpc('probe_limited', { max_count: 1 }, 'service')).toBe(1)
     })
 
     it('a refused attempt does not extend the window', async () => {
       const dave = await human(db, 'Dave')
       const at = secondsFromNow(0)
       await rpcAt(db, 'probe_limited', { max_count: 1 }, dave.as, at)
-      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 1 }, dave.as, at))).toBe('rate_limited')
-      const { rows } = await db.sql.query<{ count: number }>(`select count from private.rate_limits where key = $1`, [`probe:${dave.userId}`])
+      expect(await errorCode(rpcAt(db, 'probe_limited', { max_count: 1 }, dave.as, at))).toBe(
+        'rate_limited',
+      )
+      const { rows } = await db.sql.query<{ count: number }>(
+        `select count from private.rate_limits where key = $1`,
+        [`probe:${dave.userId}`],
+      )
       expect(Number(rows[0]?.count)).toBe(1)
       let failure: unknown
       try {

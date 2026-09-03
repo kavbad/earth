@@ -66,7 +66,12 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
       })
     }
     // Rows of other Humans never leak into Alice's list.
-    await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, createdAt: at(10) })
+    await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      createdAt: at(10),
+    })
   })
 
   afterAll(async () => {
@@ -81,7 +86,9 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     )
     expect(rows.map((r) => r.label)).toEqual([...NOTIFICATION_PRIORITY])
     for (const row of rows) {
-      expect(row.rank).toBe(NOTIFICATION_PRIORITY_RANK[row.label as keyof typeof NOTIFICATION_PRIORITY_RANK])
+      expect(row.rank).toBe(
+        NOTIFICATION_PRIORITY_RANK[row.label as keyof typeof NOTIFICATION_PRIORITY_RANK],
+      )
     }
     expect(rows.map((r) => r.rank)).toEqual([0, 1, 2, 3])
     // The list query path is indexed.
@@ -110,7 +117,8 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
       body: 'Join them',
     })
     expect(page.notifications[2]?.readAt).not.toBeNull()
-    for (const n of page.notifications) expect(NotificationDtoSchema.safeParse(n).success).toBe(true)
+    for (const n of page.notifications)
+      expect(NotificationDtoSchema.safeParse(n).success).toBe(true)
   })
 
   it('paginates stably with the (createdAt,id) keyset cursor', async () => {
@@ -125,9 +133,10 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     expect(third.nextCursor).toBeNull()
     // Every page size walks the same sequence without duplicates or gaps.
     for (const limit of [1, 2, 3, 5, 8]) {
-      expect((await listAllNotifications(db, alice.as, limit)).map((n) => n.id), `limit ${limit}`).toEqual(
-        EXPECTED.map((k) => ids[k]),
-      )
+      expect(
+        (await listAllNotifications(db, alice.as, limit)).map((n) => n.id),
+        `limit ${limit}`,
+      ).toEqual(EXPECTED.map((k) => ids[k]))
     }
     // An exact fit leaves no dangling cursor.
     const exact = await listNotifications(db, alice.as, { limit: 8 })
@@ -139,8 +148,20 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     const first = await listNotifications(db, alice.as, { limit: 3 })
     // A newer critical row: it belongs before the cursor (rank already passed) and is skipped on the
     // continuation; a newer low row lands ahead of the older low rows when that rank is reached.
-    const lateCritical = await insertNotification(db, { recipient: alice, type: 'friend_live', actor: carol, payload: { name: 'Carol' }, createdAt: at(20) })
-    const lateLow = await insertNotification(db, { recipient: alice, type: 'follow', actor: carol, payload: { name: 'Carol' }, createdAt: at(21) })
+    const lateCritical = await insertNotification(db, {
+      recipient: alice,
+      type: 'friend_live',
+      actor: carol,
+      payload: { name: 'Carol' },
+      createdAt: at(20),
+    })
+    const lateLow = await insertNotification(db, {
+      recipient: alice,
+      type: 'follow',
+      actor: carol,
+      payload: { name: 'Carol' },
+      createdAt: at(21),
+    })
     const rest: string[] = []
     let cursor = first.nextCursor
     while (cursor !== null) {
@@ -151,8 +172,12 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     expect(rest).toEqual([ids['E'], ids['B'], ids['C'], lateLow, ids['F'], ids['A']])
     expect(rest).not.toContain(lateCritical)
     // A fresh list starts with the new critical row.
-    expect((await listNotifications(db, alice.as, { limit: 1 })).notifications[0]?.id).toBe(lateCritical)
-    await db.sql.query('delete from public.notifications where id = any($1::uuid[])', [[lateCritical, lateLow]])
+    expect((await listNotifications(db, alice.as, { limit: 1 })).notifications[0]?.id).toBe(
+      lateCritical,
+    )
+    await db.sql.query('delete from public.notifications where id = any($1::uuid[])', [
+      [lateCritical, lateLow],
+    ])
   })
 
   it('rejects malformed or foreign cursors with invalid_input', async () => {
@@ -160,7 +185,13 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     const cursor = first.nextCursor
     expect(cursor).not.toBeNull()
     if (cursor === null) return
-    for (const bad of ['garbage', 'x,y', `${ids['D']}`, `2026-09-01T10:00:04+00:00,not-a-uuid`, `nope,${ids['D']}`]) {
+    for (const bad of [
+      'garbage',
+      'x,y',
+      `${ids['D']}`,
+      `2026-09-01T10:00:04+00:00,not-a-uuid`,
+      `nope,${ids['D']}`,
+    ]) {
       await db.expectError(listNotifications(db, alice.as, { cursor: bad }), 'invalid_input')
     }
     // Another Human's cursor, or a cursor whose createdAt does not match the row.
@@ -178,18 +209,29 @@ describe('notifications_list ordering and pagination (SCREEN 23; DB_API §6)', (
     expect((await listNotifications(db, alice.as, {})).notifications).toHaveLength(8)
     // 101 rows: the default page is 30 and the cap 100.
     for (let i = 0; i < 101; i += 1) {
-      await insertNotification(db, { recipient: carol, type: 'follow', actor: bob, createdAt: at(100 + i) })
+      await insertNotification(db, {
+        recipient: carol,
+        type: 'follow',
+        actor: bob,
+        createdAt: at(100 + i),
+      })
     }
     expect((await listNotifications(db, carol.as, {})).notifications).toHaveLength(30)
     const capped = await listNotifications(db, carol.as, { limit: 500 })
     expect(capped.notifications).toHaveLength(100)
     expect(capped.nextCursor).not.toBeNull()
     expect((await listAllNotifications(db, carol.as, 100)).length).toBe(101)
-    await db.sql.query('delete from public.notifications where recipient_human_id = $1', [carol.humanId])
+    await db.sql.query('delete from public.notifications where recipient_human_id = $1', [
+      carol.humanId,
+    ])
   })
 
   it('an empty list is a valid empty page', async () => {
-    expect(await listNotifications(db, carol.as, {})).toEqual({ notifications: [], nextCursor: null, unreadCount: 0 })
+    expect(await listNotifications(db, carol.as, {})).toEqual({
+      notifications: [],
+      nextCursor: null,
+      unreadCount: 0,
+    })
   })
 })
 
@@ -218,35 +260,87 @@ describe('notification copy (spec §86) and read state (DB_API §6)', () => {
 
   it('renders title and body exactly like notificationCopyFromPayload for every type', async () => {
     const cases: Array<[NotificationType, Record<string, unknown>, string, string]> = [
-      ['direct_message', { senderName: 'Xavier', preview: 'see you at 8?' }, 'Xavier', 'see you at 8?'],
+      [
+        'direct_message',
+        { senderName: 'Xavier', preview: 'see you at 8?' },
+        'Xavier',
+        'see you at 8?',
+      ],
       ['direct_message', { senderName: ' Xavier ' }, 'Xavier', ''],
-      ['group_message', { groupName: 'Weekend Crew', senderName: 'Maya', preview: 'bringing snacks' }, 'Weekend Crew', 'Maya: bringing snacks'],
-      ['friend_live', { name: 'Xavier', activity: 'Cooking dinner' }, 'Xavier is live', 'Cooking dinner'],
+      [
+        'group_message',
+        { groupName: 'Weekend Crew', senderName: 'Maya', preview: 'bringing snacks' },
+        'Weekend Crew',
+        'Maya: bringing snacks',
+      ],
+      [
+        'friend_live',
+        { name: 'Xavier', activity: 'Cooking dinner' },
+        'Xavier is live',
+        'Cooking dinner',
+      ],
       ['friend_live', { name: 'Xavier' }, 'Xavier is live', 'Join them'],
       ['friend_live', { name: 'Xavier', activity: null }, 'Xavier is live', 'Join them'],
       ['friend_live', { name: 'Xavier', activity: '  ' }, 'Xavier is live', 'Join them'],
       ['multi_live', { names: ['Xavier', 'Maya'] }, 'Xavier + Maya are live', 'Join them'],
-      ['multi_live', { names: ['Xavier', 'Maya', 'Sam', 'Ben'] }, 'Xavier, Maya + 2 are live', 'Join them'],
+      [
+        'multi_live',
+        { names: ['Xavier', 'Maya', 'Sam', 'Ben'] },
+        'Xavier, Maya + 2 are live',
+        'Join them',
+      ],
       ['multi_live', { names: ['Xavier'], total: 3 }, 'Xavier + 2 are live', 'Join them'],
       ['multi_live', { names: ['Xavier'] }, 'Xavier + 1 are live', 'Join them'],
       ['multi_live', { names: ['Xavier', ' Maya ', ''] }, 'Xavier + Maya are live', 'Join them'],
-      ['group_live', { groupName: 'Weekend Crew', names: ['Xavier', 'Maya', 'Sam', 'Ben'] }, 'Weekend Crew is live', 'Xavier, Maya + 2'],
-      ['group_live', { groupName: 'Weekend Crew', names: ['Xavier', 'Maya'], total: 4 }, 'Weekend Crew is live', 'Xavier, Maya + 2'],
-      ['group_live', { groupName: 'Weekend Crew', names: ['Xavier'] }, 'Weekend Crew is live', 'Xavier'],
+      [
+        'group_live',
+        { groupName: 'Weekend Crew', names: ['Xavier', 'Maya', 'Sam', 'Ben'] },
+        'Weekend Crew is live',
+        'Xavier, Maya + 2',
+      ],
+      [
+        'group_live',
+        { groupName: 'Weekend Crew', names: ['Xavier', 'Maya'], total: 4 },
+        'Weekend Crew is live',
+        'Xavier, Maya + 2',
+      ],
+      [
+        'group_live',
+        { groupName: 'Weekend Crew', names: ['Xavier'] },
+        'Weekend Crew is live',
+        'Xavier',
+      ],
       ['friend_request', { name: 'Maya' }, 'Maya wants to be friends', ''],
       ['friend_accepted', { name: 'Maya' }, 'You and Maya are friends', ''],
       ['follow', { name: 'Sam' }, 'Sam followed you', ''],
-      ['group_invitation', { name: 'Xavier', groupName: 'Weekend Crew' }, 'Xavier brought you into Weekend Crew', ''],
+      [
+        'group_invitation',
+        { name: 'Xavier', groupName: 'Weekend Crew' },
+        'Xavier brought you into Weekend Crew',
+        '',
+      ],
     ]
     expect(new Set(cases.map((c) => c[0]))).toEqual(new Set(NOTIFICATION_TYPES))
     for (const [type, payload, title, body] of cases) {
-      const id = await insertNotification(db, { recipient: alice, type, actor: bob, payload, createdAt: at(1) })
+      const id = await insertNotification(db, {
+        recipient: alice,
+        type,
+        actor: bob,
+        payload,
+        createdAt: at(1),
+      })
       const page = await listNotifications(db, alice.as, { limit: 1 })
       const dto = page.notifications[0]
       expect(dto?.id, `${type} ${JSON.stringify(payload)}`).toBe(id)
-      expect({ title: dto?.title, body: dto?.body }, `${type} ${JSON.stringify(payload)}`).toEqual({ title, body })
+      expect({ title: dto?.title, body: dto?.body }, `${type} ${JSON.stringify(payload)}`).toEqual({
+        title,
+        body,
+      })
       // Parity with the TypeScript copy builder the server and clients use.
-      expect(notificationCopyFromPayload(type, payload), `${type} ${JSON.stringify(payload)}`).toEqual({ title, body })
+      expect(
+        notificationCopyFromPayload(type, payload),
+        `${type} ${JSON.stringify(payload)}`,
+      ).toEqual({ title, body })
       expect(dto?.payload).toEqual(payload)
       await db.sql.query('delete from public.notifications where id = $1', [id])
     }
@@ -263,10 +357,17 @@ describe('notification copy (spec §86) and read state (DB_API §6)', () => {
     }
   })
 
-  it('notification_mark_read marks the caller\'s row once and returns its DTO', async () => {
-    const id = await insertNotification(db, { recipient: alice, type: 'friend_request', actor: bob, payload: { name: 'Bob' } })
+  it("notification_mark_read marks the caller's row once and returns its DTO", async () => {
+    const id = await insertNotification(db, {
+      recipient: alice,
+      type: 'friend_request',
+      actor: bob,
+      payload: { name: 'Bob' },
+    })
     expect((await listNotifications(db, alice.as, {})).unreadCount).toBe(1)
-    const marked = NotificationDtoSchema.parse(await db.rpc('notification_mark_read', { id }, alice.as))
+    const marked = NotificationDtoSchema.parse(
+      await db.rpc('notification_mark_read', { id }, alice.as),
+    )
     expect(marked.id).toBe(id)
     expect(marked.readAt).not.toBeNull()
     expect(marked.title).toBe('Bob wants to be friends')
@@ -295,17 +396,28 @@ describe('notification copy (spec §86) and read state (DB_API §6)', () => {
     const mine = [
       await insertNotification(db, { recipient: alice, type: 'follow', actor: bob }),
       await insertNotification(db, { recipient: alice, type: 'friend_request', actor: bob }),
-      await insertNotification(db, { recipient: alice, type: 'friend_accepted', actor: bob, readAt: at(1) }),
+      await insertNotification(db, {
+        recipient: alice,
+        type: 'friend_accepted',
+        actor: bob,
+        readAt: at(1),
+      }),
     ]
     const bobs = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice })
     expect(await db.rpc('notifications_unread_count', {}, alice.as)).toEqual({ unreadCount: 2 })
     expect(await db.rpc('notifications_unread_count', {}, bob.as)).toEqual({ unreadCount: 1 })
-    expect(await db.rpc('notifications_mark_all_read', {}, alice.as)).toEqual({ markedCount: 2, unreadCount: 0 })
+    expect(await db.rpc('notifications_mark_all_read', {}, alice.as)).toEqual({
+      markedCount: 2,
+      unreadCount: 0,
+    })
     for (const id of mine) expect(await readAt(db, id)).not.toBeNull()
     expect(await readAt(db, bobs)).toBeNull()
     expect(await db.rpc('notifications_unread_count', {}, alice.as)).toEqual({ unreadCount: 0 })
     expect((await listNotifications(db, alice.as, {})).unreadCount).toBe(0)
-    expect(await db.rpc('notifications_mark_all_read', {}, alice.as)).toEqual({ markedCount: 0, unreadCount: 0 })
+    expect(await db.rpc('notifications_mark_all_read', {}, alice.as)).toEqual({
+      markedCount: 0,
+      unreadCount: 0,
+    })
     expect(await db.rpc('notifications_unread_count', {}, bob.as)).toEqual({ unreadCount: 1 })
     await db.sql.query('delete from public.notifications')
   })

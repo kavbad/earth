@@ -23,7 +23,16 @@ import {
   type Human,
 } from './fixtures'
 
-const ACTORS = ['visitor', 'guest', 'claiming', 'self', 'other', 'friend', 'blocked', 'member'] as const
+const ACTORS = [
+  'visitor',
+  'guest',
+  'claiming',
+  'self',
+  'other',
+  'friend',
+  'blocked',
+  'member',
+] as const
 type Actor = (typeof ACTORS)[number]
 type Outcome = 'denied' | number
 
@@ -51,10 +60,32 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
     await addMember(db, group, member)
     await block(db, self, blocked)
 
-    selfRow = await insertNotification(db, { recipient: self, type: 'friend_accepted', actor: friend, payload: { name: 'Friend' } })
-    await insertNotification(db, { recipient: self, type: 'group_message', actor: member, objectType: 'conversation', objectId: group.conversationId, payload: { groupName: 'Crew', senderName: 'Member', preview: 'hi' } })
-    await insertNotification(db, { recipient: self, type: 'follow', actor: other, payload: { name: 'Other' } })
-    await insertNotification(db, { recipient: friend, type: 'friend_accepted', actor: self, payload: { name: 'Self' } })
+    selfRow = await insertNotification(db, {
+      recipient: self,
+      type: 'friend_accepted',
+      actor: friend,
+      payload: { name: 'Friend' },
+    })
+    await insertNotification(db, {
+      recipient: self,
+      type: 'group_message',
+      actor: member,
+      objectType: 'conversation',
+      objectId: group.conversationId,
+      payload: { groupName: 'Crew', senderName: 'Member', preview: 'hi' },
+    })
+    await insertNotification(db, {
+      recipient: self,
+      type: 'follow',
+      actor: other,
+      payload: { name: 'Other' },
+    })
+    await insertNotification(db, {
+      recipient: friend,
+      type: 'friend_accepted',
+      actor: self,
+      payload: { name: 'Self' },
+    })
     await db.sql.query(
       `insert into public.notification_cooldowns (recipient_human_id, room_id) values ($1, gen_random_uuid()), ($2, gen_random_uuid())`,
       [self.humanId, friend.humanId],
@@ -76,9 +107,15 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
     await db.drop()
   })
 
-  async function run(actor: Actor, sql: string, values: unknown[] = []): Promise<{ kind: 'denied' | 'rls' | 'ok'; rows: number }> {
+  async function run(
+    actor: Actor,
+    sql: string,
+    values: unknown[] = [],
+  ): Promise<{ kind: 'denied' | 'rls' | 'ok'; rows: number }> {
     try {
-      const result = await db.asRole(actorSpec[actor], (c) => c.query(sql, values), { rollback: true })
+      const result = await db.asRole(actorSpec[actor], (c) => c.query(sql, values), {
+        rollback: true,
+      })
       return { kind: 'ok', rows: result.rowCount ?? 0 }
     } catch (error) {
       if (error instanceof pg.DatabaseError && error.code === PERMISSION_DENIED) {
@@ -91,7 +128,16 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
   const tables = [
     {
       table: 'notifications',
-      select: { visitor: 'denied', guest: 0, claiming: 0, self: 3, other: 0, friend: 1, blocked: 0, member: 0 } as Record<Actor, Outcome>,
+      select: {
+        visitor: 'denied',
+        guest: 0,
+        claiming: 0,
+        self: 3,
+        other: 0,
+        friend: 1,
+        blocked: 0,
+        member: 0,
+      } as Record<Actor, Outcome>,
       insert: (actor: Actor) =>
         `insert into public.notifications (recipient_human_id, type, object_type, object_id, priority) values ('${actor === 'friend' ? friend.humanId : self.humanId}', 'follow', 'human', '${self.humanId}', 'low')`,
       update: `update public.notifications set read_at = now()`,
@@ -100,7 +146,8 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
     {
       table: 'notification_cooldowns',
       select: all<Outcome>('denied'),
-      insert: () => `insert into public.notification_cooldowns (recipient_human_id, room_id) values ('${self.humanId}', gen_random_uuid())`,
+      insert: () =>
+        `insert into public.notification_cooldowns (recipient_human_id, room_id) values ('${self.humanId}', gen_random_uuid())`,
       update: `update public.notification_cooldowns set sends_in_window = 0`,
       delete: `delete from public.notification_cooldowns`,
     },
@@ -109,7 +156,10 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
   for (const spec of tables) {
     describe(`public.${spec.table}`, () => {
       it('has row level security enabled', async () => {
-        const { rows } = await db.sql.query<{ ok: boolean }>('select relrowsecurity as ok from pg_class where oid = $1::regclass', [`public.${spec.table}`])
+        const { rows } = await db.sql.query<{ ok: boolean }>(
+          'select relrowsecurity as ok from pg_class where oid = $1::regclass',
+          [`public.${spec.table}`],
+        )
         expect(rows[0]?.ok).toBe(true)
       })
 
@@ -131,7 +181,9 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
   }
 
   it('a column-level update of read_at is not granted either; read state goes through the RPCs', async () => {
-    const own = await run('self', 'update public.notifications set read_at = now() where id = $1', [selfRow])
+    const own = await run('self', 'update public.notifications set read_at = now() where id = $1', [
+      selfRow,
+    ])
     expect(own.kind).toBe('denied')
     expect(await readAt(db, selfRow)).toBeNull()
     const { rows } = await db.sql.query<{ privilege_type: string; column_name: string }>(
@@ -142,9 +194,17 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
   })
 
   it('selected rows never expose another recipient, even for the actor of the notification', async () => {
-    const asFriend = await db.asRole(actorSpec.friend, (c) => c.query<{ recipient_human_id: string }>('select recipient_human_id from public.notifications'))
+    const asFriend = await db.asRole(actorSpec.friend, (c) =>
+      c.query<{ recipient_human_id: string }>(
+        'select recipient_human_id from public.notifications',
+      ),
+    )
     expect(asFriend.rows.map((r) => r.recipient_human_id)).toEqual([friend.humanId])
-    const asSelf = await db.asRole(actorSpec.self, (c) => c.query<{ recipient_human_id: string }>('select recipient_human_id from public.notifications'))
+    const asSelf = await db.asRole(actorSpec.self, (c) =>
+      c.query<{ recipient_human_id: string }>(
+        'select recipient_human_id from public.notifications',
+      ),
+    )
     expect(new Set(asSelf.rows.map((r) => r.recipient_human_id))).toEqual(new Set([self.humanId]))
   })
 
@@ -173,35 +233,56 @@ describe('RLS matrix: notifications and notification_cooldowns', () => {
             await db.expectError(db.rpc(name, args(), actorSpec[actor]), 'not_visible')
             return
           }
-          await db.asRole(actorSpec[actor], async (client) => {
-            const keys = Object.keys(args())
-            const placeholders = keys.map((key, i) => `"${key}" => $${i + 1}`).join(', ')
-            const { rows } = await client.query<{ r: Record<string, unknown> }>(
-              `select public."${name}"(${placeholders}) as r`,
-              keys.map((k) => args()[k]),
-            )
-            const result = rows[0]?.r
-            if (name === 'notifications_list') {
-              expect(result).toMatchObject({ nextCursor: null })
-              expect((result?.['notifications'] as unknown[]).length).toBe(actor === 'self' ? 3 : actor === 'friend' ? 1 : 0)
-            } else if (name === 'notifications_unread_count') {
-              expect(result).toEqual({ unreadCount: actor === 'self' ? 3 : actor === 'friend' ? 1 : 0 })
-            } else if (name === 'notifications_mark_all_read') {
-              expect(result).toEqual({ markedCount: actor === 'self' ? 3 : actor === 'friend' ? 1 : 0, unreadCount: 0 })
-            } else {
-              expect(result).toMatchObject({ id: selfRow })
-            }
-          }, { rollback: true })
+          await db.asRole(
+            actorSpec[actor],
+            async (client) => {
+              const keys = Object.keys(args())
+              const placeholders = keys.map((key, i) => `"${key}" => $${i + 1}`).join(', ')
+              const { rows } = await client.query<{ r: Record<string, unknown> }>(
+                `select public."${name}"(${placeholders}) as r`,
+                keys.map((k) => args()[k]),
+              )
+              const result = rows[0]?.r
+              if (name === 'notifications_list') {
+                expect(result).toMatchObject({ nextCursor: null })
+                expect((result?.['notifications'] as unknown[]).length).toBe(
+                  actor === 'self' ? 3 : actor === 'friend' ? 1 : 0,
+                )
+              } else if (name === 'notifications_unread_count') {
+                expect(result).toEqual({
+                  unreadCount: actor === 'self' ? 3 : actor === 'friend' ? 1 : 0,
+                })
+              } else if (name === 'notifications_mark_all_read') {
+                expect(result).toEqual({
+                  markedCount: actor === 'self' ? 3 : actor === 'friend' ? 1 : 0,
+                  unreadCount: 0,
+                })
+              } else {
+                expect(result).toMatchObject({ id: selfRow })
+              }
+            },
+            { rollback: true },
+          )
         })
       }
     }
 
-    for (const name of ['notifications_unsent', 'notifications_mark_pushed', 'notifications_prune']) {
+    for (const name of [
+      'notifications_unsent',
+      'notifications_mark_pushed',
+      'notifications_prune',
+    ]) {
       it(`${name} is denied to every API caller but the service`, async () => {
-        const args = name === 'notifications_mark_pushed' ? { ids: [selfRow] } : name === 'notifications_prune' ? { days: 90 } : { limit: 10 }
+        const args =
+          name === 'notifications_mark_pushed'
+            ? { ids: [selfRow] }
+            : name === 'notifications_prune'
+              ? { days: 90 }
+              : { limit: 10 }
         for (const actor of ACTORS) {
           await expect(db.rpc(name, args, actorSpec[actor]), actor).rejects.toSatisfy(
-            (error: unknown) => error instanceof pg.DatabaseError && error.code === PERMISSION_DENIED,
+            (error: unknown) =>
+              error instanceof pg.DatabaseError && error.code === PERMISSION_DENIED,
           )
         }
         const result = await db.rpc<Record<string, unknown> | unknown[]>(name, args, 'service')

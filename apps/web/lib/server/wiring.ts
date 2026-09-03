@@ -5,6 +5,7 @@
  * one context per process.
  */
 import {
+  type AuthAdminHostLike,
   type EarthServer,
   type ExpoClientLike,
   type LiveKitWebhookReceiverLike,
@@ -33,8 +34,11 @@ import {
 } from './monitor'
 import { type SupabaseTableClientLike, createVerificationProviderFromEnv } from './verification'
 
-/** A supabase-js client as the server tier uses it: RPCs plus the one table the review store touches. */
-export type WebSupabaseClient = SupabaseRpcClient & SupabaseTableClientLike
+/**
+ * A supabase-js client as the server tier uses it: RPCs, the one table the review store touches
+ * and (service role) `auth.admin` for account deletion.
+ */
+export type WebSupabaseClient = SupabaseRpcClient & SupabaseTableClientLike & AuthAdminHostLike
 
 /** `createClient` of `@supabase/supabase-js`, structurally. */
 export type WebSupabaseClientFactory = (

@@ -46,7 +46,10 @@ export function RoomEnded({ kind, backHref, onRetry }: RoomEndedProps) {
             {copy.tryAgain}
           </Button>
         ) : null}
-        <Link href={backHref} className="min-h-touch-target inline-flex items-center text-body text-earth-accent">
+        <Link
+          href={backHref}
+          className="min-h-touch-target inline-flex items-center text-body text-earth-accent"
+        >
           {roomCopy.backToLive}
         </Link>
       </div>

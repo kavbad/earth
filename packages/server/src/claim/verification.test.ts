@@ -1,4 +1,9 @@
-import { type ClaimStateDto, EarthError, VerificationSessionDtoSchema } from '@earth/domain'
+import {
+  type ClaimStateDto,
+  EarthError,
+  type HumanId,
+  VerificationSessionDtoSchema,
+} from '@earth/domain'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,6 +12,7 @@ import {
   handleVerificationStart,
   handleVerificationWebhook,
   humanIdFromWebhookResult,
+  recordVerificationResult,
 } from './verification'
 import { mapError } from '../http'
 import {
@@ -18,7 +24,11 @@ import {
   rpcFailure,
   withoutWebhook,
 } from '../test/fakes'
-import type { VerificationResult } from '../verification/provider-types'
+import {
+  type VerificationResult,
+  failureKindForResult,
+  humanPassStatusForResult,
+} from '../verification/provider-types'
 
 const PASS_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const OTHER_HUMAN = '99999999-9999-4999-8999-999999999999'
@@ -597,5 +607,38 @@ describe('adversarial: verification responses never carry provider metadata', ()
     expect(db.recorded).toHaveLength(0)
     // The raw body reached the provider untouched for the signature check.
     expect(verification.webhooks[0]).toEqual({ rawBody: body, signature: 'nope' })
+  })
+})
+
+describe('recordVerificationResult uses the @earth/auth derivations (spec §48, §128)', () => {
+  it('a "verified" result that names an existing Human is recorded review_required as a duplicate', async () => {
+    const db = { ...newDb(), sessionId: 'fake-session-1', passStatus: 'verifying' as const }
+    const { deps } = createFakeDeps({ rpc: claimRpc(db) })
+    const result: VerificationResult = {
+      status: 'verified',
+      riskLevel: 'low',
+      providerReference: 'ref:fake-session-1',
+      duplicateOfHumanId: OTHER_HUMAN as HumanId,
+      metadata: { provider: 'fake' },
+    }
+    // The structural copy this package used to carry answered `verified` / `null` here; the
+    // shared derivations agree with `human_pass_record_result`, which never stores a verified
+    // pass for a result that names another Human.
+    expect(humanPassStatusForResult(result)).toBe('review_required')
+    expect(failureKindForResult(result)).toBe('duplicate')
+
+    const recorded = await recordVerificationResult(deps, TEST_HUMAN_ID, 'fake-session-1', result)
+    expect(recorded).toEqual({ status: 'review_required', failureKind: 'duplicate' })
+    expect(db.recorded).toHaveLength(1)
+    expect(db.recorded[0]).toMatchObject({
+      human_id: TEST_HUMAN_ID,
+      status: 'review_required',
+      duplicate_of_human_id: OTHER_HUMAN,
+      provider_reference: 'fake-session-1',
+    })
+    expect(db.recorded[0]?.['metadata']).toMatchObject({
+      resultStatus: 'verified',
+      failureKind: 'duplicate',
+    })
   })
 })

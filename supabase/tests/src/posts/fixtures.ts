@@ -72,8 +72,10 @@ export const FeedRowSchema = z
     live: LivePayloadSchema.nullish(),
   })
   .superRefine((row, ctx) => {
-    if (row.kind === 'post' && row.post == null) ctx.addIssue({ code: 'custom', message: 'post payload missing' })
-    if (row.kind === 'live' && row.live == null) ctx.addIssue({ code: 'custom', message: 'live payload missing' })
+    if (row.kind === 'post' && row.post == null)
+      ctx.addIssue({ code: 'custom', message: 'post payload missing' })
+    if (row.kind === 'live' && row.live == null)
+      ctx.addIssue({ code: 'custom', message: 'live payload missing' })
   })
 export type FeedRow = z.infer<typeof FeedRowSchema>
 
@@ -127,7 +129,11 @@ export function postArgs(options: CreatePostOptions): Record<string, unknown> {
 }
 
 /** `post_create` as `author`, parsed as `PostViewDto`. */
-export async function createPost(db: TestDb, author: Human, options: CreatePostOptions = {}): Promise<PostViewDto> {
+export async function createPost(
+  db: TestDb,
+  author: Human,
+  options: CreatePostOptions = {},
+): Promise<PostViewDto> {
   return PostViewDtoSchema.parse(await db.rpc('post_create', postArgs(options), author.as))
 }
 
@@ -155,7 +161,12 @@ export async function feed(
   return FeedResultSchema.parse(
     await db.rpc(
       'feed_candidates',
-      { scope, area_id: options.areaId ?? null, snapshot_at: options.snapshotAt ?? null, limit: options.limit ?? null },
+      {
+        scope,
+        area_id: options.areaId ?? null,
+        snapshot_at: options.snapshotAt ?? null,
+        limit: options.limit ?? null,
+      },
       as,
     ),
   )
@@ -174,7 +185,14 @@ export async function feedIds(
 export async function createMedia(
   db: TestDb,
   owner: Human,
-  options: { key?: string; contentType?: string; bucket?: 'media' | 'avatars' | 'voice'; width?: number | null; height?: number | null; durationMs?: number | null } = {},
+  options: {
+    key?: string
+    contentType?: string
+    bucket?: 'media' | 'avatars' | 'voice'
+    width?: number | null
+    height?: number | null
+    durationMs?: number | null
+  } = {},
 ): Promise<string> {
   mediaCounter += 1
   const { rows } = await db.sql.query<{ id: string }>(
@@ -196,7 +214,12 @@ export async function createMedia(
 }
 let mediaCounter = 0
 
-export async function createPlace(db: TestDb, areaId: string, name = 'Dolores Park', visibility: 'public' | 'private' = 'public'): Promise<string> {
+export async function createPlace(
+  db: TestDb,
+  areaId: string,
+  name = 'Dolores Park',
+  visibility: 'public' | 'private' = 'public',
+): Promise<string> {
   const { rows } = await db.sql.query<{ id: string }>(
     `insert into public.places (name, area_id, location, visibility, category)
      values ($1, $2, st_setsrid(st_makepoint(-122.427, 37.7596), 4326), $3, 'park') returning id`,
@@ -210,7 +233,16 @@ export async function createPlace(db: TestDb, areaId: string, name = 'Dolores Pa
 export async function postRow(
   db: TestDb,
   postId: string,
-): Promise<{ status: string; audience: string; area_id: string | null; root_post_id: string | null; reply_count: number; reaction_count: number; text: string | null; deleted_at: string | null }> {
+): Promise<{
+  status: string
+  audience: string
+  area_id: string | null
+  root_post_id: string | null
+  reply_count: number
+  reaction_count: number
+  text: string | null
+  deleted_at: string | null
+}> {
   const { rows } = await db.sql.query(
     `select status, audience::text, area_id, root_post_id, reply_count, reaction_count, text, deleted_at from public.posts where id = $1`,
     [postId],
@@ -226,11 +258,21 @@ export async function resetRateLimits(db: TestDb): Promise<void> {
 }
 
 /** Sets `humans.is_fixture` / status directly. */
-export async function setHuman(db: TestDb, human: Human, patch: { isFixture?: boolean; status?: string }): Promise<void> {
+export async function setHuman(
+  db: TestDb,
+  human: Human,
+  patch: { isFixture?: boolean; status?: string },
+): Promise<void> {
   if (patch.isFixture !== undefined) {
-    await db.sql.query('update public.humans set is_fixture = $2 where id = $1', [human.humanId, patch.isFixture])
+    await db.sql.query('update public.humans set is_fixture = $2 where id = $1', [
+      human.humanId,
+      patch.isFixture,
+    ])
   }
   if (patch.status !== undefined) {
-    await db.sql.query('update public.humans set status = $2::public.human_status where id = $1', [human.humanId, patch.status])
+    await db.sql.query('update public.humans set status = $2::public.human_status where id = $1', [
+      human.humanId,
+      patch.status,
+    ])
   }
 }

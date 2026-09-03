@@ -117,7 +117,12 @@ export function LiveList() {
                   })
                 }
                 onOpen={() =>
-                  analytics.track('live_card_opened', { roomId: card.roomId, surface: 'live', scope, position: index })
+                  analytics.track('live_card_opened', {
+                    roomId: card.roomId,
+                    surface: 'live',
+                    scope,
+                    position: index,
+                  })
                 }
               />
             </li>

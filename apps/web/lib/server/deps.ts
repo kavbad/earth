@@ -16,13 +16,18 @@ import type { ServerDeps } from '@earth/server'
 import { Expo } from 'expo-server-sdk'
 
 import { expoClientFrom, sentrySdkFrom, supabaseClientFrom } from './adapters'
-import { type WebServerContext, type WebServerWiringOptions, createWebServerContext } from './wiring'
+import {
+  type WebServerContext,
+  type WebServerWiringOptions,
+  createWebServerContext,
+} from './wiring'
 
 /** The production wiring: real SDKs over `source` (defaults to `process.env`). */
 export function productionWiringOptions(source: EnvSource = process.env): WebServerWiringOptions {
   return {
     source,
-    createSupabaseClient: (url, key, options) => supabaseClientFrom(createClient(url, key, options)),
+    createSupabaseClient: (url, key, options) =>
+      supabaseClientFrom(createClient(url, key, options)),
     createExpoClient: (accessToken) => expoClientFrom(new Expo({ accessToken })),
     sentry: sentrySdkFrom(Sentry),
   }

@@ -33,12 +33,16 @@ describe('LiveCard (SCREEN 13)', () => {
   it('shows the area only for public Lives and the context only when the title does not', () => {
     expect(cardContextLine(card())).toBe('')
     expect(cardContextLine(card({ visibility: 'city' }))).toBe('North Beach')
-    expect(cardContextLine(card({ title: 'Weekend Crew is live', contextTitle: 'Weekend Crew', visibility: 'world' }))).toBe(
-      'North Beach',
-    )
-    expect(cardContextLine(card({ contextTitle: 'Weekend Crew', visibility: 'neighborhood' }))).toBe(
-      'Weekend Crew · North Beach',
-    )
-    expect(cardContextLine(card({ contextTitle: 'Weekend Crew', visibility: 'group', areaName: null }))).toBe('Weekend Crew')
+    expect(
+      cardContextLine(
+        card({ title: 'Weekend Crew is live', contextTitle: 'Weekend Crew', visibility: 'world' }),
+      ),
+    ).toBe('North Beach')
+    expect(
+      cardContextLine(card({ contextTitle: 'Weekend Crew', visibility: 'neighborhood' })),
+    ).toBe('Weekend Crew · North Beach')
+    expect(
+      cardContextLine(card({ contextTitle: 'Weekend Crew', visibility: 'group', areaName: null })),
+    ).toBe('Weekend Crew')
   })
 })

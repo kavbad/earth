@@ -6,7 +6,6 @@ import {
   type NotificationId,
   NotificationIdSchema,
   type NotificationsPageDto,
-  NotificationsPageDtoSchema,
   type PushTokenRegisterInput,
   PushTokenRegisterInputSchema,
 } from '@earth/domain'
@@ -18,7 +17,7 @@ import {
   type PresencePingArgs,
   PresencePingArgsSchema,
 } from '../dto'
-import { RPC } from '../rpc'
+import { CALLS } from '../manifest'
 import { type Transport, parseInput } from '../transport'
 
 export interface NotificationsNamespace {
@@ -28,7 +27,7 @@ export interface NotificationsNamespace {
   markRead(notificationId: NotificationId): Promise<void>
   /** `notifications_mark_all_read()`. */
   markAllRead(): Promise<void>
-  /** `unreadCount` of a one-item `notifications_list` page (no dedicated RPC in DB_API §6). */
+  /** `notifications_unread_count()` (DB_API §6). */
   unreadCount(): Promise<number>
   /** `push_token_register(token, platform)`. */
   registerPushToken(input: PushTokenRegisterInput): Promise<void>
@@ -42,35 +41,32 @@ export interface PresenceNamespace {
 }
 
 const PushTokenSchema = z.string().min(1)
-const UNREAD_PROBE_LIMIT = 1
 
 export function createNotificationsNamespace(transport: Transport): NotificationsNamespace {
-  const list = (input: NotificationsListInput = {}): Promise<NotificationsPageDto> => {
-    const parsed = parseInput(NotificationsListInputSchema, input)
-    return transport.rpc(
-      RPC.notificationsList,
-      { cursor: parsed.cursor ?? null, limit: parsed.limit ?? NOTIFICATIONS_PAGE_SIZE },
-      NotificationsPageDtoSchema,
-    )
-  }
   return {
-    list,
+    list(input = {}) {
+      const parsed = parseInput(NotificationsListInputSchema, input)
+      return transport.call(CALLS.notificationsList, {
+        cursor: parsed.cursor ?? null,
+        limit: parsed.limit ?? NOTIFICATIONS_PAGE_SIZE,
+      })
+    },
     markRead(notificationId) {
       const id = parseInput(NotificationIdSchema, notificationId, 'notificationId')
-      return transport.rpcVoid(RPC.notificationMarkRead, { id })
+      return transport.call(CALLS.notificationsMarkRead, { id })
     },
-    markAllRead: () => transport.rpcVoid(RPC.notificationsMarkAllRead, {}),
-    unreadCount: async () => (await list({ limit: UNREAD_PROBE_LIMIT })).unreadCount,
+    markAllRead: () => transport.call(CALLS.notificationsMarkAllRead, {}),
+    unreadCount: async () => (await transport.call(CALLS.notificationsUnreadCount, {})).unreadCount,
     registerPushToken(input) {
       const parsed = parseInput(PushTokenRegisterInputSchema, input)
-      return transport.rpcVoid(RPC.pushTokenRegister, {
+      return transport.call(CALLS.notificationsRegisterPushToken, {
         token: parsed.token,
         platform: parsed.platform,
       })
     },
     removePushToken(token) {
       const value = parseInput(PushTokenSchema, token, 'token')
-      return transport.rpcVoid(RPC.pushTokenRemove, { token: value })
+      return transport.call(CALLS.notificationsRemovePushToken, { token: value })
     },
   }
 }
@@ -79,7 +75,7 @@ export function createPresenceNamespace(transport: Transport): PresenceNamespace
   return {
     ping(input = {}) {
       const parsed = parseInput(PresencePingArgsSchema, input)
-      return transport.rpcVoid(RPC.presencePing, {
+      return transport.call(CALLS.presencePing, {
         conversation_id: parsed.conversationId ?? null,
         room_id: parsed.roomId ?? null,
         platform: parsed.platform ?? null,

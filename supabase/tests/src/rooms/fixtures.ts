@@ -54,7 +54,10 @@ export async function rpcAt<T = unknown>(
   const placeholders = keys.map((key, i) => `"${key}" => $${i + 1}`).join(', ')
   return db.asRole(as, async (client) => {
     await client.query(`select set_config('earth.now', $1, true)`, [at])
-    const result = await client.query(`select * from public."${name}"(${placeholders})`, keys.map((k) => args[k]))
+    const result = await client.query(
+      `select * from public."${name}"(${placeholders})`,
+      keys.map((k) => args[k]),
+    )
     return unwrapRpcResult(result) as T
   })
 }
@@ -71,7 +74,11 @@ export async function startGroupRoom(
   title: string | null = null,
 ): Promise<RoomStartDto> {
   return RoomStartDtoSchema.parse(
-    await db.rpc('room_start', { context_type: 'group', context_id: group.groupId, title }, initiator.as),
+    await db.rpc(
+      'room_start',
+      { context_type: 'group', context_id: group.groupId, title },
+      initiator.as,
+    ),
   )
 }
 
@@ -81,7 +88,11 @@ export async function startStandaloneRoom(
   title: string | null = null,
 ): Promise<RoomStartDto> {
   return RoomStartDtoSchema.parse(
-    await db.rpc('room_start', { context_type: 'standalone', context_id: null, title }, initiator.as),
+    await db.rpc(
+      'room_start',
+      { context_type: 'standalone', context_id: null, title },
+      initiator.as,
+    ),
   )
 }
 
@@ -210,7 +221,11 @@ export async function roomRow(
 export async function setContext(
   db: TestDb,
   human: Human,
-  context: { currentAreaId?: string | null; currentCityId?: string | null; homeCityId?: string | null },
+  context: {
+    currentAreaId?: string | null
+    currentCityId?: string | null
+    homeCityId?: string | null
+  },
 ): Promise<void> {
   await db.sql.query(
     `insert into public.human_context (human_id, current_area_id, current_city_id, home_city_id)
@@ -219,7 +234,12 @@ export async function setContext(
        set current_area_id = excluded.current_area_id,
            current_city_id = excluded.current_city_id,
            home_city_id = excluded.home_city_id`,
-    [human.humanId, context.currentAreaId ?? null, context.currentCityId ?? null, context.homeCityId ?? null],
+    [
+      human.humanId,
+      context.currentAreaId ?? null,
+      context.currentCityId ?? null,
+      context.homeCityId ?? null,
+    ],
   )
 }
 

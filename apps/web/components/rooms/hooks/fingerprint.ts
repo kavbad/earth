@@ -17,7 +17,10 @@ export function toHex(bytes: ArrayBuffer): string {
 }
 
 /** Reads the device id or mints one; `null` when nothing can be stored (private mode). */
-export function deviceId(storage: KeyValueStorage | null, crypto: FingerprintCrypto): string | null {
+export function deviceId(
+  storage: KeyValueStorage | null,
+  crypto: FingerprintCrypto,
+): string | null {
   if (storage === null) return null
   const existing = readString(storage, DEVICE_ID_KEY)
   if (existing !== null && existing.length > 0) return existing
@@ -42,7 +45,10 @@ export async function fingerprintHash(
 }
 
 export function browserFingerprintCrypto(): FingerprintCrypto | null {
-  if (typeof globalThis.crypto === 'undefined' || typeof globalThis.crypto.randomUUID !== 'function') {
+  if (
+    typeof globalThis.crypto === 'undefined' ||
+    typeof globalThis.crypto.randomUUID !== 'function'
+  ) {
     return null
   }
   const subtle = globalThis.crypto.subtle

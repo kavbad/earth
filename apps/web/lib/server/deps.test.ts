@@ -6,7 +6,12 @@
 import { SERVICE_NAME } from '@earth/server'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { getServerContext, getServerDeps, productionWiringOptions, resetServerContext } from './deps'
+import {
+  getServerContext,
+  getServerDeps,
+  productionWiringOptions,
+  resetServerContext,
+} from './deps'
 import { TEST_CRON_SECRET, readJson, testEnvSource, webRequest } from './fakes'
 import { makeRouteHandler } from './handler'
 
@@ -22,7 +27,12 @@ function setEnv(values: Readonly<Record<string, string | undefined>>): void {
 
 beforeEach(() => {
   resetServerContext()
-  setEnv({ ...testEnvSource(), SENTRY_DSN: undefined, EXPO_ACCESS_TOKEN: undefined, CRON_SECRET: undefined })
+  setEnv({
+    ...testEnvSource(),
+    SENTRY_DSN: undefined,
+    EXPO_ACCESS_TOKEN: undefined,
+    CRON_SECRET: undefined,
+  })
 })
 
 afterEach(() => {
@@ -78,7 +88,11 @@ describe('makeRouteHandler with the production context', () => {
     expect(await readJson(health)).toMatchObject({ ok: true, service: SERVICE_NAME })
 
     const webhook = await handlers.POST(
-      webRequest('/api/livekit/webhook', { method: 'POST', body: 'garbage', headers: { authorization: 'nonsense' } }),
+      webRequest('/api/livekit/webhook', {
+        method: 'POST',
+        body: 'garbage',
+        headers: { authorization: 'nonsense' },
+      }),
     )
     expect(webhook.status).toBe(401)
     expect(await readJson(webhook)).toMatchObject({ error: { code: 'not_authenticated' } })

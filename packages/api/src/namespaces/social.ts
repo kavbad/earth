@@ -2,30 +2,20 @@
  * `social` and `safety` (DB_API §1, §7; spec §20–§21, §81–§82).
  */
 import {
-  BlockDtoSchema,
   type BlocksListDto,
-  BlocksListDtoSchema,
   type HumanId,
   HumanIdSchema,
   type ProfileDto,
-  ProfileDtoSchema,
   type RelationshipChangeDto,
-  RelationshipChangeDtoSchema,
   type ReportDto,
-  ReportDtoSchema,
   type ReportInput,
   ReportInputSchema,
 } from '@earth/domain'
 import { z } from 'zod'
 
-import { HandleLookupSchema } from '../dto'
-import { RPC } from '../rpc'
-import { arrayOrKeyed } from '../schemas'
+import { type BlockChangeDto, HandleLookupSchema } from '../dto'
+import { CALLS } from '../manifest'
 import { type Transport, parseInput } from '../transport'
-
-/** `block_set` (DB_API §1): the relationship after the change plus the block flag. */
-export const BlockChangeDtoSchema = RelationshipChangeDtoSchema.extend({ isBlocked: z.boolean() })
-export type BlockChangeDto = z.infer<typeof BlockChangeDtoSchema>
 
 export interface SocialNamespace {
   /** `profile_get(handle)` respecting visibility and blocks; `@Maya` / `MAYA` look up `maya` (handles are case-insensitive). */
@@ -55,40 +45,33 @@ export interface SafetyNamespace {
   myReports(): Promise<ReportDto[]>
 }
 
-const BlocksResultSchema = z.union([
-  BlocksListDtoSchema,
-  z.array(BlockDtoSchema).transform((blocks): BlocksListDto => ({ blocks })),
-])
-const ReportsResultSchema = arrayOrKeyed(ReportDtoSchema, 'reports')
-
 export function createSocialNamespace(transport: Transport): SocialNamespace {
   const humanId = (value: HumanId): HumanId =>
     parseInput(HumanIdSchema, value, 'humanId') as HumanId
-  const relationship = (rpc: string, args: Readonly<Record<string, unknown>>) =>
-    transport.rpc(rpc, args, RelationshipChangeDtoSchema)
-  const blockSet = (target: HumanId, blocked: boolean) =>
-    transport.rpc(RPC.blockSet, { target_human_id: humanId(target), blocked }, BlockChangeDtoSchema)
 
   return {
     profile(handle) {
       const value = parseInput(HandleLookupSchema, handle, 'handle')
-      return transport.rpc(RPC.profileGet, { handle: value }, ProfileDtoSchema)
+      return transport.call(CALLS.socialProfile, { handle: value })
     },
     friendRequest: (target) =>
-      relationship(RPC.friendRequestSend, { target_human_id: humanId(target) }),
+      transport.call(CALLS.socialFriendRequest, { target_human_id: humanId(target) }),
     acceptFriend: (source) =>
-      relationship(RPC.friendRequestAccept, { source_human_id: humanId(source) }),
+      transport.call(CALLS.socialAcceptFriend, { source_human_id: humanId(source) }),
     declineFriend: (source) =>
-      relationship(RPC.friendRequestDecline, { source_human_id: humanId(source) }),
-    removeFriend: (other) => relationship(RPC.friendRemove, { other_human_id: humanId(other) }),
+      transport.call(CALLS.socialDeclineFriend, { source_human_id: humanId(source) }),
+    removeFriend: (other) =>
+      transport.call(CALLS.socialRemoveFriend, { other_human_id: humanId(other) }),
     setFollow: (target, following) =>
-      relationship(RPC.followSet, {
+      transport.call(CALLS.socialSetFollow, {
         target_human_id: humanId(target),
         following: parseInput(z.boolean(), following, 'following'),
       }),
-    block: (target) => blockSet(target, true),
-    unblock: (target) => blockSet(target, false),
-    blocks: () => transport.rpc(RPC.blocksList, {}, BlocksResultSchema),
+    block: (target) =>
+      transport.call(CALLS.socialBlock, { target_human_id: humanId(target), blocked: true }),
+    unblock: (target) =>
+      transport.call(CALLS.socialUnblock, { target_human_id: humanId(target), blocked: false }),
+    blocks: () => transport.call(CALLS.socialBlocks, {}),
   }
 }
 
@@ -96,17 +79,13 @@ export function createSafetyNamespace(transport: Transport): SafetyNamespace {
   return {
     report(input) {
       const parsed = parseInput(ReportInputSchema, input)
-      return transport.rpc(
-        RPC.reportCreate,
-        {
-          target_type: parsed.targetType,
-          target_id: parsed.targetId,
-          reason: parsed.reason,
-          details: parsed.details,
-        },
-        ReportDtoSchema,
-      )
+      return transport.call(CALLS.safetyReport, {
+        target_type: parsed.targetType,
+        target_id: parsed.targetId,
+        reason: parsed.reason,
+        details: parsed.details,
+      })
     },
-    myReports: () => transport.rpc(RPC.reportsMine, {}, ReportsResultSchema),
+    myReports: () => transport.call(CALLS.safetyMyReports, {}),
   }
 }

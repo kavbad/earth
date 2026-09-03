@@ -38,9 +38,9 @@ describe('notifications', () => {
     supabase.rpcData(RPC.notificationsMarkAllRead, null)
     await client.notifications.markAllRead()
     expect(supabase.lastRpc()).toEqual({ name: 'notifications_mark_all_read', args: {} })
-    supabase.rpcData(RPC.notificationsList, fixtures.notificationsPage({ unreadCount: 7 }))
+    supabase.rpcData(RPC.notificationsUnreadCount, { unreadCount: 7 })
     expect(await client.notifications.unreadCount()).toBe(7)
-    expect(supabase.lastRpc().args).toEqual({ cursor: null, limit: 1 })
+    expect(supabase.lastRpc()).toEqual({ name: 'notifications_unread_count', args: {} })
   })
 
   it('push tokens register and remove', async () => {

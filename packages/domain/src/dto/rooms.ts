@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { isJoinPolicyAllowedFor } from '../audience'
 import { GUEST_DISPLAY_NAME_MAX } from '../constants'
+import { EARTH_ERROR_CODES } from '../errors'
 import {
   AreaPrecisionSchema,
   MediaStateSchema,
@@ -73,6 +74,14 @@ export const RoomDtoSchema = z.object({
   /** "Weekend Crew" / "Xavier + Kavon" (SCREEN 14 top). */
   contextTitle: z.string().nullable(),
   guestsDisabled: z.boolean(),
+  /**
+   * Join affordances for the viewer (0996 `earth.room_join_check`, the check `room_join` runs):
+   * whether audio / camera would be admitted — the consent sheet aside — and the code the RPC
+   * would raise otherwise (`null` when the viewer may join). Absent from older servers.
+   */
+  canJoinAudio: z.boolean().optional(),
+  canJoinCamera: z.boolean().optional(),
+  joinReason: z.enum(EARTH_ERROR_CODES).nullable().optional(),
 })
 export type RoomDto = z.infer<typeof RoomDtoSchema>
 

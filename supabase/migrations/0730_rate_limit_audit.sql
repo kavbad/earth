@@ -19,6 +19,7 @@
 -- | identity_review_create     |   5 |           3600 | identity_review_create                                             |
 -- | claim_complete             |  10 |           3600 | claim_complete                                                     |
 -- | identity_update            |  60 |           3600 | identity_update                                                    |
+-- | human_delete               |   5 |           3600 | human_delete_request (0996)                                        |
 -- | friend_request             |  60 |           3600 | friend_request_send (spec §83 friend requests 60/h)                |
 -- | friend_accept              | 120 |           3600 | friend_request_accept                                              |
 -- | friend_decline             | 120 |           3600 | friend_request_decline                                             |

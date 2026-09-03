@@ -67,7 +67,17 @@ interface TableCase {
 
 /** Ordered record constructor: visitor, guest, claiming, self, other, friend, blocked, member, nonMember. */
 function row<E>(v: E, g: E, c: E, s: E, o: E, f: E, b: E, m: E, n: E): Record<Actor, E> {
-  return { visitor: v, guest: g, claiming: c, self: s, other: o, friend: f, blocked: b, member: m, nonMember: n }
+  return {
+    visitor: v,
+    guest: g,
+    claiming: c,
+    self: s,
+    other: o,
+    friend: f,
+    blocked: b,
+    member: m,
+    nonMember: n,
+  }
 }
 const allDenied = <E>(value: E): Record<Actor, E> =>
   Object.fromEntries(ACTORS.map((a) => [a, value])) as Record<Actor, E>
@@ -118,11 +128,19 @@ describe('authorization matrix over every public table (spec §114)', () => {
 
     // A direct conversation self↔friend through the RPC.
     const dm = (
-      await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: friend.humanId }, self.as)
+      await db.rpc<{ id: string }>(
+        'conversation_direct_get_or_create',
+        { other_human_id: friend.humanId },
+        self.as,
+      )
     ).id
 
     // Messages: two in the group (self, member), one in the DM (self).
-    await db.rpc('message_send', { conversation_id: group.conversationId, client_id: randomUUID(), type: 'text', text: 'g1' }, self.as)
+    await db.rpc(
+      'message_send',
+      { conversation_id: group.conversationId, client_id: randomUUID(), type: 'text', text: 'g1' },
+      self.as,
+    )
     const memberMsg = await db.rpc<{ id: string }>(
       'message_send',
       { conversation_id: group.conversationId, client_id: randomUUID(), type: 'text', text: 'g2' },
@@ -148,9 +166,17 @@ describe('authorization matrix over every public table (spec §114)', () => {
     const postMedia = await createMedia(db, self, { key: 'authz/self-post.jpg' })
 
     // Posts: self world (with media) + self friends + other world.
-    const selfWorld = (await createPost(db, self, { type: 'image', text: 'world', audience: 'world', media: [postMedia] })).post.id
+    const selfWorld = (
+      await createPost(db, self, {
+        type: 'image',
+        text: 'world',
+        audience: 'world',
+        media: [postMedia],
+      })
+    ).post.id
     await createPost(db, self, { text: 'friends', audience: 'friends' })
-    const otherWorld = (await createPost(db, other, { text: 'other world', audience: 'world' })).post.id
+    const otherWorld = (await createPost(db, other, { text: 'other world', audience: 'world' }))
+      .post.id
     // Two reactions on self's world post (both reactors can see it).
     await db.rpc('post_reaction_set', { post_id: selfWorld, reaction_type: 'heart' }, friend.as)
     await db.rpc('post_reaction_set', { post_id: selfWorld, reaction_type: 'heart' }, other.as)
@@ -176,17 +202,36 @@ describe('authorization matrix over every public table (spec §114)', () => {
     // A location share (self → friend) and a report by self.
     await db.rpc(
       'location_share_create',
-      { audience_type: 'friend', audience_id: friend.humanId, precision: 'precise', duration_seconds: 3600, lat: 37.8, lng: -122.41 },
+      {
+        audience_type: 'friend',
+        audience_id: friend.humanId,
+        precision: 'precise',
+        duration_seconds: 3600,
+        lat: 37.8,
+        lng: -122.41,
+      },
       self.as,
     )
-    await db.rpc('report_create', { target_type: 'human', target_id: other.humanId, reason: 'harassment', details: null }, self.as)
+    await db.rpc(
+      'report_create',
+      { target_type: 'human', target_id: other.humanId, reason: 'harassment', details: null },
+      self.as,
+    )
 
     // Own-row identity rows for self: a pass, a review, presence, context, a push token.
-    await db.sql.query(`insert into public.human_passes (human_id, provider, status) values ($1, 'mock', 'verified')`, [self.humanId])
-    await db.sql.query(`insert into public.identity_reviews (human_id, kind) values ($1, 'help')`, [self.humanId])
+    await db.sql.query(
+      `insert into public.human_passes (human_id, provider, status) values ($1, 'mock', 'verified')`,
+      [self.humanId],
+    )
+    await db.sql.query(`insert into public.identity_reviews (human_id, kind) values ($1, 'help')`, [
+      self.humanId,
+    ])
     await db.sql.query(`insert into public.human_presence (human_id) values ($1)`, [self.humanId])
     await db.sql.query(`insert into public.human_context (human_id) values ($1)`, [self.humanId])
-    await db.sql.query(`insert into public.push_tokens (human_id, token, platform) values ($1, 'authz-seed-tok', 'ios')`, [self.humanId])
+    await db.sql.query(
+      `insert into public.push_tokens (human_id, token, platform) values ($1, 'authz-seed-tok', 'ios')`,
+      [self.humanId],
+    )
 
     // The block goes in last (its trigger only touches shared live rooms; blocked is in none).
     await block(db, self, blocked)
@@ -227,7 +272,9 @@ describe('authorization matrix over every public table (spec §114)', () => {
 
     const counts: Record<string, number> = {}
     for (const table of READ_ALL) {
-      const { rows } = await db.sql.query<{ n: string }>(`select count(*)::text as n from public.${table}`)
+      const { rows } = await db.sql.query<{ n: string }>(
+        `select count(*)::text as n from public.${table}`,
+      )
       counts[table] = Number(rows[0]?.n ?? '0')
     }
     fullCounts = counts
@@ -268,8 +315,14 @@ describe('authorization matrix over every public table (spec §114)', () => {
       table: 'public_identities',
       // 6 active public identities; the pending one is hidden; self hides blocked and vice versa.
       select: row<Count>(6, 6, 7, 5, 6, 6, 5, 6, 6),
-      insert: { sql: `insert into public.public_identities (human_id, display_name, handle) values ($SELF$, 'x', 'authznew')`, expect: allDenied<WriteOutcome>('denied') },
-      update: { sql: `update public.public_identities set bio = 'edited' where human_id = $SELF$`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
+      insert: {
+        sql: `insert into public.public_identities (human_id, display_name, handle) values ($SELF$, 'x', 'authznew')`,
+        expect: allDenied<WriteOutcome>('denied'),
+      },
+      update: {
+        sql: `update public.public_identities set bio = 'edited' where human_id = $SELF$`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
       delete: { sql: `delete from public.public_identities`, expect: allDenied<Count>('denied') },
     },
     {
@@ -279,7 +332,10 @@ describe('authorization matrix over every public table (spec §114)', () => {
         sql: `insert into public.media_objects (owner_human_id, bucket, storage_key, content_type) values ($ME$, 'media', 'authz/write-probe.jpg', 'image/jpeg')`,
         expect: row<WriteOutcome>('denied', 'rls', 'ok', 'ok', 'ok', 'ok', 'ok', 'ok', 'ok'),
       },
-      update: { sql: `update public.media_objects set width = 1`, expect: allDenied<Count>('denied') },
+      update: {
+        sql: `update public.media_objects set width = 1`,
+        expect: allDenied<Count>('denied'),
+      },
       delete: { sql: `delete from public.media_objects`, expect: allDenied<Count>('denied') },
     },
     { table: 'auth_identities', select: row<Count>('denied', 0, 1, 1, 1, 1, 1, 1, 1) },
@@ -294,8 +350,14 @@ describe('authorization matrix over every public table (spec §114)', () => {
         sql: `insert into public.human_presence (human_id) values ($ME$) on conflict (human_id) do update set last_active_at = now()`,
         expect: row<WriteOutcome>('denied', 'rls', 'rls', 'ok', 'ok', 'ok', 'ok', 'ok', 'ok'),
       },
-      update: { sql: `update public.human_presence set platform = 'web'`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
-      delete: { sql: `delete from public.human_presence`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
+      update: {
+        sql: `update public.human_presence set platform = 'web'`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
+      delete: {
+        sql: `delete from public.human_presence`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
     },
     {
       table: 'human_context',
@@ -304,8 +366,14 @@ describe('authorization matrix over every public table (spec §114)', () => {
         sql: `insert into public.human_context (human_id) values ($ME$) on conflict (human_id) do update set updated_at = now()`,
         expect: row<WriteOutcome>('denied', 'rls', 'rls', 'ok', 'ok', 'ok', 'ok', 'ok', 'ok'),
       },
-      update: { sql: `update public.human_context set last_scope_home = 'city'`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
-      delete: { sql: `delete from public.human_context`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
+      update: {
+        sql: `update public.human_context set last_scope_home = 'city'`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
+      delete: {
+        sql: `delete from public.human_context`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
     },
     {
       table: 'push_tokens',
@@ -314,8 +382,14 @@ describe('authorization matrix over every public table (spec §114)', () => {
         sql: `insert into public.push_tokens (human_id, token, platform) values ($ME$, 'authz-write-tok', 'web')`,
         expect: row<WriteOutcome>('denied', 'rls', 'rls', 'ok', 'ok', 'ok', 'ok', 'ok', 'ok'),
       },
-      update: { sql: `update public.push_tokens set platform = 'web'`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
-      delete: { sql: `delete from public.push_tokens`, expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0) },
+      update: {
+        sql: `update public.push_tokens set platform = 'web'`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
+      delete: {
+        sql: `delete from public.push_tokens`,
+        expect: row<Count>('denied', 0, 0, 1, 0, 0, 0, 0, 0),
+      },
     },
 
     // -- groups & conversations ---------------------------------------------------------------------
@@ -325,9 +399,18 @@ describe('authorization matrix over every public table (spec §114)', () => {
     {
       table: 'conversation_members',
       select: row<Count>('denied', 0, 0, 4, 0, 2, 0, 2, 0),
-      insert: { sql: `insert into public.conversation_members (conversation_id, human_id) values (gen_random_uuid(), $SELF$)`, expect: allDenied<WriteOutcome>('denied') },
-      update: { sql: `update public.conversation_members set mute_state = 'muted'`, expect: row<Count>('denied', 0, 0, 2, 0, 1, 0, 1, 0) },
-      delete: { sql: `delete from public.conversation_members`, expect: allDenied<Count>('denied') },
+      insert: {
+        sql: `insert into public.conversation_members (conversation_id, human_id) values (gen_random_uuid(), $SELF$)`,
+        expect: allDenied<WriteOutcome>('denied'),
+      },
+      update: {
+        sql: `update public.conversation_members set mute_state = 'muted'`,
+        expect: row<Count>('denied', 0, 0, 2, 0, 1, 0, 1, 0),
+      },
+      delete: {
+        sql: `delete from public.conversation_members`,
+        expect: allDenied<Count>('denied'),
+      },
     },
     { table: 'messages', select: row<Count>('denied', 0, 0, 3, 0, 1, 0, 2, 0) },
     { table: 'message_reactions', select: row<Count>('denied', 0, 0, 2, 0, 1, 0, 1, 0) },
@@ -389,16 +472,19 @@ describe('authorization matrix over every public table (spec §114)', () => {
         })
       }
 
-      if (tableCase.insert === undefined && tableCase.update === undefined && tableCase.delete === undefined) {
+      if (
+        tableCase.insert === undefined &&
+        tableCase.update === undefined &&
+        tableCase.delete === undefined
+      ) {
         // No client write path: prove it structurally (covers all nine callers via the two DB roles).
         it('has no client write privilege (anon and authenticated)', async () => {
           for (const role of ['anon', 'authenticated']) {
             for (const privilege of ['INSERT', 'UPDATE', 'DELETE']) {
-              const { rows } = await db.sql.query<{ ok: boolean }>('select has_table_privilege($1, $2, $3) as ok', [
-                role,
-                `public.${tableCase.table}`,
-                privilege,
-              ])
+              const { rows } = await db.sql.query<{ ok: boolean }>(
+                'select has_table_privilege($1, $2, $3) as ok',
+                [role, `public.${tableCase.table}`, privilege],
+              )
               expect(rows[0]?.ok, `${role} ${privilege} on ${tableCase.table}`).toBe(false)
             }
           }

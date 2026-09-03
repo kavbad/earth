@@ -23,7 +23,13 @@ describe('openUpVisibilityOptions (SCREEN 15)', () => {
       'city',
       'world',
     ])
-    expect(options.map((o) => o.label)).toEqual(['Group', 'Friends', 'Neighborhood', 'City', 'World'])
+    expect(options.map((o) => o.label)).toEqual([
+      'Group',
+      'Friends',
+      'Neighborhood',
+      'City',
+      'World',
+    ])
     expect(options[0]?.description).toBe('Only members of this group can see this room.')
   })
 
@@ -32,9 +38,9 @@ describe('openUpVisibilityOptions (SCREEN 15)', () => {
       visibility: 'invited',
       label: 'Just us',
     })
-    expect(openUpVisibilityOptions('standalone', flags(), 'friends').map((o) => o.visibility)).toEqual(
-      ['invited', 'friends', 'neighborhood', 'city', 'world'],
-    )
+    expect(
+      openUpVisibilityOptions('standalone', flags(), 'friends').map((o) => o.visibility),
+    ).toEqual(['invited', 'friends', 'neighborhood', 'city', 'world'])
   })
 
   it('drops visibilities the flags turn off, keeping the current one', () => {
@@ -51,13 +57,9 @@ describe('openUpVisibilityOptions (SCREEN 15)', () => {
       'world',
     ])
     // A room already at Friends keeps showing where it is even after the flag flips.
-    expect(openUpVisibilityOptions('group', noFriends, 'friends').map((o) => o.visibility)).toEqual([
-      'group',
-      'friends',
-      'neighborhood',
-      'city',
-      'world',
-    ])
+    expect(openUpVisibilityOptions('group', noFriends, 'friends').map((o) => o.visibility)).toEqual(
+      ['group', 'friends', 'neighborhood', 'city', 'world'],
+    )
     const noWorld = flags({ WORLD_LIVE_EXPANSION_ENABLED: false })
     expect(openUpVisibilityOptions('group', noWorld, 'group').map((o) => o.visibility)).toEqual([
       'group',
@@ -71,7 +73,9 @@ describe('openUpVisibilityOptions (SCREEN 15)', () => {
     expect(isVisibilityEnabled('neighborhood', flags({ NEIGHBORHOOD_ENABLED: false }))).toBe(false)
     expect(isVisibilityEnabled('city', flags({ CITY_ENABLED: false }))).toBe(false)
     expect(isVisibilityEnabled('world', flags({ WORLD_ENABLED: false }))).toBe(false)
-    expect(isVisibilityEnabled('extended', flags({ FRIENDS_LIVE_EXPANSION_ENABLED: false }))).toBe(false)
+    expect(isVisibilityEnabled('extended', flags({ FRIENDS_LIVE_EXPANSION_ENABLED: false }))).toBe(
+      false,
+    )
     expect(isVisibilityEnabled('invited', flags({ PUBLIC_LIVE_ENABLED: false }))).toBe(true)
   })
 })

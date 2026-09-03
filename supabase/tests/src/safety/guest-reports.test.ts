@@ -56,7 +56,11 @@ describe('guest reports (DB_API §7)', () => {
     )
     const room = await startStandaloneRoom(db, host, 'Kitchen')
     roomId = room.room.id
-    await db.rpc('room_join', { room_id: roomId, media_state: 'camera', consent_level: 'friends' }, cohost.as)
+    await db.rpc(
+      'room_join',
+      { room_id: roomId, media_state: 'camera', consent_level: 'friends' },
+      cohost.as,
+    )
     const invite = await createRoomInvite(db, roomId, host)
     guest1 = await createGuest(db)
     guest2 = await createGuest(db)
@@ -75,8 +79,20 @@ describe('guest reports (DB_API §7)', () => {
   })
 
   it('a Guest reports their own room with reporter_guest_session_id set and a guest audit entry', async () => {
-    const report = await createReport(db, guest1.as, { targetType: 'room', targetId: roomId, reason: 'hate', details: 'slurs' })
-    expect(report).toMatchObject({ status: 'open', targetType: 'room', targetId: roomId, reason: 'hate', severity: 'normal', details: 'slurs' })
+    const report = await createReport(db, guest1.as, {
+      targetType: 'room',
+      targetId: roomId,
+      reason: 'hate',
+      details: 'slurs',
+    })
+    expect(report).toMatchObject({
+      status: 'open',
+      targetType: 'room',
+      targetId: roomId,
+      reason: 'hate',
+      severity: 'normal',
+      details: 'slurs',
+    })
     expect(await reportRow(db, report.id)).toMatchObject({
       reporter_kind: 'guest',
       reporter_human_id: null,
@@ -86,67 +102,138 @@ describe('guest reports (DB_API §7)', () => {
     })
     const audit = await auditRows(db, 'report_create', roomId)
     expect(audit).toHaveLength(1)
-    expect(audit[0]).toMatchObject({ actor_role: 'guest', actor_human_id: null, actor_auth_user_id: guest1.userId, target_type: 'room', details: { reportId: report.id, reason: 'hate' } })
+    expect(audit[0]).toMatchObject({
+      actor_role: 'guest',
+      actor_human_id: null,
+      actor_auth_user_id: guest1.userId,
+      target_type: 'room',
+      details: { reportId: report.id, reason: 'hate' },
+    })
   })
 
   it('a Guest reports the Human participants of their room, not other Humans', async () => {
-    const report = await createReport(db, guest1.as, { targetType: 'human', targetId: cohost.humanId, reason: 'threats' })
-    expect(report).toMatchObject({ targetType: 'human', targetId: cohost.humanId, severity: 'high' })
+    const report = await createReport(db, guest1.as, {
+      targetType: 'human',
+      targetId: cohost.humanId,
+      reason: 'threats',
+    })
+    expect(report).toMatchObject({
+      targetType: 'human',
+      targetId: cohost.humanId,
+      severity: 'high',
+    })
     expect((await reportRow(db, report.id))?.reporter_guest_session_id).toBe(session1)
-    expect((await createReport(db, guest1.as, { targetType: 'human', targetId: host.humanId })).targetId).toBe(host.humanId)
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'human', targetId: stranger.humanId })).toBe('not_visible')
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'human', targetId: randomUUID() })).toBe('not_visible')
+    expect(
+      (await createReport(db, guest1.as, { targetType: 'human', targetId: host.humanId })).targetId,
+    ).toBe(host.humanId)
+    expect(
+      await reportErrorCode(db, guest1.as, { targetType: 'human', targetId: stranger.humanId }),
+    ).toBe('not_visible')
+    expect(
+      await reportErrorCode(db, guest1.as, { targetType: 'human', targetId: randomUUID() }),
+    ).toBe('not_visible')
   })
 
   it('a Guest reports another Guest of their room, never themself, never a Guest elsewhere', async () => {
-    const report = await createReport(db, guest1.as, { targetType: 'guest', targetId: session2, reason: 'sexual_content' })
+    const report = await createReport(db, guest1.as, {
+      targetType: 'guest',
+      targetId: session2,
+      reason: 'sexual_content',
+    })
     expect(report).toMatchObject({ targetType: 'guest', targetId: session2 })
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'guest', targetId: session1 })).toBe('invalid_input')
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'guest', targetId: session3 })).toBe('not_visible')
-    expect(await reportErrorCode(db, guest3.as, { targetType: 'guest', targetId: session1 })).toBe('not_visible')
+    expect(await reportErrorCode(db, guest1.as, { targetType: 'guest', targetId: session1 })).toBe(
+      'invalid_input',
+    )
+    expect(await reportErrorCode(db, guest1.as, { targetType: 'guest', targetId: session3 })).toBe(
+      'not_visible',
+    )
+    expect(await reportErrorCode(db, guest3.as, { targetType: 'guest', targetId: session1 })).toBe(
+      'not_visible',
+    )
   })
 
   it('a Guest cannot report a room they are not in', async () => {
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'room', targetId: otherRoomId })).toBe('not_visible')
-    expect(await reportErrorCode(db, guest3.as, { targetType: 'room', targetId: roomId })).toBe('not_visible')
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'room', targetId: randomUUID() })).toBe('not_visible')
+    expect(
+      await reportErrorCode(db, guest1.as, { targetType: 'room', targetId: otherRoomId }),
+    ).toBe('not_visible')
+    expect(await reportErrorCode(db, guest3.as, { targetType: 'room', targetId: roomId })).toBe(
+      'not_visible',
+    )
+    expect(
+      await reportErrorCode(db, guest1.as, { targetType: 'room', targetId: randomUUID() }),
+    ).toBe('not_visible')
     // An anonymous credential without any session is a Guest with no room at all.
-    expect(await reportErrorCode(db, (await createGuest(db)).as, { targetType: 'room', targetId: roomId })).toBe('not_visible')
+    expect(
+      await reportErrorCode(db, (await createGuest(db)).as, {
+        targetType: 'room',
+        targetId: roomId,
+      }),
+    ).toBe('not_visible')
   })
 
   it('a Guest may not report posts, messages or groups, even real and public ones', async () => {
     const post = await createPost(db, host, { audience: 'world', text: 'public' })
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'post', targetId: post.post.id })).toBe('guest_not_allowed')
+    expect(
+      await reportErrorCode(db, guest1.as, { targetType: 'post', targetId: post.post.id }),
+    ).toBe('guest_not_allowed')
     const dm = await directConversation(db, host, cohost)
     const message = await sendMessage(db, host, dm, 'hi')
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'message', targetId: message })).toBe('guest_not_allowed')
+    expect(await reportErrorCode(db, guest1.as, { targetType: 'message', targetId: message })).toBe(
+      'guest_not_allowed',
+    )
     const group = await db.rpc<{ id: string }>('group_create', { name: 'Crew' }, host.as)
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'group', targetId: group.id })).toBe('guest_not_allowed')
-    expect(await reportErrorCode(db, guest1.as, { targetType: 'planet', targetId: roomId })).toBe('invalid_input')
+    expect(await reportErrorCode(db, guest1.as, { targetType: 'group', targetId: group.id })).toBe(
+      'guest_not_allowed',
+    )
+    expect(await reportErrorCode(db, guest1.as, { targetType: 'planet', targetId: roomId })).toBe(
+      'invalid_input',
+    )
   })
 
   it('a removed or expired Guest session cannot report any more', async () => {
     const invite = await createRoomInvite(db, roomId, host)
     const removed = await createGuest(db)
     const removedSession = await createGuestSession(db, removed, invite.token, 'Removed')
-    expect((await createReport(db, removed.as, { targetType: 'room', targetId: roomId })).targetId).toBe(roomId)
+    expect(
+      (await createReport(db, removed.as, { targetType: 'room', targetId: roomId })).targetId,
+    ).toBe(roomId)
     const view = await getRoom(db, roomId, host.as)
-    const participant = view.participants.find((p) => p.guestSessionId === removedSession.guestSessionId)
+    const participant = view.participants.find(
+      (p) => p.guestSessionId === removedSession.guestSessionId,
+    )
     expect(participant).toBeDefined()
-    await db.rpc('room_remove_participant', { room_id: roomId, participant_id: participant?.id, block_from_room: false }, host.as)
-    expect(await reportErrorCode(db, removed.as, { targetType: 'room', targetId: roomId })).toBe('not_visible')
-    expect(await reportErrorCode(db, removed.as, { targetType: 'human', targetId: host.humanId })).toBe('not_visible')
+    await db.rpc(
+      'room_remove_participant',
+      { room_id: roomId, participant_id: participant?.id, block_from_room: false },
+      host.as,
+    )
+    expect(await reportErrorCode(db, removed.as, { targetType: 'room', targetId: roomId })).toBe(
+      'not_visible',
+    )
+    expect(
+      await reportErrorCode(db, removed.as, { targetType: 'human', targetId: host.humanId }),
+    ).toBe('not_visible')
 
     const expired = await createGuest(db)
     const expiredSession = await createGuestSession(db, expired, invite.token, 'Expired')
-    await db.sql.query(`update public.guest_sessions set created_at = now() - interval '1 hour', expires_at = now() - interval '1 second' where id = $1`, [expiredSession.guestSessionId])
-    expect(await reportErrorCode(db, expired.as, { targetType: 'room', targetId: roomId })).toBe('not_visible')
-    expect(await reportErrorCode(db, expired.as, { targetType: 'guest', targetId: session1 })).toBe('not_visible')
+    await db.sql.query(
+      `update public.guest_sessions set created_at = now() - interval '1 hour', expires_at = now() - interval '1 second' where id = $1`,
+      [expiredSession.guestSessionId],
+    )
+    expect(await reportErrorCode(db, expired.as, { targetType: 'room', targetId: roomId })).toBe(
+      'not_visible',
+    )
+    expect(await reportErrorCode(db, expired.as, { targetType: 'guest', targetId: session1 })).toBe(
+      'not_visible',
+    )
   })
 
   it('a Guest keeps reporting after a participant has left (the seat is history) but Humans of the room only', async () => {
     await db.rpc('room_leave', { room_id: roomId }, cohost.as)
-    expect((await createReport(db, guest1.as, { targetType: 'human', targetId: cohost.humanId })).targetId).toBe(cohost.humanId)
+    expect(
+      (await createReport(db, guest1.as, { targetType: 'human', targetId: cohost.humanId }))
+        .targetId,
+    ).toBe(cohost.humanId)
   })
 
   it('Guests have no report history RPC and the service is not a Guest', async () => {
@@ -155,10 +242,16 @@ describe('guest reports (DB_API §7)', () => {
     expect(await errorCode(myReports(db, 'service'))).toBe('not_a_human')
   })
 
-  it('a Guest reads their own report rows and nobody else\'s', async () => {
-    const mine = await db.asRole(guest1.as, (c) => c.query<{ target_type: string }>('select target_type from public.reports order by created_at'))
+  it("a Guest reads their own report rows and nobody else's", async () => {
+    const mine = await db.asRole(guest1.as, (c) =>
+      c.query<{ target_type: string }>(
+        'select target_type from public.reports order by created_at',
+      ),
+    )
     expect(mine.rows.length).toBeGreaterThanOrEqual(4)
-    expect(mine.rows.map((r) => r.target_type)).toEqual(expect.arrayContaining(['room', 'human', 'guest']))
+    expect(mine.rows.map((r) => r.target_type)).toEqual(
+      expect.arrayContaining(['room', 'human', 'guest']),
+    )
     const theirs = await db.asRole(guest2.as, (c) => c.query('select id from public.reports'))
     expect(theirs.rowCount).toBe(0)
     const guest3Rows = await db.asRole(guest3.as, (c) => c.query('select id from public.reports'))
@@ -166,11 +259,19 @@ describe('guest reports (DB_API §7)', () => {
   })
 
   it('a Human reports a Guest of a room they can see; a Human who cannot see the room gets not_visible', async () => {
-    const report = await createReport(db, host.as, { targetType: 'guest', targetId: session1, reason: 'spam_scam' })
+    const report = await createReport(db, host.as, {
+      targetType: 'guest',
+      targetId: session1,
+      reason: 'spam_scam',
+    })
     expect(report).toMatchObject({ targetType: 'guest', targetId: session1 })
     expect((await reportRow(db, report.id))?.reporter_human_id).toBe(host.humanId)
-    expect(await reportErrorCode(db, stranger.as, { targetType: 'guest', targetId: session1 })).toBe('not_visible')
-    expect(await reportErrorCode(db, host.as, { targetType: 'guest', targetId: session3 })).toBe('not_visible')
+    expect(
+      await reportErrorCode(db, stranger.as, { targetType: 'guest', targetId: session1 }),
+    ).toBe('not_visible')
+    expect(await reportErrorCode(db, host.as, { targetType: 'guest', targetId: session3 })).toBe(
+      'not_visible',
+    )
   })
 
   it('Guests get the stricter budget: 5 reports per hour, then rate_limited, reset by the service', async () => {

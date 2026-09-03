@@ -17,7 +17,13 @@ export interface ReportSheetProps {
 }
 
 /** Spec §82 reasons, exact labels from `@earth/ui`, one tap each. */
-export function ReportSheet({ open, busy = false, done = false, onReport, onClose }: ReportSheetProps) {
+export function ReportSheet({
+  open,
+  busy = false,
+  done = false,
+  onReport,
+  onClose,
+}: ReportSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title={roomCopy.reportTitle} closeButton>
       {done ? (

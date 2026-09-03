@@ -4,41 +4,31 @@
  */
 import {
   type AreaDto,
-  AreaDtoSchema,
   type AreaId,
   AreaIdSchema,
   type BoundingBox,
   type FeedPageDto,
-  FeedPageDtoSchema,
   type HumanContextDto,
-  HumanContextDtoSchema,
   type LatLngDto,
   LatLngDtoSchema,
   type LiveListDto,
-  LiveListDtoSchema,
   type LocationShareDto,
-  LocationShareDtoSchema,
   type LocationShareInput,
   LocationShareInputSchema,
   type MapFriendDto,
-  MapFriendDtoSchema,
   type MapObjectsDto,
-  MapObjectsDtoSchema,
   type PlaceDto,
-  PlaceDtoSchema,
   type PlaceId,
   PlaceIdSchema,
   SEARCH_SECTION_SIZE,
   type Scope,
   type SearchResultsDto,
-  SearchResultsDtoSchema,
   SearchInputSchema,
 } from '@earth/domain'
 import { z } from 'zod'
 
 import {
   type AreaResolutionDto,
-  AreaResolutionDtoSchema,
   type ContextSetInput,
   ContextSetInputSchema,
   FeedPageInputSchema,
@@ -53,8 +43,8 @@ import {
   type ScopeSetInput,
   ScopeSetInputSchema,
 } from '../dto'
-import { RPC, SERVER_QUERY, SERVER_ROUTES } from '../rpc'
-import { arrayOrKeyed } from '../schemas'
+import { CALLS } from '../manifest'
+import { SERVER_QUERY } from '../rpc'
 import { type Transport, parseInput } from '../transport'
 
 export interface FeedNamespace {
@@ -95,45 +85,41 @@ export interface LocationNamespace {
   getArea(areaId: AreaId): Promise<AreaDto>
   /** `context_set(current_area_id, current_city_id, home_city_id)`; only ids, never coordinates. */
   setContext(input: ContextSetInput): Promise<HumanContextDto>
-  /** `area_resolve` then `context_set` with the resolved neighborhood/city. */
-  resolveAndSetContext(position: LatLngDto): Promise<AreaResolutionDto>
+  /**
+   * `context_resolve_and_set(lat, lng)`: resolves the position to its neighborhood / city and
+   * stores those ids as the current context in one call (DB_API §5); the position is never stored.
+   */
+  resolveAndSetContext(position: LatLngDto): Promise<HumanContextDto>
   /** `scope_set(surface, scope)`: remembers the scope per surface (spec §51). */
   setScope(input: ScopeSetInput): Promise<void>
   /** `location_share_create(...)`; requires `LOCATION_SHARING_ENABLED`, always time-bounded. */
   share(input: LocationShareInput): Promise<LocationShareDto>
-  /** `location_share_update(share_id, lat, lng)`. */
-  updateShare(input: LocationShareUpdateInput): Promise<void>
-  /** `location_share_revoke(share_id)`. */
-  revokeShare(shareId: string): Promise<void>
+  /** `location_share_update(share_id, lat, lng)`: the share afterwards. */
+  updateShare(input: LocationShareUpdateInput): Promise<LocationShareDto>
+  /** `location_share_revoke(share_id)`: the revoked share. */
+  revokeShare(shareId: string): Promise<LocationShareDto>
   /** `location_shares_visible()`: positions already degraded by precision. */
   visibleShares(): Promise<MapFriendDto[]>
+  /** `location_shares_mine()`: the caller's own live shares (not revoked, not expired), no positions. */
+  myShares(): Promise<LocationShareDto[]>
 }
 
 const ShareIdSchema = z.uuid()
 const SearchLimitSchema = z.int().min(1).max(50)
 const AreaQuerySchema = SearchInputSchema.shape.q
-const PlacesResultSchema = arrayOrKeyed(PlaceDtoSchema, 'places')
-const AreasResultSchema = arrayOrKeyed(AreaDtoSchema, 'areas')
-const SharesResultSchema = arrayOrKeyed(MapFriendDtoSchema, 'shares')
 const SECONDS_PER_MINUTE = 60
 
 export function createFeedNamespace(transport: Transport): FeedNamespace {
   return {
     page(scope, cursor = null, areaId = null) {
       const parsed = parseInput(FeedPageInputSchema, { scope, cursor, areaId })
-      return transport.server(
-        {
-          method: 'GET',
-          path: SERVER_ROUTES.feed,
-          query: {
-            [SERVER_QUERY.scope]: parsed.scope,
-            [SERVER_QUERY.cursor]: parsed.cursor ?? null,
-            [SERVER_QUERY.area]: parsed.areaId ?? null,
-          },
-          auth: 'optional',
+      return transport.route(CALLS.feedPage, {
+        query: {
+          [SERVER_QUERY.scope]: parsed.scope,
+          [SERVER_QUERY.cursor]: parsed.cursor ?? null,
+          [SERVER_QUERY.area]: parsed.areaId ?? null,
         },
-        FeedPageDtoSchema,
-      )
+      })
     },
   }
 }
@@ -142,15 +128,9 @@ export function createLiveNamespace(transport: Transport): LiveNamespace {
   return {
     list(scope, areaId = null) {
       const parsed = parseInput(LiveListInputSchema, { scope, areaId })
-      return transport.server(
-        {
-          method: 'GET',
-          path: SERVER_ROUTES.live,
-          query: { [SERVER_QUERY.scope]: parsed.scope, [SERVER_QUERY.area]: parsed.areaId ?? null },
-          auth: 'optional',
-        },
-        LiveListDtoSchema,
-      )
+      return transport.route(CALLS.liveList, {
+        query: { [SERVER_QUERY.scope]: parsed.scope, [SERVER_QUERY.area]: parsed.areaId ?? null },
+      })
     },
   }
 }
@@ -160,7 +140,7 @@ export function createSearchNamespace(transport: Transport): SearchNamespace {
     query(q, limit = SEARCH_SECTION_SIZE) {
       const parsed = parseInput(SearchInputSchema, { q })
       const max = parseInput(SearchLimitSchema, limit, 'limit')
-      return transport.rpc(RPC.search, { q: parsed.q, limit: max }, SearchResultsDtoSchema)
+      return transport.call(CALLS.searchQuery, { q: parsed.q, limit: max })
     },
   }
 }
@@ -170,11 +150,13 @@ export function createMapNamespace(transport: Transport): MapNamespace {
     objects(scope, bbox) {
       const parsed = parseInput(MapObjectsInputSchema, { scope, bbox })
       const [west, south, east, north] = parsed.bbox
-      return transport.rpc(
-        RPC.mapObjects,
-        { scope: parsed.scope, min_lat: south, min_lng: west, max_lat: north, max_lng: east },
-        MapObjectsDtoSchema,
-      )
+      return transport.call(CALLS.mapObjects, {
+        scope: parsed.scope,
+        min_lat: south,
+        min_lng: west,
+        max_lat: north,
+        max_lng: east,
+      })
     },
   }
 }
@@ -183,97 +165,75 @@ export function createPlacesNamespace(transport: Transport): PlacesNamespace {
   return {
     search(input) {
       const parsed = parseInput(PlacesSearchInputSchema, input)
-      return transport.rpc(
-        RPC.placesSearch,
-        { q: parsed.q, area_id: parsed.areaId ?? null },
-        PlacesResultSchema,
-      )
+      return transport.call(CALLS.placesSearch, { q: parsed.q, area_id: parsed.areaId ?? null })
     },
     get(placeId) {
       const id = parseInput(PlaceIdSchema, placeId, 'placeId')
-      return transport.rpc(RPC.placeGet, { id }, PlaceDtoSchema)
+      return transport.call(CALLS.placesGet, { id })
     },
     create(input) {
       const parsed = parseInput(PlaceCreateInputSchema, input)
-      return transport.rpc(
-        RPC.placeCreate,
-        {
-          name: parsed.name,
-          lat: parsed.position.lat,
-          lng: parsed.position.lng,
-          area_id: parsed.areaId,
-          category: parsed.category ?? null,
-        },
-        PlaceDtoSchema,
-      )
+      return transport.call(CALLS.placesCreate, {
+        name: parsed.name,
+        lat: parsed.position.lat,
+        lng: parsed.position.lng,
+        area_id: parsed.areaId,
+        category: parsed.category ?? null,
+      })
     },
   }
 }
 
 export function createLocationNamespace(transport: Transport): LocationNamespace {
-  const resolveArea = (position: LatLngDto): Promise<AreaResolutionDto> => {
-    const parsed = parseInput(LatLngDtoSchema, position, 'position')
-    return transport.rpc(
-      RPC.areaResolve,
-      { lat: parsed.lat, lng: parsed.lng },
-      AreaResolutionDtoSchema,
-    )
-  }
-
-  const setContext = (input: ContextSetInput): Promise<HumanContextDto> => {
-    const parsed = parseInput(ContextSetInputSchema, input)
-    return transport.rpc(
-      RPC.contextSet,
-      {
-        current_area_id: parsed.currentAreaId ?? null,
-        current_city_id: parsed.currentCityId ?? null,
-        home_city_id: parsed.homeCityId ?? null,
-      },
-      HumanContextDtoSchema,
-    )
-  }
-
   return {
-    resolveArea,
+    resolveArea(position) {
+      const parsed = parseInput(LatLngDtoSchema, position, 'position')
+      return transport.call(CALLS.locationResolveArea, { lat: parsed.lat, lng: parsed.lng })
+    },
     searchAreas(q) {
       const query = parseInput(AreaQuerySchema, q, 'q')
-      return transport.rpc(RPC.areasSearch, { q: query }, AreasResultSchema)
+      return transport.call(CALLS.locationSearchAreas, { q: query })
     },
     getArea(areaId) {
       const id = parseInput(AreaIdSchema, areaId, 'areaId')
-      return transport.rpc(RPC.areaGet, { id }, AreaDtoSchema)
+      return transport.call(CALLS.locationGetArea, { id })
     },
-    setContext,
-    async resolveAndSetContext(position) {
-      const resolution = await resolveArea(position)
-      await setContext({
-        currentAreaId: resolution.neighborhood?.id ?? null,
-        currentCityId: resolution.city?.id ?? null,
+    setContext(input) {
+      const parsed = parseInput(ContextSetInputSchema, input)
+      return transport.call(CALLS.locationSetContext, {
+        current_area_id: parsed.currentAreaId ?? null,
+        current_city_id: parsed.currentCityId ?? null,
+        home_city_id: parsed.homeCityId ?? null,
       })
-      return resolution
+    },
+    resolveAndSetContext(position) {
+      const parsed = parseInput(LatLngDtoSchema, position, 'position')
+      return transport.call(CALLS.locationResolveAndSetContext, {
+        lat: parsed.lat,
+        lng: parsed.lng,
+      })
     },
     setScope(input) {
       const parsed = parseInput(ScopeSetInputSchema, input)
-      return transport.rpcVoid(RPC.scopeSet, { surface: parsed.surface, scope: parsed.scope })
+      return transport.call(CALLS.locationSetScope, {
+        surface: parsed.surface,
+        scope: parsed.scope,
+      })
     },
     share(input) {
       const parsed = parseInput(LocationShareInputSchema, input)
-      return transport.rpc(
-        RPC.locationShareCreate,
-        {
-          audience_type: parsed.audienceType,
-          audience_id: parsed.audienceId,
-          precision: parsed.precision,
-          duration_seconds: parsed.durationMinutes * SECONDS_PER_MINUTE,
-          lat: parsed.position.lat,
-          lng: parsed.position.lng,
-        },
-        LocationShareDtoSchema,
-      )
+      return transport.call(CALLS.locationShare, {
+        audience_type: parsed.audienceType,
+        audience_id: parsed.audienceId,
+        precision: parsed.precision,
+        duration_seconds: parsed.durationMinutes * SECONDS_PER_MINUTE,
+        lat: parsed.position.lat,
+        lng: parsed.position.lng,
+      })
     },
     updateShare(input) {
       const parsed = parseInput(LocationShareUpdateInputSchema, input)
-      return transport.rpcVoid(RPC.locationShareUpdate, {
+      return transport.call(CALLS.locationUpdateShare, {
         share_id: parsed.shareId,
         lat: parsed.position.lat,
         lng: parsed.position.lng,
@@ -281,8 +241,9 @@ export function createLocationNamespace(transport: Transport): LocationNamespace
     },
     revokeShare(shareId) {
       const id = parseInput(ShareIdSchema, shareId, 'shareId')
-      return transport.rpcVoid(RPC.locationShareRevoke, { share_id: id })
+      return transport.call(CALLS.locationRevokeShare, { share_id: id })
     },
-    visibleShares: () => transport.rpc(RPC.locationSharesVisible, {}, SharesResultSchema),
+    visibleShares: () => transport.call(CALLS.locationVisibleShares, {}),
+    myShares: () => transport.call(CALLS.locationMyShares, {}),
   }
 }

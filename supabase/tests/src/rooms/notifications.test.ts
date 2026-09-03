@@ -24,12 +24,17 @@ import {
 async function liveNotifications(db: TestDb, recipient: Human, roomId: string) {
   const all = await notificationsFor(db, recipient)
   return all.filter(
-    (n) => ['friend_live', 'multi_live', 'group_live'].includes(n.type) && (n.payload as { roomId?: string }).roomId === roomId,
+    (n) =>
+      ['friend_live', 'multi_live', 'group_live'].includes(n.type) &&
+      (n.payload as { roomId?: string }).roomId === roomId,
   )
 }
 
 async function cooldown(db: TestDb, recipient: Human, roomId: string) {
-  const { rows } = await db.sql.query<{ sends_in_window: number; notified_participant_ids: string[] }>(
+  const { rows } = await db.sql.query<{
+    sends_in_window: number
+    notified_participant_ids: string[]
+  }>(
     'select sends_in_window, notified_participant_ids from public.notification_cooldowns where recipient_human_id = $1 and room_id = $2',
     [recipient.humanId, roomId],
   )
@@ -62,8 +67,15 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
     // Initial notification: friend_live with the spec §86 payload keys.
     let mine = await liveNotifications(db, r, roomId)
     expect(mine).toHaveLength(1)
-    expect(mine[0]).toMatchObject({ type: 'friend_live', actor_human_id: x.humanId, priority: 'critical_social' })
-    expect(NOTIFICATION_PAYLOAD_SCHEMAS.friend_live.parse(mine[0]?.payload)).toEqual({ name: 'Xavier', activity: 'Cooking dinner' })
+    expect(mine[0]).toMatchObject({
+      type: 'friend_live',
+      actor_human_id: x.humanId,
+      priority: 'critical_social',
+    })
+    expect(NOTIFICATION_PAYLOAD_SCHEMAS.friend_live.parse(mine[0]?.payload)).toEqual({
+      name: 'Xavier',
+      activity: 'Cooking dinner',
+    })
     expect(mine[0]?.payload).toMatchObject({
       roomId,
       participantNames: ['Xavier'],
@@ -71,7 +83,10 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
       contextTitle: null,
       title: 'Xavier is live',
     })
-    expect(await cooldown(db, r, roomId)).toEqual({ sends_in_window: 1, notified_participant_ids: [x.humanId] })
+    expect(await cooldown(db, r, roomId)).toEqual({
+      sends_in_window: 1,
+      notified_participant_ids: [x.humanId],
+    })
 
     // Churn: a viewer joining, a non-friend of R joining on camera, X toggling media → nothing.
     await joinRoom(db, roomId, v, 'watching')
@@ -87,20 +102,37 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
     mine = await liveNotifications(db, r, roomId)
     expect(mine).toHaveLength(2)
     expect(mine[1]).toMatchObject({ type: 'multi_live', actor_human_id: y.humanId })
-    expect(NOTIFICATION_PAYLOAD_SCHEMAS.multi_live.parse(mine[1]?.payload)).toEqual({ names: ['Xavier', 'Maya', 'Wanderer'], total: 3 })
-    expect(mine[1]?.payload).toMatchObject({ participantNames: ['Xavier', 'Maya', 'Wanderer'], participantCount: 3, title: 'Xavier, Maya + 1 are live' })
+    expect(NOTIFICATION_PAYLOAD_SCHEMAS.multi_live.parse(mine[1]?.payload)).toEqual({
+      names: ['Xavier', 'Maya', 'Wanderer'],
+      total: 3,
+    })
+    expect(mine[1]?.payload).toMatchObject({
+      participantNames: ['Xavier', 'Maya', 'Wanderer'],
+      participantCount: 3,
+      title: 'Xavier, Maya + 1 are live',
+    })
     expect(await cooldown(db, r, roomId)).toMatchObject({ sends_in_window: 2 })
 
     // A third friend joining on camera inside the window: the extra is used up.
     await joinRoom(db, roomId, z, 'camera', 'friends')
     expect(await liveNotifications(db, r, roomId)).toHaveLength(2)
     // The viewer upgrading to audio only: not on camera → nothing.
-    await db.rpc('room_set_media_state', { room_id: roomId, media_state: 'audio', consent_level: 'friends' }, v.as)
+    await db.rpc(
+      'room_set_media_state',
+      { room_id: roomId, media_state: 'audio', consent_level: 'friends' },
+      v.as,
+    )
     expect(await liveNotifications(db, r, roomId)).toHaveLength(2)
 
     // Once the cooldown elapsed, the next eligible event opens a new window.
     await db.rpc('room_leave', { room_id: roomId }, z.as)
-    await rpcAt(db, 'room_join', { room_id: roomId, media_state: 'camera', consent_level: 'friends' }, z.as, secondsFromNow(31 * 60))
+    await rpcAt(
+      db,
+      'room_join',
+      { room_id: roomId, media_state: 'camera', consent_level: 'friends' },
+      z.as,
+      secondsFromNow(31 * 60),
+    )
     expect(await liveNotifications(db, r, roomId)).toHaveLength(3)
     expect(await cooldown(db, r, roomId)).toMatchObject({ sends_in_window: 1 })
     // Participants themselves are never notified; nor is a viewer's friend when the viewer only watched.
@@ -110,7 +142,12 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
 
   it('shares the decisions of shouldNotifyLive for the same scenario', async () => {
     const now = new Date('2026-09-03T12:00:00Z')
-    const initial = shouldNotifyLive({ lastSentAt: null, notifiedParticipantIds: [], joiningParticipant: null, now })
+    const initial = shouldNotifyLive({
+      lastSentAt: null,
+      notifiedParticipantIds: [],
+      joiningParticipant: null,
+      now,
+    })
     expect(initial.send).toBe(true)
     const churn = shouldNotifyLive({
       lastSentAt: now,
@@ -147,23 +184,42 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
     const group = await createGroup(db, owner, 'Weekend Crew')
     for (const m of [all, muted, mentions, blocker]) await addMember(db, group, m)
     await setConversationPrefs(db, group.conversationId, muted, { muteState: 'muted' })
-    await setConversationPrefs(db, group.conversationId, mentions, { notificationLevel: 'mentions' })
+    await setConversationPrefs(db, group.conversationId, mentions, {
+      notificationLevel: 'mentions',
+    })
     await block(db, blocker, owner)
 
     const started = await startGroupRoom(db, owner, group)
     const roomId = started.room.id
     const mine = await liveNotifications(db, all, roomId)
     expect(mine).toHaveLength(1)
-    expect(mine[0]).toMatchObject({ type: 'group_live', actor_human_id: owner.humanId, priority: 'critical_social' })
-    expect(NOTIFICATION_PAYLOAD_SCHEMAS.group_live.parse(mine[0]?.payload)).toEqual({ groupName: 'Weekend Crew', names: ['Owner'], total: 1 })
-    expect(mine[0]?.payload).toMatchObject({ roomId, contextTitle: 'Weekend Crew', title: 'Weekend Crew is live', participantCount: 1 })
+    expect(mine[0]).toMatchObject({
+      type: 'group_live',
+      actor_human_id: owner.humanId,
+      priority: 'critical_social',
+    })
+    expect(NOTIFICATION_PAYLOAD_SCHEMAS.group_live.parse(mine[0]?.payload)).toEqual({
+      groupName: 'Weekend Crew',
+      names: ['Owner'],
+      total: 1,
+    })
+    expect(mine[0]?.payload).toMatchObject({
+      roomId,
+      contextTitle: 'Weekend Crew',
+      title: 'Weekend Crew is live',
+      participantCount: 1,
+    })
     expect(await liveNotifications(db, muted, roomId)).toHaveLength(0)
     expect(await liveNotifications(db, mentions, roomId)).toHaveLength(0)
     expect(await liveNotifications(db, blocker, roomId)).toHaveLength(0)
     expect(await liveNotifications(db, owner, roomId)).toHaveLength(0)
     // The second member starting the same room does not re-notify within the cooldown.
     await startGroupRoom(db, all, group)
-    await db.rpc('room_set_media_state', { room_id: roomId, media_state: 'camera', consent_level: 'group' }, all.as)
+    await db.rpc(
+      'room_set_media_state',
+      { room_id: roomId, media_state: 'camera', consent_level: 'group' },
+      all.as,
+    )
     expect(await liveNotifications(db, muted, roomId)).toHaveLength(0)
     expect(await liveNotifications(db, mentions, roomId)).toHaveLength(0)
     await db.rpc('room_end', { room_id: roomId }, owner.as)
@@ -180,13 +236,19 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
     const roomId = started.room.id
     await joinRoom(db, roomId, member, 'camera', 'friends')
     const invite = await createRoomInvite(db, roomId, owner)
-    await createGuestSession(db, await createGuest(db), invite.token, 'Sam', { mediaState: 'camera' })
+    await createGuestSession(db, await createGuest(db), invite.token, 'Sam', {
+      mediaState: 'camera',
+    })
     expect(await liveNotifications(db, friendOfMember, roomId)).toHaveLength(0)
     await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'friends' }, owner.as)
     const mine = await liveNotifications(db, friendOfMember, roomId)
     expect(mine).toHaveLength(1)
     expect(mine[0]?.type).toBe('group_live')
-    expect(mine[0]?.payload).toMatchObject({ participantNames: ['Gmember', 'Gowner', 'Sam'], participantCount: 3, contextTitle: 'Crew' })
+    expect(mine[0]?.payload).toMatchObject({
+      participantNames: ['Gmember', 'Gowner', 'Sam'],
+      participantCount: 3,
+      contextTitle: 'Crew',
+    })
     await db.rpc('room_end', { room_id: roomId }, owner.as)
   })
 })

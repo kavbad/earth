@@ -20,7 +20,11 @@ import { createSupabaseServerClient } from '../../../lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 type PreviewResult =
-  | { readonly ok: true; readonly preview: RoomInvitePreviewDto; readonly livekitOrigin: string | null }
+  | {
+      readonly ok: true
+      readonly preview: RoomInvitePreviewDto
+      readonly livekitOrigin: string | null
+    }
   | { readonly ok: false; readonly code: string }
 
 async function loadPreview(token: string): Promise<PreviewResult> {
@@ -48,7 +52,9 @@ export default async function GuestRoomPage({ params }: { params: Params }) {
   const result = await loadPreview(token)
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
-      {result.ok && result.livekitOrigin !== null ? <link rel="preconnect" href={result.livekitOrigin} /> : null}
+      {result.ok && result.livekitOrigin !== null ? (
+        <link rel="preconnect" href={result.livekitOrigin} />
+      ) : null}
       <div className="flex min-h-touch-target items-center py-3">
         <Link href={ROUTES.home} className="text-title tracking-tight">
           {APP_NAME}

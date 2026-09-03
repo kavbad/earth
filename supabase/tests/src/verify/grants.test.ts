@@ -31,6 +31,7 @@
 import {
   CLAIM_INTENTS,
   EARTH_ERROR_CODES,
+  ENUM_REGISTRY,
   GROUP_INVITE_STATUSES,
   GROUP_STATUSES,
   HUMAN_PASS_RISK_LEVELS,
@@ -42,6 +43,7 @@ import {
   PLACE_VISIBILITIES,
   PUSH_PLATFORMS,
   REPORT_TARGET_TYPES,
+  ROLE_KINDS,
 } from '@earth/domain'
 import { createHash, randomUUID } from 'node:crypto'
 import pg from 'pg'
@@ -61,8 +63,11 @@ import {
   createRoomInvite,
   createUnclaimed,
   directConversation,
+  joinRoom,
   participantId,
+  relate,
   scalar,
+  startGroupRoom,
   startStandaloneRoom,
   type Guest,
   type Human,
@@ -74,7 +79,19 @@ const PUBLIC_ROLE = 'public'
 const APP_SCHEMAS = ['public', 'earth', 'private'] as const
 const ERROR_CODES: ReadonlySet<string> = new Set<string>(EARTH_ERROR_CODES)
 /** Codes an auth gate raises before any business logic (0160 earth.assert_*). */
-const AUTH_GATE_CODES: ReadonlySet<string> = new Set(['not_authenticated', 'not_a_human', 'guest_not_allowed', 'forbidden'])
+const AUTH_GATE_CODES: ReadonlySet<string> = new Set([
+  'not_authenticated',
+  'not_a_human',
+  'guest_not_allowed',
+  'forbidden',
+])
+/** Human statuses that keep the credential a `human` for earth.current_role_kind() but fail earth.assert_human(). */
+const NON_ACTIVE_STATUSES = ['restricted', 'suspended'] as const
+/** Credential reads a Guest may complete (DB_API `guest` / `any auth`); every other credential read refuses a Guest. */
+const GUEST_READS = ['guest_session_get', 'handle_available'] as const
+/** Client addresses the visitor rate-limit probes are keyed by (`cf-connecting-ip`, 0004). */
+const VISITOR_IP = '203.0.113.77'
+const OTHER_VISITOR_IP = '203.0.113.78'
 
 // ---------------------------------------------------------------------------------------------
 // The anon-executable `public` RPC inventory, classified by who may do useful work with it.
@@ -82,13 +99,34 @@ const AUTH_GATE_CODES: ReadonlySet<string> = new Set(['not_authenticated', 'not_
 // ---------------------------------------------------------------------------------------------
 
 /** Volatile RPCs a visitor may call successfully (DB_API `any` / visitor rows). Rate-limited reads. */
-const VISITOR_MUTATING_SURFACE = ['analytics_track', 'areas_search', 'group_invite_preview', 'places_search', 'room_invite_preview', 'search'] as const
+const VISITOR_MUTATING_SURFACE = [
+  'analytics_track',
+  'areas_search',
+  'group_invite_preview',
+  'places_search',
+  'room_invite_preview',
+  'search',
+] as const
 /** Any credential (Guest, claiming, Human) may call; visitors get `not_authenticated` (DB_API `any auth`). */
 const AUTH_ONLY = ['area_resolve'] as const
 /** The claim flow: visitors `not_authenticated`, Guests `guest_not_allowed`; a real credential may write. */
-const CLAIM_FLOW = ['claim_complete', 'claim_set_identity', 'claim_start', 'claim_verification_begin', 'identity_review_create'] as const
+const CLAIM_FLOW = [
+  'claim_complete',
+  'claim_set_identity',
+  'claim_start',
+  'claim_verification_begin',
+  'identity_review_create',
+] as const
 /** Guests may call with a seat; visitors `not_authenticated`; unclaimed / claiming credentials `not_a_human`. */
-const GUEST_CAPABLE = ['guest_session_create', 'report_create', 'room_join', 'room_leave', 'room_media_grant', 'room_set_media_state', 'rtc_diagnostic_record'] as const
+const GUEST_CAPABLE = [
+  'guest_session_create',
+  'report_create',
+  'room_join',
+  'room_leave',
+  'room_media_grant',
+  'room_set_media_state',
+  'rtc_diagnostic_record',
+] as const
 /** Granted to the API roles for PostgREST discovery only; the body refuses every non-service caller. */
 const SERVICE_BY_CHECK = ['human_pass_record_result'] as const
 /** Everything else that mutates: active Humans only. */
@@ -113,6 +151,7 @@ const HUMAN_ONLY = [
   'group_member_remove',
   'group_member_set_role',
   'group_update',
+  'human_delete_request',
   'identity_update',
   'location_share_create',
   'location_share_revoke',
@@ -145,7 +184,20 @@ const HUMAN_ONLY = [
 ] as const
 
 /** Read RPCs (stable) a visitor may call; visibility is decided inside. */
-const VISITOR_READ_SURFACE = ['area_get', 'feed_candidates', 'live_candidates', 'map_objects', 'me_get', 'place_get', 'post_get', 'post_replies', 'profile_get', 'public_feed', 'room_get'] as const
+const VISITOR_READ_SURFACE = [
+  'area_get',
+  'feed_candidates',
+  'live_candidates',
+  'map_objects',
+  'me_get',
+  'place_get',
+  'post_get',
+  'post_replies',
+  'posts_by_author',
+  'profile_get',
+  'public_feed',
+  'room_get',
+] as const
 /** Read RPCs that need a credential: visitors get `not_authenticated` whatever the arguments. */
 const CREDENTIAL_READS = [
   'blocks_list',
@@ -156,6 +208,7 @@ const CREDENTIAL_READS = [
   'group_get',
   'guest_session_get',
   'handle_available',
+  'location_shares_mine',
   'location_shares_visible',
   'messages_list',
   'messages_since',
@@ -212,7 +265,10 @@ const OWNER_VIEWS = ['group_invites_view', 'guest_sessions_view', 'room_invites_
  * EXECUTE on new functions by default (0002) so policies can call helpers; every writer must revoke
  * it explicitly. `earth.raise` only raises and `earth.random_token` only draws random bytes.
  */
-const EARTH_VOLATILE_CLIENT_ALLOWLIST = ['earth.raise(code text, detail text)', 'earth.random_token()'] as const
+const EARTH_VOLATILE_CLIENT_ALLOWLIST = [
+  'earth.raise(code text, detail text)',
+  'earth.random_token()',
+] as const
 
 /** `pg_default_acl` (schema objtype grantee=privileges), the whole privilege baseline of 0002. */
 const EXPECTED_DEFAULT_ACLS = [
@@ -405,7 +461,13 @@ async function settleStats(db: TestDb): Promise<Map<string, number>> {
  * (which count rolled-back inserts, updates and deletes too) reach shared memory when the
  * transaction ends and the next statement reads them.
  */
-async function probe(db: TestDb, name: string, args: Record<string, unknown>, as: RoleSpec): Promise<Outcome> {
+async function probe(
+  db: TestDb,
+  name: string,
+  args: Record<string, unknown>,
+  as: RoleSpec,
+  headers?: Record<string, string>,
+): Promise<Outcome> {
   const keys = Object.keys(args)
   const placeholders = keys.map((key, i) => `"${key}" => $${i + 1}`).join(', ')
   const before = await tupleWrites(db)
@@ -414,9 +476,19 @@ async function probe(db: TestDb, name: string, args: Record<string, unknown>, as
   await db.sql.query('begin')
   try {
     await db.sql.query(`set local role ${roleFor(as)}`)
-    await db.sql.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(claimsFor(as))])
+    await db.sql.query(`select set_config('request.jwt.claims', $1, true)`, [
+      JSON.stringify(claimsFor(as)),
+    ])
+    if (headers !== undefined) {
+      await db.sql.query(`select set_config('request.headers', $1, true)`, [
+        JSON.stringify(headers),
+      ])
+    }
     await db.sql.query('select pg_stat_force_next_flush()')
-    await db.sql.query(`select * from public."${name}"(${placeholders})`, keys.map((key) => args[key]))
+    await db.sql.query(
+      `select * from public."${name}"(${placeholders})`,
+      keys.map((key) => args[key]),
+    )
   } catch (error) {
     if (!(error instanceof pg.DatabaseError)) throw error
     code = error.message
@@ -439,6 +511,19 @@ function describeOutcome(caller: string, name: string, variant: string, outcome:
 interface World {
   alice: Human
   bob: Human
+  /** An active Human with no edge to Alice (a friend request to Carol is a real write). */
+  carol: Human
+  /** Sent Alice a friend request that is still pending (accept / decline are real writes). */
+  dave: Human
+  /** Bob's seat in Alice's standalone room (admit / remove target a seat that is not the caller's). */
+  bobParticipantId: string
+  /** Alice's live group room: `room_start(group)` by a member is a join, not a creation. */
+  groupRoomId: string
+  /** A pending Human with identity set and a verified Human Pass: `claim_complete` would succeed. */
+  claimantReady: { userId: string; as: RoleSpec }
+  claimingUserId: string
+  restricted: Human
+  suspended: Human
   groupId: string
   groupConversationId: string
   groupInviteId: string
@@ -464,15 +549,30 @@ interface World {
 async function buildWorld(db: TestDb): Promise<World> {
   const alice = await createHuman(db, { handle: 'grantsalice', displayName: 'Alice' })
   const bob = await createHuman(db, { handle: 'grantsbob', displayName: 'Bob' })
+  const carol = await createHuman(db, { handle: 'grantscarol', displayName: 'Carol' })
+  const dave = await createHuman(db, { handle: 'grantsdave', displayName: 'Dave' })
+  const restricted = await createHuman(db, {
+    handle: 'grantsrestricted',
+    displayName: 'Restricted',
+    status: 'restricted',
+  })
+  const suspended = await createHuman(db, {
+    handle: 'grantssuspended',
+    displayName: 'Suspended',
+    status: 'suspended',
+  })
   await befriend(db, alice, bob)
+  await relate(db, dave, alice, 'friend_pending')
 
   const group = await createGroup(db, alice, 'Grants Crew')
   await addMember(db, group, bob)
   const groupInvite = await createInvite(db, group, alice)
+  const groupRoom = await startGroupRoom(db, alice, group)
 
   const started = await startStandaloneRoom(db, alice, 'Grants room')
   const roomId = started.room.id
   const roomInvite = await createRoomInvite(db, roomId, alice)
+  const bobSeat = await joinRoom(db, roomId, bob, 'watching')
 
   const guestSeated = await createGuest(db)
   const session = await createGuestSession(db, guestSeated, roomInvite.token, 'Sam')
@@ -480,7 +580,41 @@ async function buildWorld(db: TestDb): Promise<World> {
 
   const unclaimed = await createUnclaimed(db)
   const claimant = await createUnclaimed(db)
-  await db.rpc('claim_start', { intent: 'join_group', group_label: null, invite_token: groupInvite.token }, claimant.as)
+  await db.rpc(
+    'claim_start',
+    { intent: 'join_group', group_label: null, invite_token: groupInvite.token },
+    claimant.as,
+  )
+  // A claimant one step from done: identity set, Human Pass verified by the service.
+  const ready = await createUnclaimed(db)
+  await db.rpc(
+    'claim_start',
+    { intent: 'start_group', group_label: 'Ready crew', invite_token: null },
+    ready.as,
+  )
+  await db.rpc(
+    'claim_set_identity',
+    { display_name: 'Ready', handle: 'grantsready', avatar_media_id: null },
+    ready.as,
+  )
+  const readyHumanId = await scalar<string>(
+    db,
+    'select id from public.humans where auth_user_id = $1',
+    [ready.userId],
+  )
+  await db.rpc(
+    'human_pass_record_result',
+    {
+      human_id: readyHumanId,
+      status: 'verified',
+      risk_level: 'low',
+      provider: 'mock',
+      provider_reference: null,
+      metadata: {},
+      duplicate_of_human_id: null,
+    },
+    'service',
+  )
 
   const post = await createPost(db, alice, { text: 'grants world post', audience: 'world' })
   const dmId = await directConversation(db, alice, bob)
@@ -490,11 +624,21 @@ async function buildWorld(db: TestDb): Promise<World> {
     alice.as,
   )
   const mediaId = await createMedia(db, alice)
-  const areaId = await scalar<string>(db, `select id from public.areas where type = 'city' order by name limit 1`)
+  const areaId = await scalar<string>(
+    db,
+    `select id from public.areas where type = 'city' order by name limit 1`,
+  )
   const placeId = await createPlace(db, areaId, 'Grants Park')
   const share = await db.rpc<{ id: string }>(
     'location_share_create',
-    { audience_type: 'friend', audience_id: bob.humanId, precision: 'precise', duration_seconds: 3600, lat: 37.8, lng: -122.41 },
+    {
+      audience_type: 'friend',
+      audience_id: bob.humanId,
+      precision: 'precise',
+      duration_seconds: 3600,
+      lat: 37.8,
+      lng: -122.41,
+    },
     alice.as,
   )
   const { rows: notification } = await db.sql.query<{ id: string }>(
@@ -508,6 +652,14 @@ async function buildWorld(db: TestDb): Promise<World> {
   return {
     alice,
     bob,
+    carol,
+    dave,
+    bobParticipantId: participantId(bobSeat, bob.humanId),
+    groupRoomId: groupRoom.room.id,
+    claimantReady: ready,
+    claimingUserId: claimant.userId,
+    restricted,
+    suspended,
     groupId: group.groupId,
     groupConversationId: group.conversationId,
     groupInviteId: groupInvite.inviteId,
@@ -575,7 +727,12 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       return { kind: 'help', details: {} }
     // guest capable
     case 'guest_session_create':
-      return { token: token(w.roomInviteToken), display_name: 'Sam', device_fingerprint_hash: null, media_state: 'audio' }
+      return {
+        token: token(w.roomInviteToken),
+        display_name: 'Sam',
+        device_fingerprint_hash: null,
+        media_state: 'audio',
+      }
     case 'report_create':
       return { target_type: 'human', target_id: human, reason: 'harassment', details: null }
     case 'room_join':
@@ -589,7 +746,15 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       return { kind: 'ice_failed', room_id: room, payload: {} }
     // service by check
     case 'human_pass_record_result':
-      return { human_id: id(w.alice.humanId), status: 'verified', risk_level: null, provider: null, provider_reference: null, metadata: {}, duplicate_of_human_id: null }
+      return {
+        human_id: id(w.alice.humanId),
+        status: 'verified',
+        risk_level: null,
+        provider: null,
+        provider_reference: null,
+        metadata: {},
+        duplicate_of_human_id: null,
+      }
     // human only
     case 'block_set':
       return { target_human_id: human, blocked: true }
@@ -631,9 +796,26 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
     case 'group_update':
       return { group_id: group, name: 'Renamed', avatar_media_id: null }
     case 'identity_update':
-      return { display_name: 'Probe', bio: null, avatar_media_id: null, profile_visibility: null, public_city_visibility: null, home_city_area_id: null }
+      return {
+        display_name: 'Probe',
+        bio: null,
+        avatar_media_id: null,
+        profile_visibility: null,
+        public_city_visibility: null,
+        home_city_area_id: null,
+        handle: null,
+      }
+    case 'human_delete_request':
+      return {}
     case 'location_share_create':
-      return { audience_type: 'friend', audience_id: human, precision: 'precise', duration_seconds: 3600, lat: 37.8, lng: -122.41 }
+      return {
+        audience_type: 'friend',
+        audience_id: human,
+        precision: 'precise',
+        duration_seconds: 3600,
+        lat: 37.8,
+        lng: -122.41,
+      }
     case 'location_share_revoke':
       return { share_id: id(w.shareId) }
     case 'location_share_update':
@@ -645,7 +827,14 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
     case 'message_reaction_toggle':
       return { message_id: message, reaction: '❤️' }
     case 'message_send':
-      return { conversation_id: conversation, client_id: randomUUID(), type: 'text', text: 'probe', payload: {}, reply_to_message_id: null }
+      return {
+        conversation_id: conversation,
+        client_id: randomUUID(),
+        type: 'text',
+        text: 'probe',
+        payload: {},
+        reply_to_message_id: null,
+      }
     case 'notification_mark_read':
       return { id: id(w.notificationId) }
     case 'notifications_mark_all_read':
@@ -653,7 +842,18 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
     case 'place_create':
       return { name: 'Probe Place', lat: 37.77, lng: -122.42, area_id: null, category: null }
     case 'post_create':
-      return { type: 'text', text: 'probe', audience: 'friends', area_id: null, place_id: null, media: [], reply_policy: 'everyone_eligible', reshare_policy: 'allowed_within_audience', parent_post_id: null, provenance: null }
+      return {
+        type: 'text',
+        text: 'probe',
+        audience: 'friends',
+        area_id: null,
+        place_id: null,
+        media: [],
+        reply_policy: 'everyone_eligible',
+        reshare_policy: 'allowed_within_audience',
+        parent_post_id: null,
+        provenance: null,
+      }
     case 'post_delete':
     case 'post_hide':
       return { post_id: post }
@@ -691,6 +891,7 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
     case 'blocks_list':
     case 'claim_get':
     case 'guest_session_get':
+    case 'location_shares_mine':
     case 'location_shares_visible':
     case 'notifications_unread_count':
     case 'reports_mine':
@@ -727,6 +928,8 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       return { post_id: post }
     case 'post_replies':
       return { post_id: post, cursor: null, limit: 20 }
+    case 'posts_by_author':
+      return { handle: real ? w.alice.handle : 'grantsnobody', cursor: null, limit: 20 }
     case 'profile_get':
       return { handle: real ? w.alice.handle : 'grantsnobody' }
     case 'public_feed':
@@ -737,6 +940,158 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       throw new Error(`argsFor: no arguments defined for public.${name}`)
   }
 }
+
+/**
+ * Arguments with which the RPC does real work for a legitimate caller (the `real` arguments of
+ * `argsFor` are valid for Alice except where they would be a no-op or name Alice herself).
+ */
+function legitArgsFor(name: string, w: World, caller: 'human' | 'guest'): Record<string, unknown> {
+  switch (name) {
+    case 'friend_request_send':
+      return { target_human_id: w.carol.humanId }
+    case 'friend_request_accept':
+    case 'friend_request_decline':
+      return { source_human_id: w.dave.humanId }
+    case 'conversation_group_create':
+      return { human_ids: [w.bob.humanId, w.carol.humanId] }
+    case 'room_admit':
+    case 'room_remove_participant':
+      return { ...argsFor(name, w, true), participant_id: w.bobParticipantId }
+    case 'report_create':
+      // A Guest may report only their room and its participants.
+      return caller === 'guest'
+        ? { target_type: 'room', target_id: w.roomId, reason: 'harassment', details: null }
+        : argsFor(name, w, true)
+    default:
+      return argsFor(name, w, true)
+  }
+}
+
+interface LegitCase {
+  name: string
+  caller: string
+  as: RoleSpec
+  /** The rate-limit subject (`earth.rate_limit_for_caller`): auth user id, or the client address for a visitor. */
+  subject: string
+  args: Record<string, unknown>
+  headers?: Record<string, string>
+}
+
+/** Every mutating anon-executable RPC × every caller path that may legitimately use it. */
+function legitCases(w: World): LegitCase[] {
+  const asAlice = (name: string): LegitCase => ({
+    name,
+    caller: 'alice',
+    as: w.alice.as,
+    subject: w.alice.userId,
+    args: legitArgsFor(name, w, 'human'),
+  })
+  const asSeatedGuest = (name: string): LegitCase => ({
+    name,
+    caller: 'guest(seated)',
+    as: w.guestSeated.as,
+    subject: w.guestSeated.userId,
+    args: legitArgsFor(name, w, 'guest'),
+  })
+  const asNoSeatGuest = (name: string): LegitCase => ({
+    name,
+    caller: 'guest',
+    as: w.guestNoSeat.as,
+    subject: w.guestNoSeat.userId,
+    args: argsFor(name, w, true),
+  })
+  const asClaiming = (name: string): LegitCase => ({
+    name,
+    caller: 'claiming',
+    as: w.claiming,
+    subject: w.claimingUserId,
+    args: argsFor(name, w, true),
+  })
+  const asVisitor = (name: string): LegitCase => ({
+    name,
+    caller: 'visitor',
+    as: 'visitor',
+    subject: VISITOR_IP,
+    args: argsFor(name, w, true),
+    headers: { 'cf-connecting-ip': VISITOR_IP },
+  })
+  const guestCapableHuman = GUEST_CAPABLE.filter((name) => name !== 'guest_session_create')
+  return [
+    ...HUMAN_ONLY.map(asAlice),
+    ...guestCapableHuman.map(asAlice),
+    ...guestCapableHuman.map(asSeatedGuest),
+    asNoSeatGuest('guest_session_create'),
+    ...CLAIM_FLOW.filter((name) => name !== 'claim_complete').map(asClaiming),
+    {
+      name: 'claim_complete',
+      caller: 'claiming(ready)',
+      as: w.claimantReady.as,
+      subject: w.claimantReady.userId,
+      args: {},
+    },
+    ...AUTH_ONLY.map(asNoSeatGuest),
+    ...VISITOR_MUTATING_SURFACE.map(asVisitor),
+  ]
+}
+
+interface RateLimitLiteral {
+  action: string
+  max: number
+  window: number
+}
+
+/** Every `earth.rate_limit_for_caller('<action>', <max>, <window>)` literal in the public and earth sources. */
+async function rateLimitInventory(db: TestDb): Promise<RateLimitLiteral[]> {
+  const { rows } = await db.sql.query<{ action: string; max: string; window: string }>(
+    `select distinct m[1] as action, m[2] as max, m[3] as window
+       from pg_proc p
+       join pg_namespace n on n.oid = p.pronamespace,
+            regexp_matches(p.prosrc, 'rate_limit_for_caller\\(\\s*''([a-z_]+)''\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\)', 'g') m
+      where n.nspname in ('public', 'earth')
+      order by 1, 2, 3`,
+  )
+  return rows.map((r) => ({ action: r.action, max: Number(r.max), window: Number(r.window) }))
+}
+
+/**
+ * Fills every inventory window of `subject` to its Human budget (the largest literal per action,
+ * which is above the reduced Guest / Visitor budget too), so the next attempt on any action is one
+ * too many.
+ */
+async function exhaustWindows(
+  db: TestDb,
+  subject: string,
+  inventory: readonly RateLimitLiteral[],
+): Promise<void> {
+  const byAction = new Map<string, { max: number; window: number }>()
+  for (const { action, max, window } of inventory) {
+    const current = byAction.get(action)
+    byAction.set(action, {
+      max: Math.max(current?.max ?? 0, max),
+      window: Math.max(current?.window ?? 0, window),
+    })
+  }
+  for (const [action, { max, window }] of byAction) {
+    await db.sql.query(
+      `insert into private.rate_limits (key, window_start, expires_at, count)
+       values ($1, now(), now() + make_interval(secs => $2), $3)
+       on conflict (key) do update set window_start = excluded.window_start, expires_at = excluded.expires_at, count = excluded.count`,
+      [`${action}:${subject}`, window, max],
+    )
+  }
+}
+
+async function clearWindows(db: TestDb, subject: string): Promise<void> {
+  await db.sql.query(
+    `delete from private.rate_limits where substr(key, position(':' in key) + 1) = $1`,
+    [subject],
+  )
+}
+
+const rateLimitWrites = (outcome: Outcome): string[] =>
+  outcome.writes.filter((w) => w.startsWith('private.rate_limits+'))
+const otherWrites = (outcome: Outcome): string[] =>
+  outcome.writes.filter((w) => !w.startsWith('private.rate_limits+'))
 
 // ---------------------------------------------------------------------------------------------
 
@@ -757,14 +1112,27 @@ describe('grants invariants — adversarial verification', () => {
   })
 
   const publicVolatileAnon = (): string[] =>
-    fns.filter((f) => f.schema === 'public' && f.volatile && f.anon).map((f) => f.name).sort()
+    fns
+      .filter((f) => f.schema === 'public' && f.volatile && f.anon)
+      .map((f) => f.name)
+      .sort()
   const publicStableAnon = (): string[] =>
-    fns.filter((f) => f.schema === 'public' && !f.volatile && f.anon).map((f) => f.name).sort()
+    fns
+      .filter((f) => f.schema === 'public' && !f.volatile && f.anon)
+      .map((f) => f.name)
+      .sort()
 
   // -------------------------------------------------------------------------------------------
   describe('the anon-executable RPC inventory is fully classified', () => {
     it('every anon-executable volatile public RPC is in exactly one behavioural class', () => {
-      const classified = [...VISITOR_MUTATING_SURFACE, ...AUTH_ONLY, ...CLAIM_FLOW, ...GUEST_CAPABLE, ...SERVICE_BY_CHECK, ...HUMAN_ONLY]
+      const classified = [
+        ...VISITOR_MUTATING_SURFACE,
+        ...AUTH_ONLY,
+        ...CLAIM_FLOW,
+        ...GUEST_CAPABLE,
+        ...SERVICE_BY_CHECK,
+        ...HUMAN_ONLY,
+      ]
       expect(new Set(classified).size, 'a function is listed twice').toBe(classified.length)
       expect(publicVolatileAnon()).toEqual([...classified].sort())
     })
@@ -812,7 +1180,8 @@ describe('grants invariants — adversarial verification', () => {
       await settleStats(db)
       for (const name of names) {
         const outcomes: Array<[string, Outcome]> = []
-        if (!skipReal.has(name)) outcomes.push(['real', await probe(db, name, argsFor(name, world, true), as)])
+        if (!skipReal.has(name))
+          outcomes.push(['real', await probe(db, name, argsFor(name, world, true), as)])
         outcomes.push(['random', await probe(db, name, argsFor(name, world, false), as)])
         for (const [variant, outcome] of outcomes) {
           const bad =
@@ -825,7 +1194,9 @@ describe('grants invariants — adversarial verification', () => {
         }
         const codes = new Set(outcomes.map(([, o]) => o.code))
         if (options.sameCode !== false && codes.size > 1) {
-          violations.push(`${caller} ${name}: code depends on whether the object exists (${[...codes].join(' vs ')})`)
+          violations.push(
+            `${caller} ${name}: code depends on whether the object exists (${[...codes].join(' vs ')})`,
+          )
         }
       }
       return violations
@@ -833,8 +1204,18 @@ describe('grants invariants — adversarial verification', () => {
 
     it('a visitor gets not_authenticated from every non-visitor RPC, whatever the arguments, with zero writes', async () => {
       const violations = [
-        ...(await failsClosed('visitor', 'visitor', [...HUMAN_ONLY, ...GUEST_CAPABLE, ...CLAIM_FLOW, ...AUTH_ONLY], (code) => code === 'not_authenticated')),
-        ...(await failsClosed('visitor', 'visitor', SERVICE_BY_CHECK, (code) => code === 'forbidden')),
+        ...(await failsClosed(
+          'visitor',
+          'visitor',
+          [...HUMAN_ONLY, ...GUEST_CAPABLE, ...CLAIM_FLOW, ...AUTH_ONLY],
+          (code) => code === 'not_authenticated',
+        )),
+        ...(await failsClosed(
+          'visitor',
+          'visitor',
+          SERVICE_BY_CHECK,
+          (code) => code === 'forbidden',
+        )),
       ]
       expect(violations).toEqual([])
     })
@@ -842,7 +1223,12 @@ describe('grants invariants — adversarial verification', () => {
     it('a Guest without a seat is stopped by an auth gate on every Human-only RPC and never writes anywhere', async () => {
       const guest = world.guestNoSeat.as
       const violations = [
-        ...(await failsClosed('guest', guest, HUMAN_ONLY, (code) => code === 'not_a_human' || code === 'guest_not_allowed')),
+        ...(await failsClosed(
+          'guest',
+          guest,
+          HUMAN_ONLY,
+          (code) => code === 'not_a_human' || code === 'guest_not_allowed',
+        )),
         ...(await failsClosed('guest', guest, CLAIM_FLOW, (code) => code === 'guest_not_allowed')),
         ...(await failsClosed('guest', guest, SERVICE_BY_CHECK, (code) => code === 'forbidden')),
         // Guest-capable RPCs refuse a Guest with no seat with a machine code (the real invite token
@@ -850,37 +1236,178 @@ describe('grants invariants — adversarial verification', () => {
         // Guest is a credential, so these RPCs may spend its own rate-limit window before looking at
         // the seat — the only row they may touch — and their code may name the seat (`not_in_room`)
         // or the room (`room_not_found`).
-        ...(await failsClosed('guest', guest, GUEST_CAPABLE, (code) => !AUTH_GATE_CODES.has(code) || code === 'guest_not_allowed', {
-          skipReal: new Set(['guest_session_create']),
-          allowedWrites: new Set(['private.rate_limits']),
-          sameCode: false,
-        })),
+        ...(await failsClosed(
+          'guest',
+          guest,
+          GUEST_CAPABLE,
+          (code) => !AUTH_GATE_CODES.has(code) || code === 'guest_not_allowed',
+          {
+            skipReal: new Set(['guest_session_create']),
+            allowedWrites: new Set(['private.rate_limits']),
+            sameCode: false,
+          },
+        )),
       ]
       expect(violations).toEqual([])
     })
 
     it('a real credential without a Human (unclaimed) gets not_a_human / forbidden, with zero writes', async () => {
       const violations = [
-        ...(await failsClosed('unclaimed', world.unclaimed, HUMAN_ONLY, (code) => code === 'not_a_human')),
-        ...(await failsClosed('unclaimed', world.unclaimed, GUEST_CAPABLE, (code, name) => code === (name === 'guest_session_create' ? 'forbidden' : 'not_a_human'))),
-        ...(await failsClosed('unclaimed', world.unclaimed, SERVICE_BY_CHECK, (code) => code === 'forbidden')),
+        ...(await failsClosed(
+          'unclaimed',
+          world.unclaimed,
+          HUMAN_ONLY,
+          (code) => code === 'not_a_human',
+        )),
+        ...(await failsClosed(
+          'unclaimed',
+          world.unclaimed,
+          GUEST_CAPABLE,
+          (code, name) => code === (name === 'guest_session_create' ? 'forbidden' : 'not_a_human'),
+        )),
+        ...(await failsClosed(
+          'unclaimed',
+          world.unclaimed,
+          SERVICE_BY_CHECK,
+          (code) => code === 'forbidden',
+        )),
       ]
       expect(violations).toEqual([])
     })
 
     it('a claiming (pending) Human gets not_a_human / forbidden from every member RPC, with zero writes', async () => {
       const violations = [
-        ...(await failsClosed('claiming', world.claiming, HUMAN_ONLY, (code) => code === 'not_a_human')),
-        ...(await failsClosed('claiming', world.claiming, GUEST_CAPABLE, (code, name) => code === (name === 'guest_session_create' ? 'forbidden' : 'not_a_human'))),
-        ...(await failsClosed('claiming', world.claiming, SERVICE_BY_CHECK, (code) => code === 'forbidden')),
+        ...(await failsClosed(
+          'claiming',
+          world.claiming,
+          HUMAN_ONLY,
+          (code) => code === 'not_a_human',
+        )),
+        ...(await failsClosed(
+          'claiming',
+          world.claiming,
+          GUEST_CAPABLE,
+          (code, name) => code === (name === 'guest_session_create' ? 'forbidden' : 'not_a_human'),
+        )),
+        ...(await failsClosed(
+          'claiming',
+          world.claiming,
+          SERVICE_BY_CHECK,
+          (code) => code === 'forbidden',
+        )),
       ]
       expect(violations).toEqual([])
+    })
+
+    it('a Guest with a seat is still not a Human: the gate refuses every Human-only and claim RPC with zero writes', async () => {
+      const guest = world.guestSeated.as
+      const violations = [
+        ...(await failsClosed(
+          'guest(seated)',
+          guest,
+          HUMAN_ONLY,
+          (code) => code === 'not_a_human' || code === 'guest_not_allowed',
+        )),
+        ...(await failsClosed(
+          'guest(seated)',
+          guest,
+          CLAIM_FLOW,
+          (code) => code === 'guest_not_allowed',
+        )),
+        ...(await failsClosed(
+          'guest(seated)',
+          guest,
+          SERVICE_BY_CHECK,
+          (code) => code === 'forbidden',
+        )),
+      ]
+      // Credential reads: the Guest surface works, every Human read refuses at the gate whatever the arguments.
+      for (const name of CREDENTIAL_READS) {
+        for (const real of [true, false]) {
+          const code = await errorCode(db.rpc(name, argsFor(name, world, real), guest))
+          const allowed = (GUEST_READS as readonly string[]).includes(name)
+          if (allowed ? code !== null : !(code === 'not_a_human' || code === 'guest_not_allowed')) {
+            violations.push(
+              `guest(seated) ${name}(${real ? 'real' : 'random'}) → ${code ?? 'succeeded'}`,
+            )
+          }
+        }
+      }
+      expect(violations).toEqual([])
+      // The seat itself is real: the Guest's own room RPCs answer (the grant is used, not just tolerated).
+      const me = await db.rpc<{ myParticipant: unknown }>(
+        'room_get',
+        { room_id: world.roomId },
+        guest,
+      )
+      expect(me.myParticipant).not.toBeNull()
+    })
+
+    it('a restricted or suspended Human is refused by every member RPC with human_not_active and zero writes', async () => {
+      const violations: string[] = []
+      for (const status of NON_ACTIVE_STATUSES) {
+        const as = world[status].as
+        violations.push(
+          ...(await failsClosed(status, as, HUMAN_ONLY, (code) => code === 'human_not_active')),
+          ...(await failsClosed(
+            status,
+            as,
+            GUEST_CAPABLE,
+            (code, name) =>
+              code === (name === 'guest_session_create' ? 'forbidden' : 'human_not_active'),
+          )),
+          ...(await failsClosed(status, as, SERVICE_BY_CHECK, (code) => code === 'forbidden')),
+        )
+      }
+      expect(violations).toEqual([])
+    })
+
+    it('a restricted or suspended Human has no own-row write path either', async () => {
+      for (const status of NON_ACTIVE_STATUSES) {
+        const human = world[status]
+        const attempts: Array<[string, string]> = [
+          [
+            'human_presence',
+            `insert into public.human_presence (human_id) values ('${human.humanId}')`,
+          ],
+          [
+            'human_context',
+            `insert into public.human_context (human_id) values ('${human.humanId}')`,
+          ],
+          [
+            'push_tokens',
+            `insert into public.push_tokens (human_id, token, platform) values ('${human.humanId}', 'probe', 'web')`,
+          ],
+        ]
+        for (const [table, sql] of attempts) {
+          await expect(
+            db.asRole(human.as, (c) => c.query(sql), { rollback: true }),
+            `${status} ${table}`,
+          ).rejects.toMatchObject({ code: '42501' })
+        }
+        const updated = await db.asRole(
+          human.as,
+          async (c) =>
+            (
+              await c.query(
+                `update public.public_identities set bio = 'x' where human_id = '${human.humanId}'`,
+              )
+            ).rowCount,
+          { rollback: true },
+        )
+        expect(updated, `${status} public_identities`).toBe(0)
+      }
     })
 
     it('the auth-gate codes are the only codes a refused caller ever sees on Human-only RPCs', () => {
       // A refused caller must never learn anything beyond "who are you": the set of codes the
       // matrix accepts is exactly the gate set.
-      expect([...AUTH_GATE_CODES].sort()).toEqual(['forbidden', 'guest_not_allowed', 'not_a_human', 'not_authenticated'])
+      expect([...AUTH_GATE_CODES].sort()).toEqual([
+        'forbidden',
+        'guest_not_allowed',
+        'not_a_human',
+        'not_authenticated',
+      ])
       for (const code of AUTH_GATE_CODES) expect(ERROR_CODES.has(code), code).toBe(true)
     })
 
@@ -889,7 +1416,8 @@ describe('grants invariants — adversarial verification', () => {
       for (const name of CREDENTIAL_READS) {
         for (const real of [true, false]) {
           const code = await errorCode(db.rpc(name, argsFor(name, world, real), 'visitor'))
-          if (code !== 'not_authenticated') violations.push(`visitor ${name}(${real ? 'real' : 'random'}) → ${code ?? 'succeeded'}`)
+          if (code !== 'not_authenticated')
+            violations.push(`visitor ${name}(${real ? 'real' : 'random'}) → ${code ?? 'succeeded'}`)
         }
       }
       expect(violations).toEqual([])
@@ -897,20 +1425,44 @@ describe('grants invariants — adversarial verification', () => {
 
     it('the visitor surface actually works for a visitor (the anon grant is used, not just tolerated)', async () => {
       await resetAllRateLimits(db)
-      const search = await db.rpc<{ people: unknown[] }>('search', argsFor('search', world, true), 'visitor')
+      const search = await db.rpc<{ people: unknown[] }>(
+        'search',
+        argsFor('search', world, true),
+        'visitor',
+      )
       expect(Array.isArray(search.people)).toBe(true)
-      const areas = await db.rpc<unknown[]>('areas_search', argsFor('areas_search', world, true), 'visitor')
+      const areas = await db.rpc<unknown[]>(
+        'areas_search',
+        argsFor('areas_search', world, true),
+        'visitor',
+      )
       expect(Array.isArray(areas)).toBe(true)
-      const places = await db.rpc<unknown[]>('places_search', argsFor('places_search', world, true), 'visitor')
+      const places = await db.rpc<unknown[]>(
+        'places_search',
+        argsFor('places_search', world, true),
+        'visitor',
+      )
       expect(Array.isArray(places)).toBe(true)
-      const groupPreview = await db.rpc<{ groupName: string }>('group_invite_preview', argsFor('group_invite_preview', world, true), 'visitor')
+      const groupPreview = await db.rpc<{ groupName: string }>(
+        'group_invite_preview',
+        argsFor('group_invite_preview', world, true),
+        'visitor',
+      )
       expect(groupPreview.groupName).toBe('Grants Crew')
-      const roomPreview = await db.rpc<{ roomId: string }>('room_invite_preview', argsFor('room_invite_preview', world, true), 'visitor')
+      const roomPreview = await db.rpc<{ roomId: string }>(
+        'room_invite_preview',
+        argsFor('room_invite_preview', world, true),
+        'visitor',
+      )
       expect(roomPreview.roomId).toBe(world.roomId)
       const me = await db.rpc<{ roleKind: string; humanId: string | null }>('me_get', {}, 'visitor')
       expect(me).toMatchObject({ roleKind: 'visitor', humanId: null })
       // A Guest may resolve areas (any credential); a visitor may not (asserted above).
-      const resolved = await db.rpc<{ city: unknown }>('area_resolve', argsFor('area_resolve', world, true), world.guestNoSeat.as)
+      const resolved = await db.rpc<{ city: unknown }>(
+        'area_resolve',
+        argsFor('area_resolve', world, true),
+        world.guestNoSeat.as,
+      )
       expect(resolved).toHaveProperty('city')
     })
 
@@ -923,34 +1475,58 @@ describe('grants invariants — adversarial verification', () => {
       const ipA = { 'cf-connecting-ip': '203.0.113.60' }
       const ipB = { 'cf-connecting-ip': '203.0.113.61' }
       for (let i = 0; i < visitorBatches; i += 1) {
-        expect(await track(db, batch, 'visitor', { headers: ipA }), `visitor batch ${i + 1}`).toEqual({ accepted: TRACK_BATCH_MAX })
+        expect(
+          await track(db, batch, 'visitor', { headers: ipA }),
+          `visitor batch ${i + 1}`,
+        ).toEqual({ accepted: TRACK_BATCH_MAX })
       }
       await db.expectError(track(db, batch, 'visitor', { headers: ipA }), 'rate_limited')
       // Another address is another window; the refused batch consumed nothing.
-      expect(await track(db, batch, 'visitor', { headers: ipB })).toEqual({ accepted: TRACK_BATCH_MAX })
+      expect(await track(db, batch, 'visitor', { headers: ipB })).toEqual({
+        accepted: TRACK_BATCH_MAX,
+      })
       await db.expectError(track(db, batch, 'visitor', { headers: ipA }), 'rate_limited')
       // Guests share the reduced budget, keyed by their anonymous credential.
       for (let i = 0; i < visitorBatches; i += 1) {
-        expect(await track(db, batch, world.guestNoSeat.as), `guest batch ${i + 1}`).toEqual({ accepted: TRACK_BATCH_MAX })
+        expect(await track(db, batch, world.guestNoSeat.as), `guest batch ${i + 1}`).toEqual({
+          accepted: TRACK_BATCH_MAX,
+        })
       }
       await db.expectError(track(db, batch, world.guestNoSeat.as), 'rate_limited')
       // A Human gets the full budget.
       for (let i = 0; i < humanBatches; i += 1) {
-        expect(await track(db, batch, world.bob.as), `human batch ${i + 1}`).toEqual({ accepted: TRACK_BATCH_MAX })
+        expect(await track(db, batch, world.bob.as), `human batch ${i + 1}`).toEqual({
+          accepted: TRACK_BATCH_MAX,
+        })
       }
       await db.expectError(track(db, batch, world.bob.as), 'rate_limited')
       await resetAllRateLimits(db)
     })
 
     it('service-only RPCs are denied to anon and authenticated by the grant itself, not by their body', async () => {
-      const serviceOnly = fns.filter((f) => f.schema === 'public' && !f.anon).map((f) => f.name).sort()
-      expect(serviceOnly).toEqual(['metrics_compute_daily', 'notifications_mark_pushed', 'notifications_prune', 'notifications_unsent', 'report_resolve', 'room_participant_sync', 'rooms_sweep'])
+      const serviceOnly = fns
+        .filter((f) => f.schema === 'public' && !f.anon)
+        .map((f) => f.name)
+        .sort()
+      expect(serviceOnly).toEqual([
+        'metrics_compute_daily',
+        'notifications_mark_pushed',
+        'notifications_prune',
+        'notifications_unsent',
+        'report_resolve',
+        'room_participant_sync',
+        'rooms_sweep',
+      ])
       for (const f of fns.filter((f) => f.schema === 'public' && !f.anon)) {
         expect(f.authenticated, `${f.name} authenticated`).toBe(false)
         expect(f.service_role, `${f.name} service_role`).toBe(true)
       }
-      await expect(db.rpc('rooms_sweep', {}, world.guestNoSeat.as)).rejects.toMatchObject({ code: '42501' })
-      await expect(db.rpc('rooms_sweep', {}, world.alice.as)).rejects.toMatchObject({ code: '42501' })
+      await expect(db.rpc('rooms_sweep', {}, world.guestNoSeat.as)).rejects.toMatchObject({
+        code: '42501',
+      })
+      await expect(db.rpc('rooms_sweep', {}, world.alice.as)).rejects.toMatchObject({
+        code: '42501',
+      })
     })
   })
 
@@ -981,17 +1557,33 @@ describe('grants invariants — adversarial verification', () => {
     })
 
     it('the own-row exception really is own-row: a claiming Human sees only the hash of the token they typed', async () => {
-      const rows = await db.asRole(world.claiming, async (c) =>
-        (await c.query<{ h: string | null }>('select claim_invite_token_hash as h from public.humans')).rows,
+      const rows = await db.asRole(
+        world.claiming,
+        async (c) =>
+          (
+            await c.query<{ h: string | null }>(
+              'select claim_invite_token_hash as h from public.humans',
+            )
+          ).rows,
       )
       expect(rows).toEqual([{ h: sha256Hex(world.groupInviteToken) }])
       // Nobody else's row, and Alice (whose row carries no hash) sees only hers.
-      const alice = await db.asRole(world.alice.as, async (c) =>
-        (await c.query<{ h: string | null }>('select claim_invite_token_hash as h from public.humans')).rows,
+      const alice = await db.asRole(
+        world.alice.as,
+        async (c) =>
+          (
+            await c.query<{ h: string | null }>(
+              'select claim_invite_token_hash as h from public.humans',
+            )
+          ).rows,
       )
       expect(alice).toEqual([{ h: null }])
       // The hash is not the token: it cannot join the group.
-      expect(await errorCode(db.rpc('group_invite_join', { token: sha256Hex(world.groupInviteToken) }, world.bob.as))).toBe('invite_invalid')
+      expect(
+        await errorCode(
+          db.rpc('group_invite_join', { token: sha256Hex(world.groupInviteToken) }, world.bob.as),
+        ),
+      ).toBe('invite_invalid')
     })
 
     it('the base tables behind the owner views are ungranted and naming a hash column is denied', async () => {
@@ -1010,7 +1602,13 @@ describe('grants invariants — adversarial verification', () => {
     })
 
     it('owner views exist exactly as listed, drop every hash column, filter by the caller and are closed to anon', async () => {
-      const { rows } = await db.sql.query<{ name: string; columns: string[]; options: string[] | null; def: string; anon: boolean }>(
+      const { rows } = await db.sql.query<{
+        name: string
+        columns: string[]
+        options: string[] | null
+        def: string
+        anon: boolean
+      }>(
         `select c.relname as name,
                 (select array_agg(a.attname::text order by a.attnum) from pg_attribute a where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as columns,
                 c.reloptions as options,
@@ -1022,10 +1620,18 @@ describe('grants invariants — adversarial verification', () => {
       )
       expect(rows.map((r) => r.name)).toEqual([...OWNER_VIEWS])
       for (const view of rows) {
-        expect(view.columns.filter((c) => /(hash|secret|token)/.test(c)), `${view.name} columns`).toEqual([])
+        expect(
+          view.columns.filter((c) => /(hash|secret|token)/.test(c)),
+          `${view.name} columns`,
+        ).toEqual([])
         // An owner view (no security_invoker) bypasses RLS: it must filter by the caller itself.
-        expect((view.options ?? []).some((o) => o.startsWith('security_invoker')), `${view.name} runs as owner`).toBe(false)
-        expect(view.def, `${view.name} filters by the caller`).toMatch(/earth\.current_(human|role_kind)\(\)/)
+        expect(
+          (view.options ?? []).some((o) => o.startsWith('security_invoker')),
+          `${view.name} runs as owner`,
+        ).toBe(false)
+        expect(view.def, `${view.name} filters by the caller`).toMatch(
+          /earth\.current_(human|role_kind)\(\)/,
+        )
         expect(view.anon, `${view.name} anon`).toBe(false)
       }
     })
@@ -1040,28 +1646,78 @@ describe('grants invariants — adversarial verification', () => {
         sha256Hex(world.guestSessionSecret),
       ]
       const outputs: Array<[string, unknown]> = [
-        ['group_get(alice)', await db.rpc('group_get', { group_id: world.groupId }, world.alice.as)],
+        [
+          'group_get(alice)',
+          await db.rpc('group_get', { group_id: world.groupId }, world.alice.as),
+        ],
         ['room_get(alice)', await db.rpc('room_get', { room_id: world.roomId }, world.alice.as)],
-        ['room_get(guest)', await db.rpc('room_get', { room_id: world.roomId }, world.guestSeated.as)],
+        [
+          'room_get(guest)',
+          await db.rpc('room_get', { room_id: world.roomId }, world.guestSeated.as),
+        ],
         ['guest_session_get(guest)', await db.rpc('guest_session_get', {}, world.guestSeated.as)],
         ['me_get(claiming)', await db.rpc('me_get', {}, world.claiming)],
         ['claim_get(claiming)', await db.rpc('claim_get', {}, world.claiming)],
-        ['conversations_list(alice)', await db.rpc('conversations_list', { cursor: null, limit: 30 }, world.alice.as)],
-        ['group_invite_preview(visitor)', await db.rpc('group_invite_preview', { token: world.groupInviteToken }, 'visitor')],
-        ['room_invite_preview(visitor)', await db.rpc('room_invite_preview', { token: world.roomInviteToken }, 'visitor')],
-        ['group_invites_view(alice)', await db.asRole(world.alice.as, async (c) => (await c.query('select to_jsonb(v) as row from public.group_invites_view v')).rows)],
-        ['room_invites_view(alice)', await db.asRole(world.alice.as, async (c) => (await c.query('select to_jsonb(v) as row from public.room_invites_view v')).rows)],
-        ['guest_sessions_view(alice)', await db.asRole(world.alice.as, async (c) => (await c.query('select to_jsonb(v) as row from public.guest_sessions_view v')).rows)],
-        ['guest_sessions_view(guest)', await db.asRole(world.guestSeated.as, async (c) => (await c.query('select to_jsonb(v) as row from public.guest_sessions_view v')).rows)],
+        [
+          'conversations_list(alice)',
+          await db.rpc('conversations_list', { cursor: null, limit: 30 }, world.alice.as),
+        ],
+        [
+          'group_invite_preview(visitor)',
+          await db.rpc('group_invite_preview', { token: world.groupInviteToken }, 'visitor'),
+        ],
+        [
+          'room_invite_preview(visitor)',
+          await db.rpc('room_invite_preview', { token: world.roomInviteToken }, 'visitor'),
+        ],
+        [
+          'group_invites_view(alice)',
+          await db.asRole(
+            world.alice.as,
+            async (c) =>
+              (await c.query('select to_jsonb(v) as row from public.group_invites_view v')).rows,
+          ),
+        ],
+        [
+          'room_invites_view(alice)',
+          await db.asRole(
+            world.alice.as,
+            async (c) =>
+              (await c.query('select to_jsonb(v) as row from public.room_invites_view v')).rows,
+          ),
+        ],
+        [
+          'guest_sessions_view(alice)',
+          await db.asRole(
+            world.alice.as,
+            async (c) =>
+              (await c.query('select to_jsonb(v) as row from public.guest_sessions_view v')).rows,
+          ),
+        ],
+        [
+          'guest_sessions_view(guest)',
+          await db.asRole(
+            world.guestSeated.as,
+            async (c) =>
+              (await c.query('select to_jsonb(v) as row from public.guest_sessions_view v')).rows,
+          ),
+        ],
       ]
       // The views did return rows (the assertion below cannot pass by emptiness).
-      expect((outputs.find(([n]) => n === 'group_invites_view(alice)')?.[1] as unknown[]).length).toBe(1)
-      expect((outputs.find(([n]) => n === 'room_invites_view(alice)')?.[1] as unknown[]).length).toBe(1)
-      expect((outputs.find(([n]) => n === 'guest_sessions_view(guest)')?.[1] as unknown[]).length).toBe(1)
+      expect(
+        (outputs.find(([n]) => n === 'group_invites_view(alice)')?.[1] as unknown[]).length,
+      ).toBe(1)
+      expect(
+        (outputs.find(([n]) => n === 'room_invites_view(alice)')?.[1] as unknown[]).length,
+      ).toBe(1)
+      expect(
+        (outputs.find(([n]) => n === 'guest_sessions_view(guest)')?.[1] as unknown[]).length,
+      ).toBe(1)
       const leaks: string[] = []
       for (const [label, output] of outputs) {
         const text = JSON.stringify(output)
-        for (const secret of secrets) if (text.includes(secret)) leaks.push(`${label} contains ${secret.slice(0, 8)}…`)
+        for (const secret of secrets)
+          if (text.includes(secret)) leaks.push(`${label} contains ${secret.slice(0, 8)}…`)
       }
       expect(leaks).toEqual([])
     })
@@ -1087,25 +1743,40 @@ describe('grants invariants — adversarial verification', () => {
       const privateTables = tableRows.filter((t) => t.schema === 'private').map((t) => t.name)
       expect(privateTables).toEqual(['audit_log', 'human_pass_metadata', 'rate_limits'])
       for (const t of tableRows.filter((t) => t.schema === 'private')) {
-        expect({ anon: t.anon, authenticated: t.authenticated, service_role: t.service_role, pub: t.pub }, t.name).toEqual({ anon: [], authenticated: [], service_role: [], pub: [] })
+        expect(
+          {
+            anon: t.anon,
+            authenticated: t.authenticated,
+            service_role: t.service_role,
+            pub: t.pub,
+          },
+          t.name,
+        ).toEqual({ anon: [], authenticated: [], service_role: [], pub: [] })
       }
     })
 
     it('grants PUBLIC nothing on any table', () => {
-      expect(tableRows.filter((t) => t.pub.length > 0).map((t) => `${t.schema}.${t.name}`)).toEqual([])
+      expect(tableRows.filter((t) => t.pub.length > 0).map((t) => `${t.schema}.${t.name}`)).toEqual(
+        [],
+      )
     })
 
     it('backs every client grant with a policy for that role and command; no policy is granted to PUBLIC', () => {
       const gaps: string[] = []
       for (const p of policyRows) {
         const outside = p.roles.filter((r) => !(CLIENT_ROLES as readonly string[]).includes(r))
-        if (outside.length > 0) gaps.push(`policy ${p.schema}.${p.table}.${p.name} names roles ${outside.join(',')}`)
+        if (outside.length > 0)
+          gaps.push(`policy ${p.schema}.${p.table}.${p.name} names roles ${outside.join(',')}`)
       }
       for (const t of tableRows.filter((t) => t.schema === 'public')) {
         for (const role of CLIENT_ROLES) {
           for (const cmd of t[role]) {
             const covered = policyRows.some(
-              (p) => p.schema === t.schema && p.table === t.name && p.roles.includes(role) && (p.cmd === cmd || p.cmd === 'ALL'),
+              (p) =>
+                p.schema === t.schema &&
+                p.table === t.name &&
+                p.roles.includes(role) &&
+                (p.cmd === cmd || p.cmd === 'ALL'),
             )
             if (!covered) gaps.push(`${t.schema}.${t.name}: ${role} has ${cmd} but no policy`)
           }
@@ -1142,13 +1813,21 @@ describe('grants invariants — adversarial verification', () => {
     })
 
     it('schema privileges: clients may use public and extensions only; service_role never reaches private', async () => {
-      const { rows } = await db.sql.query<{ role: string; schema: string; usage: boolean; create: boolean }>(
+      const { rows } = await db.sql.query<{
+        role: string
+        schema: string
+        usage: boolean
+        create: boolean
+      }>(
         `select r.role, s.schema, has_schema_privilege(r.role, s.schema, 'USAGE') as usage, has_schema_privilege(r.role, s.schema, 'CREATE') as create
            from unnest(array['anon', 'authenticated', 'service_role', 'public']) as r(role)
           cross join unnest(array['public', 'earth', 'private', 'extensions']) as s(schema)
           order by 1, 2`,
       )
-      const usable = rows.filter((r) => r.usage).map((r) => `${r.role} ${r.schema}`).sort()
+      const usable = rows
+        .filter((r) => r.usage)
+        .map((r) => `${r.role} ${r.schema}`)
+        .sort()
       // PUBLIC keeps USAGE on `public` (the Postgres / Supabase default; the roles Supabase itself
       // runs depend on it). Naming an object is not reaching it: every table, sequence and function
       // privilege of PUBLIC is revoked (asserted elsewhere in this file), so the schema lock that
@@ -1198,7 +1877,10 @@ describe('grants invariants — adversarial verification', () => {
         .filter((f) => f.secdef)
         .filter((f) => {
           const setting = (f.config ?? []).find((c) => c.startsWith('search_path='))
-          return setting === undefined || !/^search_path=public, earth, private(, extensions)?, pg_temp$/.test(setting)
+          return (
+            setting === undefined ||
+            !/^search_path=public, earth, private(, extensions)?, pg_temp$/.test(setting)
+          )
         })
         .map((f) => `${f.identity} ${JSON.stringify(f.config)}`)
       expect(loose).toEqual([])
@@ -1206,13 +1888,19 @@ describe('grants invariants — adversarial verification', () => {
 
     it('no earth function that is security definer and volatile is executable by a client role', () => {
       const writers = fns.filter((f) => f.schema === 'earth' && f.secdef && f.volatile)
-      expect(writers.length, 'the rate-limit, notify, audit and *_internal helpers exist').toBeGreaterThan(10)
+      expect(
+        writers.length,
+        'the rate-limit, notify, audit and *_internal helpers exist',
+      ).toBeGreaterThan(10)
       expect(writers.filter((f) => f.anon || f.authenticated).map((f) => f.identity)).toEqual([])
     })
 
     it('the volatile earth functions a client role may execute are exactly the side-effect-free allowlist', () => {
       const callable = fns
-        .filter((f) => f.schema === 'earth' && f.volatile && !f.returns_trigger && (f.anon || f.authenticated))
+        .filter(
+          (f) =>
+            f.schema === 'earth' && f.volatile && !f.returns_trigger && (f.anon || f.authenticated),
+        )
         .map((f) => f.identity)
         .sort()
       expect(callable).toEqual([...EARTH_VOLATILE_CLIENT_ALLOWLIST])
@@ -1220,13 +1908,19 @@ describe('grants invariants — adversarial verification', () => {
 
     it('private holds no function a client or the service could execute', () => {
       const priv = fns.filter((f) => f.schema === 'private')
-      expect(priv.filter((f) => f.anon || f.authenticated || f.service_role).map((f) => f.identity)).toEqual([])
+      expect(
+        priv.filter((f) => f.anon || f.authenticated || f.service_role).map((f) => f.identity),
+      ).toEqual([])
     })
 
     it('a client role cannot name an earth helper even where it holds EXECUTE (schema USAGE is the second lock)', async () => {
       for (const as of ['visitor', world.alice.as, world.guestNoSeat.as] as const) {
-        await expect(db.asRole(as, (c) => c.query('select earth.random_token()'))).rejects.toMatchObject({ code: '42501' })
-        await expect(db.asRole(as, (c) => c.query(`select earth.raise('forbidden')`))).rejects.toMatchObject({ code: '42501' })
+        await expect(
+          db.asRole(as, (c) => c.query('select earth.random_token()')),
+        ).rejects.toMatchObject({ code: '42501' })
+        await expect(
+          db.asRole(as, (c) => c.query(`select earth.raise('forbidden')`)),
+        ).rejects.toMatchObject({ code: '42501' })
       }
     })
   })
@@ -1261,7 +1955,9 @@ describe('grants invariants — adversarial verification', () => {
         }
         const viaFunction = /(\w+) = ANY \(earth\.report_target_types\(\)\)/.exec(row.def)
         if (viaFunction !== null) {
-          const { rows: fn } = await db.sql.query<{ v: string[] }>('select earth.report_target_types() as v')
+          const { rows: fn } = await db.sql.query<{ v: string[] }>(
+            'select earth.report_target_types() as v',
+          )
           found.set(`${row.table}.${viaFunction[1]}`, [...(fn[0]?.v ?? [])].sort())
         }
         // Constraints over enum-typed columns (`'x'::report_status`) are covered by enum-parity.test.ts.
@@ -1271,6 +1967,281 @@ describe('grants invariants — adversarial verification', () => {
       for (const [key, tuple] of Object.entries(MIRRORED_CHECKS)) {
         expect(found.get(key), key).toEqual([...tuple].sort())
       }
+    })
+
+    it('every enum literal cast in the function sources names a value of that enum, and earth.notify is only called with NOTIFICATION_TYPES', async () => {
+      // `'label'::public.<enum>` / `'label'::<enum>` casts are only checked by Postgres when the branch
+      // runs; a typo in a rarely taken branch would fail in production first.
+      const { rows: casts } = await db.sql.query<{ fn: string; label: string; typ: string }>(
+        `select n.nspname || '.' || p.proname as fn, m[1] as label, lower(m[2]) as typ
+           from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace,
+                regexp_matches(p.prosrc, '''([a-z_]+)''::(?:public\\.|earth\\.)?([a-z_]+)', 'g') m
+          where n.nspname in ('public', 'earth')`,
+      )
+      const enumNames = new Set<string>([...Object.keys(ENUM_REGISTRY), 'notification_type'])
+      const enumCasts = casts.filter((c) => enumNames.has(c.typ))
+      expect(enumCasts.length).toBeGreaterThan(20)
+      const invalid = enumCasts.filter((c) => {
+        const labels: readonly string[] =
+          c.typ === 'notification_type'
+            ? NOTIFICATION_TYPES
+            : ENUM_REGISTRY[c.typ as keyof typeof ENUM_REGISTRY]
+        return !labels.includes(c.label)
+      })
+      expect(invalid.map((c) => `${c.fn}: '${c.label}'::${c.typ}`)).toEqual([])
+
+      const { rows: notifies } = await db.sql.query<{ fn: string; type: string }>(
+        `select n.nspname || '.' || p.proname as fn, m[1] as type
+           from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace,
+                regexp_matches(p.prosrc, 'earth\\.notify\\(\\s*[^,]+,\\s*''([a-z_]+)''', 'g') m
+          where n.nspname in ('public', 'earth')`,
+      )
+      expect(notifies.length).toBeGreaterThan(3)
+      expect(
+        notifies.filter((n) => !(NOTIFICATION_TYPES as readonly string[]).includes(n.type)),
+      ).toEqual([])
+
+      // earth.current_role_kind() returns exactly the ROLE_KINDS the domain and the clients branch on.
+      const { rows: kinds } = await db.sql.query<{ kind: string }>(
+        `select distinct m[1] as kind
+           from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace,
+                regexp_matches(p.prosrc, 'return ''([a-z_]+)''', 'g') m
+          where n.nspname = 'earth' and p.proname = 'current_role_kind'
+          order by 1`,
+      )
+      expect(kinds.map((k) => k.kind).sort()).toEqual([...ROLE_KINDS].sort())
+    })
+  })
+
+  // -------------------------------------------------------------------------------------------
+  describe('rate limits are live on every mutating RPC, for every caller path that may use it', () => {
+    let inventory: RateLimitLiteral[]
+    let cases: LegitCase[]
+
+    beforeAll(async () => {
+      inventory = await rateLimitInventory(db)
+      cases = legitCases(world)
+      expect(inventory.length).toBeGreaterThan(60)
+    })
+
+    it('the legitimate caller of every mutating RPC succeeds and spends a rate-limit window doing so', async () => {
+      // The source-level review (safety/rate-limits.test.ts) proves the call is in the body; this
+      // proves it runs on the success path of every caller kind — a limit inside a branch the caller
+      // never takes would pass the review and protect nothing.
+      await resetAllRateLimits(db)
+      await settleStats(db)
+      const violations: string[] = []
+      for (const c of cases) {
+        const outcome = await probe(db, c.name, c.args, c.as, c.headers)
+        if (outcome.code !== null) {
+          violations.push(
+            `${c.caller} ${c.name} → ${outcome.code} [${outcome.sqlstate ?? '-'}] (the fixture call must succeed)`,
+          )
+        } else if (rateLimitWrites(outcome).length === 0) {
+          violations.push(
+            `${c.caller} ${c.name} succeeded without charging a rate-limit window (writes=[${outcome.writes.join(', ')}])`,
+          )
+        }
+      }
+      expect(violations).toEqual([])
+    })
+
+    it('with every window of the caller exhausted, each mutating RPC answers rate_limited before writing any other row', async () => {
+      await resetAllRateLimits(db)
+      const subjects = [...new Set(cases.map((c) => c.subject))]
+      for (const subject of subjects) await exhaustWindows(db, subject, inventory)
+      await settleStats(db)
+      const violations: string[] = []
+      for (const c of cases) {
+        const outcome = await probe(db, c.name, c.args, c.as, c.headers)
+        if (outcome.code !== 'rate_limited' || otherWrites(outcome).length > 0) {
+          violations.push(describeOutcome(c.caller, c.name, 'legit', outcome))
+        }
+      }
+      for (const subject of subjects) await clearWindows(db, subject)
+      expect(violations).toEqual([])
+    })
+
+    it('room_start on a context whose room is already live is a join and spends the join window (0964)', async () => {
+      // Bob is a member of the group whose room Alice keeps live: 0330 seated him through
+      // earth.room_join_human and returned before any rate limit ran.
+      await resetAllRateLimits(db)
+      await exhaustWindows(db, world.bob.userId, inventory)
+      await settleStats(db)
+      const args = { context_type: 'group', context_id: world.groupId, title: null }
+      const refused = await probe(db, 'room_start', args, world.bob.as)
+      expect(describeOutcome('bob', 'room_start', 'existing room', refused)).toMatch(
+        /→ rate_limited \[P0001\] writes=\[private\.rate_limits\+\d+\]$/,
+      )
+      await clearWindows(db, world.bob.userId)
+      await settleStats(db)
+      const joined = await probe(db, 'room_start', args, world.bob.as)
+      expect(joined.code).toBeNull()
+      expect(rateLimitWrites(joined).length, 'the join charged a window').toBe(1)
+      expect(joined.writes.some((w) => w.startsWith('public.room_participants+'))).toBe(true)
+      // Bob ends up seated in the group room, not creating a second one: the group's room is unchanged.
+      const room = await db.rpc<{ room: { id: string }; created: boolean }>(
+        'room_start',
+        args,
+        world.bob.as,
+      )
+      expect(room).toMatchObject({ created: false, room: { id: world.groupRoomId } })
+      await db.rpc('room_leave', { room_id: world.groupRoomId }, world.bob.as)
+      await resetAllRateLimits(db)
+    })
+
+    it("a visitor's exhausted window is keyed by the client address: another address keeps its budget", async () => {
+      await resetAllRateLimits(db)
+      await exhaustWindows(db, VISITOR_IP, inventory)
+      await settleStats(db)
+      for (const name of VISITOR_MUTATING_SURFACE) {
+        const args = argsFor(name, world, true)
+        const refused = await probe(db, name, args, 'visitor', { 'cf-connecting-ip': VISITOR_IP })
+        expect(refused.code, `${name} from the exhausted address`).toBe('rate_limited')
+        const fresh = await probe(db, name, args, 'visitor', {
+          'cf-connecting-ip': OTHER_VISITOR_IP,
+        })
+        expect(fresh.code, `${name} from another address`).toBeNull()
+      }
+      await clearWindows(db, VISITOR_IP)
+      await clearWindows(db, OTHER_VISITOR_IP)
+    })
+  })
+
+  // -------------------------------------------------------------------------------------------
+  describe('policy-backed grants match the RPC rules (0962)', () => {
+    it('a private Place is readable on the table by its creator only — as place_get, places_search and map_objects already said', async () => {
+      const { rows } = await db.sql.query<{ id: string }>(
+        `insert into public.places (name, area_id, location, visibility, created_by_human_id)
+         values ('Grants hideout', $1, extensions.st_setsrid(extensions.st_makepoint(-122.41, 37.76), 4326), 'private', $2)
+         returning id`,
+        [world.areaId, world.alice.humanId],
+      )
+      const secret = rows[0]?.id
+      if (secret === undefined) throw new Error('places insert returned no id')
+      const readBy = async (as: RoleSpec): Promise<number> =>
+        db.asRole(
+          as,
+          async (c) =>
+            (
+              await c.query(
+                'select lat, lng, created_by_human_id from public.places where id = $1',
+                [secret],
+              )
+            ).rowCount ?? 0,
+        )
+      // 0050 answered every one of these with the exact position and the creator.
+      expect(await readBy('visitor'), 'visitor').toBe(0)
+      expect(await readBy(world.bob.as), 'another Human').toBe(0)
+      expect(await readBy(world.guestSeated.as), 'guest').toBe(0)
+      expect(await readBy(world.claiming), 'claiming').toBe(0)
+      expect(await readBy(world.alice.as), 'creator').toBe(1)
+      // Public Places stay readable by everyone, and the RPC agrees with the table.
+      const publicRead = await db.asRole(
+        'visitor',
+        async (c) =>
+          (await c.query('select 1 from public.places where id = $1', [world.placeId])).rowCount ??
+          0,
+      )
+      expect(publicRead).toBe(1)
+      expect(await errorCode(db.rpc('place_get', { id: secret }, world.bob.as))).toBe('not_visible')
+      expect(await errorCode(db.rpc('place_get', { id: secret }, 'visitor'))).toBe('not_visible')
+      expect(
+        await db.rpc<{ id: string }>('place_get', { id: secret }, world.alice.as),
+      ).toMatchObject({ id: secret, visibility: 'private' })
+      await db.sql.query('delete from public.places where id = $1', [secret])
+    })
+
+    it('no select policy on a client-readable table is an unconditional `true` unless the table carries no per-row rule', async () => {
+      // areas, feature_flags and app_settings are read-all by contract (0006, 0050); everything else
+      // that a client may select must decide per row.
+      const { rows } = await db.sql.query<{ table: string }>(
+        `select tablename as table from pg_policies
+          where schemaname = 'public' and cmd = 'SELECT' and qual = 'true'
+          order by 1`,
+      )
+      expect(rows.map((r) => r.table)).toEqual(['app_settings', 'areas', 'feature_flags'])
+    })
+  })
+
+  // -------------------------------------------------------------------------------------------
+  describe('roles and ownership behind the grants', () => {
+    it('the API roles carry no attribute beyond what PostgREST needs and are members of nothing', async () => {
+      const { rows } = await db.sql.query<{
+        rolname: string
+        rolsuper: boolean
+        rolinherit: boolean
+        rolcreaterole: boolean
+        rolcreatedb: boolean
+        rolcanlogin: boolean
+        rolreplication: boolean
+        rolbypassrls: boolean
+      }>(`select rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolreplication, rolbypassrls
+            from pg_roles where rolname in ('anon', 'authenticated', 'service_role') order by 1`)
+      expect(rows.map((r) => r.rolname)).toEqual(['anon', 'authenticated', 'service_role'])
+      for (const r of rows) {
+        expect(
+          {
+            super: r.rolsuper,
+            createrole: r.rolcreaterole,
+            createdb: r.rolcreatedb,
+            login: r.rolcanlogin,
+            replication: r.rolreplication,
+          },
+          r.rolname,
+        ).toEqual({
+          super: false,
+          createrole: false,
+          createdb: false,
+          login: false,
+          replication: false,
+        })
+        // Only the service role bypasses RLS (Supabase's own definition); the client roles never do.
+        expect(r.rolbypassrls, `${r.rolname} bypassrls`).toBe(r.rolname === 'service_role')
+      }
+      const { rows: memberships } = await db.sql.query<{ member: string; role: string }>(
+        `select m.rolname as member, g.rolname as role
+           from pg_auth_members am
+           join pg_roles m on m.oid = am.member
+           join pg_roles g on g.oid = am.roleid
+          where m.rolname in ('anon', 'authenticated', 'service_role')`,
+      )
+      expect(memberships).toEqual([])
+      // Nothing that can log in is a member of a client role or the service role except the
+      // PostgREST connection role and the superusers that own the schema.
+      const { rows: members } = await db.sql.query<{ member: string }>(
+        `select distinct m.rolname as member
+           from pg_auth_members am
+           join pg_roles m on m.oid = am.member
+           join pg_roles g on g.oid = am.roleid
+          where g.rolname in ('anon', 'authenticated', 'service_role') and m.rolcanlogin and not m.rolsuper`,
+      )
+      expect(members.map((m) => m.member)).toEqual(['authenticator'])
+    })
+
+    it('every relation and function of the application schemas is owned by the migration role, never by an API role', async () => {
+      const apiRoles = ['anon', 'authenticated', 'service_role', 'authenticator']
+      const { rows: relations } = await db.sql.query<{ rel: string; owner: string }>(
+        `select n.nspname || '.' || c.relname as rel, pg_get_userbyid(c.relowner) as owner
+           from pg_class c join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = any($1::text[]) and c.relkind in ('r', 'p', 'v', 'm', 'S')`,
+        [[...APP_SCHEMAS]],
+      )
+      expect(relations.length).toBeGreaterThan(40)
+      expect(relations.filter((r) => apiRoles.includes(r.owner))).toEqual([])
+      const { rows: procs } = await db.sql.query<{ fn: string; owner: string }>(
+        `select n.nspname || '.' || p.proname as fn, pg_get_userbyid(p.proowner) as owner
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = any($1::text[])`,
+        [[...APP_SCHEMAS]],
+      )
+      expect(procs.filter((p) => apiRoles.includes(p.owner))).toEqual([])
+      // One owner for everything: a security definer RPC runs with exactly the privileges the
+      // migration role has, never with those of a role a client could become.
+      expect(new Set([...relations.map((r) => r.owner), ...procs.map((p) => p.owner)]).size).toBe(1)
     })
   })
 })

@@ -9,7 +9,7 @@ import {
   type RtcDiagnosticEnvelopeLike,
   RtcDiagnosticEnvelopeSchema,
 } from '../dto'
-import { SERVER_ROUTES } from '../rpc'
+import { CALLS } from '../manifest'
 import { type Transport, parseInput } from '../transport'
 
 export interface AnalyticsNamespace {
@@ -26,12 +26,7 @@ export function createAnalyticsNamespace(transport: Transport): AnalyticsNamespa
   return {
     ingest(batch) {
       const body = parseInput(AnalyticsIngestBatchSchema, batch)
-      return transport.serverVoid({
-        method: 'POST',
-        path: SERVER_ROUTES.analyticsIngest,
-        body,
-        auth: 'optional',
-      })
+      return transport.route(CALLS.analyticsIngest, { body })
     },
   }
 }
@@ -40,12 +35,7 @@ export function createDiagnosticsNamespace(transport: Transport): DiagnosticsNam
   return {
     rtc(envelope) {
       const body = parseInput(RtcDiagnosticEnvelopeSchema, envelope)
-      return transport.serverVoid({
-        method: 'POST',
-        path: SERVER_ROUTES.diagnosticsRtc,
-        body,
-        auth: 'optional',
-      })
+      return transport.route(CALLS.diagnosticsRtc, { body })
     },
   }
 }

@@ -102,7 +102,9 @@ export function becameModerator(previous: ParticipantRole, next: ParticipantRole
 }
 
 /** The name SCREEN 16 opens with: the initiator's, or the first person on camera. */
-export function initiatorName(room: Pick<RoomDto, 'initiatedByHumanId' | 'participants'>): string | null {
+export function initiatorName(
+  room: Pick<RoomDto, 'initiatedByHumanId' | 'participants'>,
+): string | null {
   const initiator = room.participants.find((p) => p.humanId === room.initiatedByHumanId)
   if (initiator !== undefined) return initiator.displayName
   const onCamera = room.participants.find((p) => isPublishing(p) && p.mediaState === 'camera')

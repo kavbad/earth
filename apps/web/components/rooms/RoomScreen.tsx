@@ -70,7 +70,9 @@ interface ConsentPrompt {
 }
 
 function groupIdOf(room: Pick<RoomDto, 'contextType' | 'contextId'>): GroupId | undefined {
-  return room.contextType === 'group' && room.contextId !== null ? (room.contextId as GroupId) : undefined
+  return room.contextType === 'group' && room.contextId !== null
+    ? (room.contextId as GroupId)
+    : undefined
 }
 
 function LoadingRoom() {
@@ -132,10 +134,18 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
       const meId = room.myParticipant?.id ?? myIdRef.current
       for (const delta of deltas) {
         if (delta.kind === 'room_ended') void closeWith('ended', 'ended')
-        if (delta.kind === 'participant_left' && delta.participant.id === meId && delta.participant.status === 'removed') {
+        if (
+          delta.kind === 'participant_left' &&
+          delta.participant.id === meId &&
+          delta.participant.status === 'removed'
+        ) {
           void closeWith('removed', 'removed')
         }
-        if (delta.kind === 'role_changed' && delta.participant.id === meId && becameModerator(delta.previous, delta.participant.role)) {
+        if (
+          delta.kind === 'role_changed' &&
+          delta.participant.id === meId &&
+          becameModerator(delta.previous, delta.participant.role)
+        ) {
           toast.show(copy.keepingRoomOpen)
         }
       }
@@ -160,7 +170,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
       let current = room
       if (current.myParticipant === null || current.myParticipant.status !== 'active') {
         try {
-          current = await earth.rooms.join({ roomId, mediaState: 'watching', consentLevel: VIEWER_CONSENT_LEVEL })
+          current = await earth.rooms.join({
+            roomId,
+            mediaState: 'watching',
+            consentLevel: VIEWER_CONSENT_LEVEL,
+          })
           roomState.setRoom(current)
         } catch (cause) {
           setClosed(closedKindForError(errorCode(cause)))
@@ -203,7 +217,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
     const key = `${activeConsent.trigger}:${activeConsent.level}`
     if (shownConsent.current.has(key)) return
     shownConsent.current.add(key)
-    analytics.track('participant_consent_shown', { roomId, level: activeConsent.level, trigger: activeConsent.trigger })
+    analytics.track('participant_consent_shown', {
+      roomId,
+      level: activeConsent.level,
+      trigger: activeConsent.trigger,
+    })
   }, [activeConsent, analytics, roomId])
 
   const applyMedia = useCallback(
@@ -219,22 +237,37 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
           if (!connected) return
         }
         const mic = await media.setMicrophone(true)
-        if (!mic.ok) setNotice(mic.kind === 'media_permission_denied' ? roomCopy.micPermission : roomCopy.couldntChange)
+        if (!mic.ok)
+          setNotice(
+            mic.kind === 'media_permission_denied'
+              ? roomCopy.micPermission
+              : roomCopy.couldntChange,
+          )
         if (mediaState === 'camera') {
           const cam = await media.setCamera(true)
           if (!cam.ok) {
-            setNotice(cam.kind === 'media_permission_denied' ? roomCopy.cameraPermission : roomCopy.couldntChange)
+            setNotice(
+              cam.kind === 'media_permission_denied'
+                ? roomCopy.cameraPermission
+                : roomCopy.couldntChange,
+            )
             await earth.rooms.setMediaState({ roomId, mediaState: 'audio' }).catch(() => undefined)
             await roomState.refresh()
           } else if (previous !== 'camera') {
             analytics.track('camera_enabled', { roomId, previousMediaState: previous })
           }
         }
-        if (previous === 'watching') analytics.track('audio_joined', { roomId, previousMediaState: previous })
+        if (previous === 'watching')
+          analytics.track('audio_joined', { roomId, previousMediaState: previous })
       } catch (cause) {
         const code = errorCode(cause)
         if (code === 'consent_required') showConsent({ trigger: 'join', level, mediaState })
-        else setNotice(code === 'join_not_allowed' || code === 'not_visible' ? roomCopy.joinNotAllowed : roomCopy.couldntChange)
+        else
+          setNotice(
+            code === 'join_not_allowed' || code === 'not_visible'
+              ? roomCopy.joinNotAllowed
+              : roomCopy.couldntChange,
+          )
       } finally {
         setBusy(false)
       }
@@ -246,7 +279,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
     (mediaState: JoinMediaState) => {
       if (room === null) return
       analytics.track('live_join_requested', { roomId, mediaState, source: 'card' })
-      const decision = consentDecision({ room, myConsentLevel: me?.audienceConsentLevel ?? null, mediaState })
+      const decision = consentDecision({
+        room,
+        myConsentLevel: me?.audienceConsentLevel ?? null,
+        mediaState,
+      })
       if (decision.showSheet) {
         showConsent({ trigger: 'join', level: decision.level, mediaState })
         return
@@ -263,7 +300,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
       setConsentPrompt(null)
       if (prompt.trigger === 'join') {
         if (mediaState === 'watching') return
-        analytics.track('participant_consent_accepted', { roomId, level: prompt.level, trigger: 'join' })
+        analytics.track('participant_consent_accepted', {
+          roomId,
+          level: prompt.level,
+          trigger: 'join',
+        })
         await applyMedia(mediaState, prompt.level)
         return
       }
@@ -275,10 +316,18 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
           await media.setCamera(false)
           await media.setMicrophone(false)
         } else {
-          analytics.track('participant_consent_accepted', { roomId, level: prompt.level, trigger: 'widen' })
+          analytics.track('participant_consent_accepted', {
+            roomId,
+            level: prompt.level,
+            trigger: 'widen',
+          })
           await earth.rooms.consent({ roomId, level: prompt.level })
           if (mediaState === 'audio' && me?.mediaState === 'camera') {
-            await earth.rooms.setMediaState({ roomId, mediaState: 'audio', consentLevel: prompt.level })
+            await earth.rooms.setMediaState({
+              roomId,
+              mediaState: 'audio',
+              consentLevel: prompt.level,
+            })
             await media.setCamera(false)
           }
         }
@@ -406,7 +455,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
     async (participant: RoomParticipantDto, blockFromRoom: boolean) => {
       setBusyParticipant(participant.id)
       try {
-        await earth.rooms.removeParticipant({ roomId, participantId: participant.id, blockFromRoom })
+        await earth.rooms.removeParticipant({
+          roomId,
+          participantId: participant.id,
+          blockFromRoom,
+        })
         if (participant.isGuest && participant.guestSessionId !== null) {
           analytics.track('guest_removed', { roomId, guestSessionId: participant.guestSessionId })
         } else {
@@ -455,7 +508,9 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
         </div>
       )
     }
-    return <RoomEnded kind={kind} backHref={TAB_ROUTES.live} onRetry={() => void roomState.refresh()} />
+    return (
+      <RoomEnded kind={kind} backHref={TAB_ROUTES.live} onRetry={() => void roomState.refresh()} />
+    )
   }
 
   const publishing = me !== null && me.status === 'active' && me.mediaState !== 'watching'

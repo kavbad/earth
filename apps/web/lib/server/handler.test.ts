@@ -117,7 +117,9 @@ describe('makeRouteHandler', () => {
       env: { CRON_SECRET: TEST_VERCEL_CRON_SECRET },
       rpc: { rooms_sweep: () => SWEEP_RESULT },
     })
-    const response = await handlerFor(test).GET(webRequest(SWEEP, { bearer: TEST_VERCEL_CRON_SECRET }))
+    const response = await handlerFor(test).GET(
+      webRequest(SWEEP, { bearer: TEST_VERCEL_CRON_SECRET }),
+    )
     expect(response.status).toBe(200)
     expect(test.supabase.callsTo('rooms_sweep')).toHaveLength(1)
   })
@@ -154,7 +156,11 @@ describe('makeRouteHandler', () => {
     })
     const raw = '{"garbage": true, "trailing": "  spaces  "}'
     const response = await handlerFor(test).POST(
-      webRequest('/api/livekit/webhook', { method: 'POST', body: raw, headers: { authorization: 'nonsense' } }),
+      webRequest('/api/livekit/webhook', {
+        method: 'POST',
+        body: raw,
+        headers: { authorization: 'nonsense' },
+      }),
     )
     expect(response.status).toBe(401)
     await expect(errorCode(response)).resolves.toBe('not_authenticated')
@@ -174,7 +180,9 @@ describe('makeRouteHandler', () => {
     const logs = createMemorySink()
     const handlers = makeRouteHandler({
       context: () => {
-        throw new EnvError('server', [{ variable: 'SUPABASE_SERVICE_ROLE_KEY', message: 'missing' }])
+        throw new EnvError('server', [
+          { variable: 'SUPABASE_SERVICE_ROLE_KEY', message: 'missing' },
+        ])
       },
       fallbackLogger: createLogger({ sink: logs.sink }),
     })
@@ -198,8 +206,14 @@ describe('makeRouteHandler', () => {
         throw new TypeError('adapter bug')
       },
     }
-    const context: WebServerContext = { ...test.context, server: broken, monitor: recording.monitor }
-    const response = await makeRouteHandler({ context: () => context }).GET(webRequest('/api/health'))
+    const context: WebServerContext = {
+      ...test.context,
+      server: broken,
+      monitor: recording.monitor,
+    }
+    const response = await makeRouteHandler({ context: () => context }).GET(
+      webRequest('/api/health'),
+    )
     expect(response.status).toBe(500)
     await expect(errorCode(response)).resolves.toBe('internal')
     expect(recording.calls).toHaveLength(1)
@@ -250,7 +264,12 @@ describe('makeRouteHandler', () => {
       webRequest(`/api/rooms/${ROOM_ID}/token`, { method: 'POST', bearer: USER_JWT }),
     )
     expect(response.status).toBe(200)
-    const body = (await readJson(response)) as { token: string; url: string; identity: string; expiresAt: string }
+    const body = (await readJson(response)) as {
+      token: string
+      url: string
+      identity: string
+      expiresAt: string
+    }
     expect(body).toMatchObject({
       url: 'ws://localhost:7880',
       identity: IDENTITY,
@@ -356,7 +375,12 @@ describe('makeRouteHandler', () => {
       },
     })
     expect(test.context.deps.verification.kind).toBe('vendor')
-    const body = JSON.stringify({ id: 'sess-1', status: 'approved', subject_id: HUMAN_ID, extra: '  ' })
+    const body = JSON.stringify({
+      id: 'sess-1',
+      status: 'approved',
+      subject_id: HUMAN_ID,
+      extra: '  ',
+    })
     const signature = createHmac('sha256', secret).update(body).digest('hex')
     const handlers = handlerFor(test)
 
@@ -368,8 +392,14 @@ describe('makeRouteHandler', () => {
       }),
     )
     expect(accepted.status).toBe(200)
-    await expect(readJson(accepted)).resolves.toEqual({ ok: true, recorded: true, sessionId: 'sess-1' })
-    expect(test.supabase.callsTo(HUMAN_PASS_RECORD_RESULT_RPC).map((c) => c.kind)).toEqual(['admin'])
+    await expect(readJson(accepted)).resolves.toEqual({
+      ok: true,
+      recorded: true,
+      sessionId: 'sess-1',
+    })
+    expect(test.supabase.callsTo(HUMAN_PASS_RECORD_RESULT_RPC).map((c) => c.kind)).toEqual([
+      'admin',
+    ])
     expect(recorded[0]).toMatchObject({
       human_id: HUMAN_ID,
       status: 'verified',

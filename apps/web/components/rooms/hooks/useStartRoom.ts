@@ -19,7 +19,10 @@ export interface StartRoomOptions {
   readonly open?: boolean
 }
 
-export function useStartRoom(): (input: RoomStartArgs, options?: StartRoomOptions) => Promise<RoomDto> {
+export function useStartRoom(): (
+  input: RoomStartArgs,
+  options?: StartRoomOptions,
+) => Promise<RoomDto> {
   const earth = useEarth()
   const analytics = useAnalytics()
   const router = useRouter()

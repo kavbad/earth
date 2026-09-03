@@ -24,6 +24,7 @@ export const RPC = {
   blockSet: 'block_set',
   presencePing: 'presence_ping',
   contextSet: 'context_set',
+  contextResolveAndSet: 'context_resolve_and_set',
   scopeSet: 'scope_set',
   pushTokenRegister: 'push_token_register',
   pushTokenRemove: 'push_token_remove',
@@ -76,6 +77,7 @@ export const RPC = {
   postReactionSet: 'post_reaction_set',
   postHide: 'post_hide',
   postReplies: 'post_replies',
+  postsByAuthor: 'posts_by_author',
   // §5 Areas, places, location, map
   areaResolve: 'area_resolve',
   areasSearch: 'areas_search',
@@ -87,11 +89,13 @@ export const RPC = {
   locationShareUpdate: 'location_share_update',
   locationShareRevoke: 'location_share_revoke',
   locationSharesVisible: 'location_shares_visible',
+  locationSharesMine: 'location_shares_mine',
   mapObjects: 'map_objects',
   // §6 Notifications
   notificationsList: 'notifications_list',
   notificationMarkRead: 'notification_mark_read',
   notificationsMarkAllRead: 'notifications_mark_all_read',
+  notificationsUnreadCount: 'notifications_unread_count',
   // §7 Safety
   reportCreate: 'report_create',
   reportsMine: 'reports_mine',
@@ -121,16 +125,65 @@ export const STORAGE_BUCKETS = {
 
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS]
 
-/** Server-tier routes (ARCHITECTURE §6), relative to `serverBaseUrl`. */
-export const SERVER_ROUTES = {
-  roomToken: (roomId: string): string => `/api/rooms/${encodeURIComponent(roomId)}/token`,
+/**
+ * RPCs that exist in `public` but have no client method by design (ARCHITECTURE §6): reached
+ * through their `/api/*` route, by the server tier as the caller, or by cron. Listed so the parity
+ * test can tell "server-only" from "forgotten".
+ */
+export const SERVER_TIER_RPCS = [
+  'analytics_track',
+  'feed_candidates',
+  'human_delete_request',
+  'human_pass_record_result',
+  'live_candidates',
+  'metrics_compute_daily',
+  'notifications_mark_pushed',
+  'notifications_prune',
+  'notifications_unsent',
+  'public_feed',
+  'report_resolve',
+  'room_media_grant',
+  'room_participant_sync',
+  'rooms_sweep',
+  'rtc_diagnostic_record',
+] as const
+
+/** Server-tier route templates (ARCHITECTURE §6); `:name` segments are filled by `fillRoute`. */
+export const ROUTE_TEMPLATES = {
+  roomToken: '/api/rooms/:id/token',
   claimVerificationStart: '/api/claim/verification/start',
-  claimVerificationResult: (sessionId: string): string =>
-    `/api/claim/verification/${encodeURIComponent(sessionId)}`,
+  claimVerificationResult: '/api/claim/verification/:sessionId',
   feed: '/api/feed',
   live: '/api/live',
   analyticsIngest: '/api/analytics/ingest',
   diagnosticsRtc: '/api/diagnostics/rtc',
+  accountDelete: '/api/account/delete',
+} as const
+
+export type RouteTemplate = (typeof ROUTE_TEMPLATES)[keyof typeof ROUTE_TEMPLATES]
+
+const ROUTE_PARAMETER = /:([A-Za-z_][A-Za-z0-9_]*)/g
+
+/** Fills the `:name` parameters of a template (URL-encoded); a missing parameter is a bug. */
+export function fillRoute(template: string, params: Readonly<Record<string, string>> = {}): string {
+  return template.replace(ROUTE_PARAMETER, (_match, name: string) => {
+    const value = params[name]
+    if (value === undefined) throw new Error(`route ${template}: missing parameter ${name}`)
+    return encodeURIComponent(value)
+  })
+}
+
+/** Server-tier routes (ARCHITECTURE §6), relative to `serverBaseUrl`. */
+export const SERVER_ROUTES = {
+  roomToken: (roomId: string): string => fillRoute(ROUTE_TEMPLATES.roomToken, { id: roomId }),
+  claimVerificationStart: ROUTE_TEMPLATES.claimVerificationStart,
+  claimVerificationResult: (sessionId: string): string =>
+    fillRoute(ROUTE_TEMPLATES.claimVerificationResult, { sessionId }),
+  feed: ROUTE_TEMPLATES.feed,
+  live: ROUTE_TEMPLATES.live,
+  analyticsIngest: ROUTE_TEMPLATES.analyticsIngest,
+  diagnosticsRtc: ROUTE_TEMPLATES.diagnosticsRtc,
+  accountDelete: ROUTE_TEMPLATES.accountDelete,
 } as const
 
 /** Query parameter names of `GET /api/feed` and `GET /api/live`. */

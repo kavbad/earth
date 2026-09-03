@@ -33,7 +33,11 @@ export function useCardImpression(onSeen: () => void): (element: HTMLElement | n
     const io = new IntersectionObserver(
       (entries) => {
         if (seen.current) return
-        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= IMPRESSION_THRESHOLD)) {
+        if (
+          entries.some(
+            (entry) => entry.isIntersecting && entry.intersectionRatio >= IMPRESSION_THRESHOLD,
+          )
+        ) {
           seen.current = true
           io.disconnect()
           latest.current()

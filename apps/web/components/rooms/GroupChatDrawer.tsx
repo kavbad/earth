@@ -62,7 +62,8 @@ function DrawerBody({ groupId }: { groupId: GroupId }) {
   })
   const messages = useQuery({
     queryKey: ['rooms', 'messages', conversationId],
-    queryFn: () => earth.conversations.messages.list({ conversationId: conversationId!, limit: PAGE_SIZE }),
+    queryFn: () =>
+      earth.conversations.messages.list({ conversationId: conversationId!, limit: PAGE_SIZE }),
     enabled: conversationId !== null,
     refetchInterval: REFRESH_INTERVAL_MS,
   })
@@ -124,11 +125,19 @@ function DrawerBody({ groupId }: { groupId: GroupId }) {
           const mine = message.senderHumanId === session.humanId
           const name = sender?.displayName ?? roomCopy.someone
           return (
-            <div key={message.id} className={cx('flex items-start gap-2', mine && 'flex-row-reverse')}>
+            <div
+              key={message.id}
+              className={cx('flex items-start gap-2', mine && 'flex-row-reverse')}
+            >
               <Avatar name={name} src={sender?.avatarUrl ?? null} size="small" decorative />
               <div className={cx('flex max-w-[80%] flex-col', mine && 'items-end')}>
                 <span className="text-meta text-text-secondary">{mine ? roomCopy.you : name}</span>
-                <p className={cx('rounded-medium px-3 py-2 text-body', mine ? 'bg-text-primary text-background' : 'bg-subtle-fill')}>
+                <p
+                  className={cx(
+                    'rounded-medium px-3 py-2 text-body',
+                    mine ? 'bg-text-primary text-background' : 'bg-subtle-fill',
+                  )}
+                >
                   {messageLine(message)}
                 </p>
               </div>
@@ -149,7 +158,12 @@ function DrawerBody({ groupId }: { groupId: GroupId }) {
           disabled={conversationId === null}
           className={FIELD_INPUT_CLASS}
         />
-        <Button type="submit" variant="primary" loading={send.isPending} disabled={draft.trim().length === 0}>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={send.isPending}
+          disabled={draft.trim().length === 0}
+        >
           {roomCopy.send}
         </Button>
       </form>

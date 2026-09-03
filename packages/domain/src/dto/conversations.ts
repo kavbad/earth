@@ -1,7 +1,12 @@
 import { z } from 'zod'
 
 import { MESSAGE_TEXT_MAX } from '../constants'
-import { ConversationTypeSchema, MessageTypeSchema } from '../enums'
+import {
+  ConversationTypeSchema,
+  MessageTypeSchema,
+  MuteStateSchema,
+  NotificationLevelSchema,
+} from '../enums'
 import { ConversationIdSchema, GroupIdSchema, HumanIdSchema, MessageIdSchema } from '../ids'
 import { DisplayNameSchema, HandleSchema } from './claim'
 import {
@@ -27,6 +32,14 @@ export const LastMessagePreviewDtoSchema = z.object({
 })
 export type LastMessagePreviewDto = z.infer<typeof LastMessagePreviewDtoSchema>
 
+/** The caller's own `conversation_members` preferences (spec §26, §55) for the info screen. */
+export const ConversationMyPrefsDtoSchema = z.object({
+  muteState: MuteStateSchema,
+  notificationLevel: NotificationLevelSchema,
+  lastReadMessageId: MessageIdSchema.nullable(),
+})
+export type ConversationMyPrefsDto = z.infer<typeof ConversationMyPrefsDtoSchema>
+
 /** One row of SCREEN 08 (Chats list). */
 export const ConversationSummaryDtoSchema = z.object({
   id: ConversationIdSchema,
@@ -39,6 +52,8 @@ export const ConversationSummaryDtoSchema = z.object({
   unreadCount: NonNegativeIntSchema,
   activeRoom: ActiveRoomRefDtoSchema.nullable(),
   lastMessageAt: IsoDateTimeSchema.nullable(),
+  /** The caller's prefs (`conversation_get` / `conversations_list`, 0996); `null` when not a member, absent from older servers. */
+  myPrefs: ConversationMyPrefsDtoSchema.nullable().optional(),
 })
 export type ConversationSummaryDto = z.infer<typeof ConversationSummaryDtoSchema>
 

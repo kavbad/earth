@@ -37,11 +37,18 @@ describe('messaging grants and realtime', () => {
   it('messages and message_reactions: select for authenticated only; no client writes', async () => {
     for (const table of ['public.messages', 'public.message_reactions']) {
       for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
-        expect(await scalar(db, 'has_table_privilege($1, $2, $3)', ['anon', table, privilege]), `anon ${privilege} ${table}`).toBe(false)
-        expect(await scalar(db, 'has_table_privilege($1, $2, $3)', ['authenticated', table, privilege]), `authenticated ${privilege} ${table}`).toBe(
-          privilege === 'SELECT',
-        )
-        expect(await scalar(db, 'has_table_privilege($1, $2, $3)', ['service_role', table, privilege]), `service ${privilege} ${table}`).toBe(true)
+        expect(
+          await scalar(db, 'has_table_privilege($1, $2, $3)', ['anon', table, privilege]),
+          `anon ${privilege} ${table}`,
+        ).toBe(false)
+        expect(
+          await scalar(db, 'has_table_privilege($1, $2, $3)', ['authenticated', table, privilege]),
+          `authenticated ${privilege} ${table}`,
+        ).toBe(privilege === 'SELECT')
+        expect(
+          await scalar(db, 'has_table_privilege($1, $2, $3)', ['service_role', table, privilege]),
+          `service ${privilege} ${table}`,
+        ).toBe(true)
       }
       const { rows } = await db.sql.query<{ cmd: string; roles: string[] }>(
         `select polcmd as cmd, array(select rolname::text from pg_roles where oid = any (polroles)) as roles from pg_policy where polrelid = $1::regclass`,
@@ -53,16 +60,26 @@ describe('messaging grants and realtime', () => {
 
   it('every messaging RPC is security definer with the pinned search_path and explicit grants', async () => {
     for (const signature of RPCS) {
-      const { rows } = await db.sql.query<{ secdef: boolean; config: string[] | null; volatility: string }>(
+      const { rows } = await db.sql.query<{
+        secdef: boolean
+        config: string[] | null
+        volatility: string
+      }>(
         `select prosecdef as secdef, proconfig as config, provolatile as volatility from pg_proc where oid = $1::regprocedure`,
         [signature],
       )
       expect(rows[0]?.secdef, signature).toBe(true)
       expect(rows[0]?.config, signature).toContain('search_path=public, earth, private, pg_temp')
       for (const role of ['anon', 'authenticated', 'service_role']) {
-        expect(await scalar(db, 'has_function_privilege($1, $2, $3)', [role, signature, 'EXECUTE']), `${role} ${signature}`).toBe(true)
+        expect(
+          await scalar(db, 'has_function_privilege($1, $2, $3)', [role, signature, 'EXECUTE']),
+          `${role} ${signature}`,
+        ).toBe(true)
       }
-      expect(await scalar(db, 'has_function_privilege($1, $2, $3)', ['public', signature, 'EXECUTE']), `public ${signature}`).toBe(false)
+      expect(
+        await scalar(db, 'has_function_privilege($1, $2, $3)', ['public', signature, 'EXECUTE']),
+        `public ${signature}`,
+      ).toBe(false)
     }
     // Mutations are volatile, reads are stable.
     for (const [signature, volatility] of [
@@ -71,7 +88,10 @@ describe('messaging grants and realtime', () => {
       ['public.message_send(uuid, uuid, public.message_type, text, jsonb, uuid)', 'v'],
       ['public.conversation_mark_read(uuid, uuid)', 'v'],
     ] as const) {
-      expect(await scalar(db, 'provolatile from pg_proc where oid = $1::regprocedure', [signature]), signature).toBe(volatility)
+      expect(
+        await scalar(db, 'provolatile from pg_proc where oid = $1::regprocedure', [signature]),
+        signature,
+      ).toBe(volatility)
     }
   })
 
@@ -80,14 +100,32 @@ describe('messaging grants and realtime', () => {
       `select tablename from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' order by tablename`,
     )
     const published = rows.map((r) => r.tablename)
-    for (const table of ['messages', 'message_reactions', 'conversation_members', 'conversations', 'notifications']) {
+    for (const table of [
+      'messages',
+      'message_reactions',
+      'conversation_members',
+      'conversations',
+      'notifications',
+    ]) {
       expect(published, table).toContain(table)
     }
     // Filtered deletes need the whole old row.
-    expect(await scalar(db, `relreplident from pg_class where oid = 'public.messages'::regclass`)).toBe('f')
-    expect(await scalar(db, `relreplident from pg_class where oid = 'public.message_reactions'::regclass`)).toBe('f')
+    expect(
+      await scalar(db, `relreplident from pg_class where oid = 'public.messages'::regclass`),
+    ).toBe('f')
+    expect(
+      await scalar(
+        db,
+        `relreplident from pg_class where oid = 'public.message_reactions'::regclass`,
+      ),
+    ).toBe('f')
     // conversation_members carries conversation_id in its primary key; conversations is filtered by id.
-    expect(await scalar(db, `relreplident from pg_class where oid = 'public.conversation_members'::regclass`)).toBe('d')
+    expect(
+      await scalar(
+        db,
+        `relreplident from pg_class where oid = 'public.conversation_members'::regclass`,
+      ),
+    ).toBe('d')
   })
 
   it('indexes back every foreign key and the keyset query path', async () => {
@@ -95,11 +133,23 @@ describe('messaging grants and realtime', () => {
       `select indexdef from pg_indexes where schemaname = 'public' and tablename in ('messages', 'message_reactions') order by indexname`,
     )
     const defs = rows.map((r) => r.indexdef)
-    expect(defs.some((d) => d.includes('messages_conversation_created_idx') && d.includes('(conversation_id, created_at DESC, id DESC)'))).toBe(true)
+    expect(
+      defs.some(
+        (d) =>
+          d.includes('messages_conversation_created_idx') &&
+          d.includes('(conversation_id, created_at DESC, id DESC)'),
+      ),
+    ).toBe(true)
     expect(defs.some((d) => d.includes('messages_sender_human_id_idx'))).toBe(true)
     expect(defs.some((d) => d.includes('messages_reply_to_message_id_idx'))).toBe(true)
     expect(defs.some((d) => d.includes('message_reactions_human_id_idx'))).toBe(true)
     expect(defs.some((d) => d.includes('message_reactions_conversation_message_idx'))).toBe(true)
-    expect(defs.some((d) => d.includes('messages_client_key') && d.includes('(conversation_id, sender_human_id, client_id)'))).toBe(true)
+    expect(
+      defs.some(
+        (d) =>
+          d.includes('messages_client_key') &&
+          d.includes('(conversation_id, sender_human_id, client_id)'),
+      ),
+    ).toBe(true)
   })
 })

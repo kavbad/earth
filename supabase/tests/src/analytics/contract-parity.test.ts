@@ -75,8 +75,14 @@ describe('analytics event whitelist = EVENT_NAMES (spec §97; DB_API §8)', () =
       track(db, [{ properties: {}, platform: 'web', appVersion: '1.0.0' }], alice.as),
       'invalid_input',
     )
-    await db.expectError(track(db, [{ ...event('room_joined'), name: 5 }], alice.as), 'invalid_input')
-    await db.expectError(track(db, [{ ...event('room_joined'), name: null }], alice.as), 'invalid_input')
+    await db.expectError(
+      track(db, [{ ...event('room_joined'), name: 5 }], alice.as),
+      'invalid_input',
+    )
+    await db.expectError(
+      track(db, [{ ...event('room_joined'), name: null }], alice.as),
+      'invalid_input',
+    )
   })
 
   it('one unknown name fails the whole batch (nothing is stored)', async () => {

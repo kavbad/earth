@@ -5,21 +5,15 @@ import {
   type GroupCreateInput,
   GroupCreateInputSchema,
   type GroupDetailDto,
-  GroupDetailDtoSchema,
   type GroupDto,
-  GroupDtoSchema,
   type GroupId,
   GroupIdSchema,
   type GroupInviteCreateDto,
-  GroupInviteCreateDtoSchema,
   type GroupInviteCreateInput,
   GroupInviteCreateInputSchema,
   type GroupInvitePreviewDto,
-  GroupInvitePreviewDtoSchema,
   type GroupJoinDto,
-  GroupJoinDtoSchema,
   type GroupMemberDto,
-  GroupMemberDtoSchema,
   type HumanId,
   HumanIdSchema,
 } from '@earth/domain'
@@ -30,17 +24,14 @@ import {
   AssignableGroupMemberRoleSchema,
   type GroupInviteDto,
   type GroupInviteRevokeDto,
-  GroupInviteRevokeDtoSchema,
   GroupInviteRowsSchema,
   type GroupLeaveDto,
-  GroupLeaveDtoSchema,
   type GroupMemberRemoveDto,
-  GroupMemberRemoveDtoSchema,
   type GroupUpdateInput,
   GroupUpdateInputSchema,
   groupInviteFromRow,
 } from '../dto'
-import { RPC, TABLES } from '../rpc'
+import { CALLS } from '../manifest'
 import { type Transport, parseInput } from '../transport'
 import { FILTER_OPERATORS } from '../types'
 
@@ -84,8 +75,7 @@ export interface GroupsNamespace {
 const TokenSchema = z.string().min(1)
 const InviteIdSchema = z.uuid()
 const SECONDS_PER_HOUR = 3600
-const INVITE_COLUMNS =
-  'id, group_id, created_by, expires_at, max_uses, use_count, status, created_at, revoked_at' as const
+const INVITE_COLUMNS = CALLS.groupsInvitesList.args.join(', ')
 const INVITE_GROUP_COLUMN = 'group_id' as const
 const INVITE_ORDER_COLUMN = 'created_at' as const
 
@@ -93,41 +83,37 @@ export function createGroupsNamespace(transport: Transport): GroupsNamespace {
   const invites: GroupInvitesNamespace = {
     create(input) {
       const parsed = parseInput(GroupInviteCreateInputSchema, input)
-      return transport.rpc(
-        RPC.groupInviteCreate,
-        {
-          group_id: parsed.groupId,
-          expires_in_seconds:
-            parsed.expiresInHours === null || parsed.expiresInHours === undefined
-              ? null
-              : parsed.expiresInHours * SECONDS_PER_HOUR,
-          max_uses: parsed.maxUses ?? null,
-        },
-        GroupInviteCreateDtoSchema,
-      )
+      return transport.call(CALLS.groupsInvitesCreate, {
+        group_id: parsed.groupId,
+        expires_in_seconds:
+          parsed.expiresInHours === null || parsed.expiresInHours === undefined
+            ? null
+            : parsed.expiresInHours * SECONDS_PER_HOUR,
+        max_uses: parsed.maxUses ?? null,
+      })
     },
     revoke(inviteId) {
       const id = parseInput(InviteIdSchema, inviteId, 'inviteId')
-      return transport.rpc(RPC.groupInviteRevoke, { invite_id: id }, GroupInviteRevokeDtoSchema)
+      return transport.call(CALLS.groupsInvitesRevoke, { invite_id: id })
     },
     preview(token) {
       const value = parseInput(TokenSchema, token, 'token')
-      return transport.rpc(RPC.groupInvitePreview, { token: value }, GroupInvitePreviewDtoSchema)
+      return transport.call(CALLS.groupsInvitesPreview, { token: value })
     },
     join(token) {
       const value = parseInput(TokenSchema, token, 'token')
-      return transport.rpc(RPC.groupInviteJoin, { token: value }, GroupJoinDtoSchema)
+      return transport.call(CALLS.groupsInvitesJoin, { token: value })
     },
     async list(groupId) {
       const id = parseInput(GroupIdSchema, groupId, 'groupId')
       const rows = await transport.query(
-        `select ${TABLES.groupInvitesView}`,
+        `select ${CALLS.groupsInvitesList.table}`,
         (table) =>
           table
             .select(INVITE_COLUMNS)
             .filter(INVITE_GROUP_COLUMN, FILTER_OPERATORS.eq, id)
             .order(INVITE_ORDER_COLUMN, { ascending: false }),
-        TABLES.groupInvitesView,
+        CALLS.groupsInvitesList.table,
         GroupInviteRowsSchema,
       )
       return rows.map(groupInviteFromRow)
@@ -136,52 +122,40 @@ export function createGroupsNamespace(transport: Transport): GroupsNamespace {
 
   const members: GroupMembersNamespace = {
     remove(groupId, humanId) {
-      return transport.rpc(
-        RPC.groupMemberRemove,
-        {
-          group_id: parseInput(GroupIdSchema, groupId, 'groupId'),
-          human_id: parseInput(HumanIdSchema, humanId, 'humanId'),
-        },
-        GroupMemberRemoveDtoSchema,
-      )
+      return transport.call(CALLS.groupsMembersRemove, {
+        group_id: parseInput(GroupIdSchema, groupId, 'groupId'),
+        human_id: parseInput(HumanIdSchema, humanId, 'humanId'),
+      })
     },
     setRole(groupId, humanId, role) {
-      return transport.rpc(
-        RPC.groupMemberSetRole,
-        {
-          group_id: parseInput(GroupIdSchema, groupId, 'groupId'),
-          human_id: parseInput(HumanIdSchema, humanId, 'humanId'),
-          role: parseInput(AssignableGroupMemberRoleSchema, role, 'role'),
-        },
-        GroupMemberDtoSchema,
-      )
+      return transport.call(CALLS.groupsMembersSetRole, {
+        group_id: parseInput(GroupIdSchema, groupId, 'groupId'),
+        human_id: parseInput(HumanIdSchema, humanId, 'humanId'),
+        role: parseInput(AssignableGroupMemberRoleSchema, role, 'role'),
+      })
     },
   }
 
   return {
     create(input = {}) {
       const parsed = parseInput(GroupCreateInputSchema, input)
-      return transport.rpc(RPC.groupCreate, { name: parsed.name ?? null }, GroupDtoSchema)
+      return transport.call(CALLS.groupsCreate, { name: parsed.name ?? null })
     },
     get(groupId) {
       const id = parseInput(GroupIdSchema, groupId, 'groupId')
-      return transport.rpc(RPC.groupGet, { group_id: id }, GroupDetailDtoSchema)
+      return transport.call(CALLS.groupsGet, { group_id: id })
     },
     update(input) {
       const parsed = parseInput(GroupUpdateInputSchema, input)
-      return transport.rpc(
-        RPC.groupUpdate,
-        {
-          group_id: parsed.groupId,
-          name: parsed.name ?? null,
-          avatar_media_id: parsed.avatarMediaId ?? null,
-        },
-        GroupDtoSchema,
-      )
+      return transport.call(CALLS.groupsUpdate, {
+        group_id: parsed.groupId,
+        name: parsed.name ?? null,
+        avatar_media_id: parsed.avatarMediaId ?? null,
+      })
     },
     leave(groupId) {
       const id = parseInput(GroupIdSchema, groupId, 'groupId')
-      return transport.rpc(RPC.groupLeave, { group_id: id }, GroupLeaveDtoSchema)
+      return transport.call(CALLS.groupsLeave, { group_id: id })
     },
     invites,
     members,

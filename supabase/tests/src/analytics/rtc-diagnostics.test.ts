@@ -63,7 +63,11 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
   it('authorization: visitor, service, claiming, unclaimed and inactive Humans are refused', async () => {
     await db.expectError(record('visitor', 'connect_failed', null), 'not_authenticated')
     await db.expectError(record('service', 'connect_failed', null), 'forbidden')
-    const pending = await createHuman(db, { handle: 'pendingone', status: 'pending', identity: false })
+    const pending = await createHuman(db, {
+      handle: 'pendingone',
+      status: 'pending',
+      identity: false,
+    })
     await db.expectError(record(pending.as, 'connect_failed', null), 'not_a_human')
     const unclaimed = await createUnclaimed(db)
     await db.expectError(record(unclaimed.as, 'connect_failed', null), 'not_a_human')
@@ -73,7 +77,10 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
   })
 
   it('a Human records without a room (failures before any room) and returns {id, createdAt}', async () => {
-    const result = await record(host.as, 'network_unavailable', null, { ts: '2026-09-03T10:00:00Z', receivedAt: '2026-09-03T10:00:01Z' })
+    const result = await record(host.as, 'network_unavailable', null, {
+      ts: '2026-09-03T10:00:00Z',
+      receivedAt: '2026-09-03T10:00:01Z',
+    })
     expect(result.id).toMatch(/^[0-9a-f-]{36}$/)
     expect(result.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
     const rows = await diagnosticRows(db, 'id = $1', [result.id])
@@ -89,11 +96,20 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
 
   it('with a room: participants of any status may record; strangers get not_in_room; unknown rooms room_not_found', async () => {
     const asHost = await record(host.as, 'connected', roomId)
-    expect((await diagnosticRows(db, 'id = $1', [asHost.id]))[0]).toMatchObject({ human_id: host.humanId, room_id: roomId, guest_session_id: null })
+    expect((await diagnosticRows(db, 'id = $1', [asHost.id]))[0]).toMatchObject({
+      human_id: host.humanId,
+      room_id: roomId,
+      guest_session_id: null,
+    })
     await record(friend.as, 'reconnecting', roomId)
     await db.rpc('room_leave', { room_id: roomId }, friend.as)
     await record(friend.as, 'reconnect_failed', roomId)
-    expect(await count(db, 'public.rtc_diagnostics', 'human_id = $1 and room_id = $2', [friend.humanId, roomId])).toBe(2)
+    expect(
+      await count(db, 'public.rtc_diagnostics', 'human_id = $1 and room_id = $2', [
+        friend.humanId,
+        roomId,
+      ]),
+    ).toBe(2)
     await db.expectError(record(stranger.as, 'connected', roomId), 'not_in_room')
     await db.expectError(record(host.as, 'connected', randomUUID()), 'room_not_found')
   })
@@ -109,34 +125,63 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
     const other = (await startStandaloneRoom(db, stranger, 'Elsewhere')).room.id
     await db.expectError(record(guest.as, 'connect_failed', other), 'not_in_room')
     const noRoom = await record(guest.as, 'network_unavailable', null)
-    expect((await diagnosticRows(db, 'id = $1', [noRoom.id]))[0]).toMatchObject({ human_id: null, guest_session_id: null, room_id: null })
+    expect((await diagnosticRows(db, 'id = $1', [noRoom.id]))[0]).toMatchObject({
+      human_id: null,
+      guest_session_id: null,
+      room_id: null,
+    })
 
-    await db.sql.query(`update public.guest_sessions set expires_at = created_at + interval '1 millisecond' where id = $1`, [guestSessionId])
-    expect(await scalar(db, 'expires_at < now() from public.guest_sessions where id = $1', [guestSessionId])).toBe(true)
+    await db.sql.query(
+      `update public.guest_sessions set expires_at = created_at + interval '1 millisecond' where id = $1`,
+      [guestSessionId],
+    )
+    expect(
+      await scalar(db, 'expires_at < now() from public.guest_sessions where id = $1', [
+        guestSessionId,
+      ]),
+    ).toBe(true)
     const expired = await record(guest.as, 'reconnect_failed', roomId)
-    expect((await diagnosticRows(db, 'id = $1', [expired.id]))[0]?.guest_session_id).toBe(guestSessionId)
+    expect((await diagnosticRows(db, 'id = $1', [expired.id]))[0]?.guest_session_id).toBe(
+      guestSessionId,
+    )
     // A second Guest of the same room is attributed to their own session, never the first one's.
     const invite = await createRoomInvite(db, roomId, host)
     const second = await createGuest(db)
     const secondSession = (await createGuestSession(db, second, invite.token, 'Kim')).guestSessionId
     const theirs = await record(second.as, 'connected', roomId)
-    expect((await diagnosticRows(db, 'id = $1', [theirs.id]))[0]?.guest_session_id).toBe(secondSession)
+    expect((await diagnosticRows(db, 'id = $1', [theirs.id]))[0]?.guest_session_id).toBe(
+      secondSession,
+    )
   })
 
   it('validates kind and payload (invalid_input)', async () => {
     for (const kind of ['', '  ', 'Connect Failed', 'connect-failed', '1st', 'x'.repeat(65)]) {
       await db.expectError(record(host.as, kind, null), 'invalid_input')
     }
-    await db.expectError(record(host.as, 'connected', null, ['not', 'an', 'object']), 'invalid_input')
-    await db.expectError(record(host.as, 'connected', null, 'text'), 'invalid_input')
     await db.expectError(
-      record(host.as, 'connected', null, Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`k${i}`, i]))),
+      record(host.as, 'connected', null, ['not', 'an', 'object']),
       'invalid_input',
     )
-    await db.expectError(record(host.as, 'connected', null, { blob: 'x'.repeat(17 * 1024) }), 'invalid_input')
+    await db.expectError(record(host.as, 'connected', null, 'text'), 'invalid_input')
+    await db.expectError(
+      record(
+        host.as,
+        'connected',
+        null,
+        Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`k${i}`, i])),
+      ),
+      'invalid_input',
+    )
+    await db.expectError(
+      record(host.as, 'connected', null, { blob: 'x'.repeat(17 * 1024) }),
+      'invalid_input',
+    )
     // Kind is trimmed; a null payload means an empty one.
     const trimmed = await record(host.as, '  media_device_error ', null, null)
-    expect((await diagnosticRows(db, 'id = $1', [trimmed.id]))[0]).toMatchObject({ kind: 'media_device_error', payload: {} })
+    expect((await diagnosticRows(db, 'id = $1', [trimmed.id]))[0]).toMatchObject({
+      kind: 'media_device_error',
+      payload: {},
+    })
   })
 
   it('strips coordinate keys and coordinate-like values from the payload', async () => {
@@ -163,7 +208,8 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
 
   it('is rate limited to 120 per 10 minutes per Human', async () => {
     const chatty = await human(db, 'Chatty')
-    for (let i = 0; i < 120; i += 1) await record(chatty.as, 'connect_attempt', null, { attempt: i })
+    for (let i = 0; i < 120; i += 1)
+      await record(chatty.as, 'connect_attempt', null, { attempt: i })
     await db.expectError(record(chatty.as, 'connect_attempt', null), 'rate_limited')
     expect(await count(db, 'public.rtc_diagnostics', 'human_id = $1', [chatty.humanId])).toBe(120)
   })
@@ -175,7 +221,9 @@ describe('rtc_diagnostic_record (DB_API §8)', () => {
     )
     expect(await count(db, 'public.rtc_diagnostics', "kind = 'webhook_out_of_order'")).toBe(1)
     for (const as of ['visitor', host.as, guest.as] as const) {
-      expect(sqlstate(await attempt(db, as, 'select * from public.rtc_diagnostics'))).toBe(PERMISSION_DENIED)
+      expect(sqlstate(await attempt(db, as, 'select * from public.rtc_diagnostics'))).toBe(
+        PERMISSION_DENIED,
+      )
     }
   })
 })

@@ -14,7 +14,14 @@ import type { AnalyticsSink } from '@earth/analytics'
 import type { ServerEnv } from '@earth/config'
 import { type Logger, createLogger } from '@earth/observability'
 
-import type { LiveKitWebhookReceiverLike, PushSender, ServerDeps, SupabaseRpcClient } from './deps'
+import type {
+  AuthAdminHostLike,
+  AuthAdminLike,
+  LiveKitWebhookReceiverLike,
+  PushSender,
+  ServerDeps,
+  SupabaseRpcClient,
+} from './deps'
 import { type ExpoClientLike, createExpoPushSender } from './push/expo'
 import { createDisabledPushSender } from './push/noop'
 import type { HumanVerificationProvider } from './verification/provider-types'
@@ -39,6 +46,7 @@ export * from './push/dispatch'
 export * from './analytics/ingest'
 export * from './diagnostics/rtc'
 export * from './metrics/daily'
+export * from './account/delete'
 export * from './router'
 export * from './adapters/fetch'
 
@@ -88,6 +96,16 @@ export interface CreateServerDepsOptions {
   readonly logger?: Logger | undefined
   readonly now?: (() => Date) | undefined
   readonly webhookReceiver?: LiveKitWebhookReceiverLike | undefined
+  /** Overrides the `auth.admin` found on the service-role client (`authAdminOf`). */
+  readonly authAdmin?: AuthAdminLike | undefined
+}
+
+/** The `auth.admin` a service-role client carries, when it does (the RPC-only fakes do not). */
+export function authAdminOf(
+  client: SupabaseRpcClient & AuthAdminHostLike,
+): AuthAdminLike | undefined {
+  const admin = client.auth?.admin
+  return admin !== undefined && typeof admin.deleteUser === 'function' ? admin : undefined
 }
 
 const CLIENT_AUTH_OPTIONS = {
@@ -139,5 +157,6 @@ export function createServerDepsFromEnv(options: CreateServerDepsOptions): Serve
     now: options.now ?? (() => new Date()),
     env,
     cronSecret: env.INTERNAL_CRON_SECRET,
+    authAdmin: options.authAdmin ?? authAdminOf(supabaseAdmin),
   }
 }

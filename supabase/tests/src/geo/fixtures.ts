@@ -93,12 +93,16 @@ export function expectedPosition(
   cityCentroid: LatLng | null,
 ): LatLng {
   if (precision === 'precise') return position
-  if (precision === 'approximate') return { lat: snapTo(position.lat, 2), lng: snapTo(position.lng, 2) }
+  if (precision === 'approximate')
+    return { lat: snapTo(position.lat, 2), lng: snapTo(position.lng, 2) }
   return cityCentroid ?? { lat: snapTo(position.lat, 1), lng: snapTo(position.lng, 1) }
 }
 
 export async function areaBySlug(db: TestDb, slug: string): Promise<string> {
-  const { rows } = await db.sql.query<{ id: string }>('select id from public.areas where slug = $1', [slug])
+  const { rows } = await db.sql.query<{ id: string }>(
+    'select id from public.areas where slug = $1',
+    [slug],
+  )
   const id = rows[0]?.id
   if (id === undefined) throw new Error(`area ${slug} missing`)
   return id
@@ -135,8 +139,14 @@ export function shareArgs(options: ShareOptions): Record<string, unknown> {
 }
 
 /** `location_share_create` as `sharer`, parsed as `LocationShareDto`. */
-export async function createShare(db: TestDb, sharer: Human, options: ShareOptions): Promise<LocationShareDto> {
-  return LocationShareDtoSchema.parse(await db.rpc('location_share_create', shareArgs(options), sharer.as))
+export async function createShare(
+  db: TestDb,
+  sharer: Human,
+  options: ShareOptions,
+): Promise<LocationShareDto> {
+  return LocationShareDtoSchema.parse(
+    await db.rpc('location_share_create', shareArgs(options), sharer.as),
+  )
 }
 
 /** What `location_shares_visible()` returns: MapFriendDto plus the share reference. */
@@ -156,10 +166,13 @@ export async function shareRow(
   db: TestDb,
   shareId: string,
 ): Promise<{ revoked_at: string | null; expires_at: string; precision: string } | null> {
-  const { rows } = await db.sql.query<{ revoked_at: string | null; expires_at: string; precision: string }>(
-    'select revoked_at, expires_at, precision::text from public.location_shares where id = $1',
-    [shareId],
-  )
+  const { rows } = await db.sql.query<{
+    revoked_at: string | null
+    expires_at: string
+    precision: string
+  }>('select revoked_at, expires_at, precision::text from public.location_shares where id = $1', [
+    shareId,
+  ])
   return rows[0] ?? null
 }
 
@@ -180,14 +193,19 @@ export async function storedPosition(
 export async function contextRow(
   db: TestDb,
   human: Human,
-): Promise<{ current_area_id: string | null; current_city_id: string | null; home_city_id: string | null } | null> {
+): Promise<{
+  current_area_id: string | null
+  current_city_id: string | null
+  home_city_id: string | null
+} | null> {
   const { rows } = await db.sql.query<{
     current_area_id: string | null
     current_city_id: string | null
     home_city_id: string | null
-  }>('select current_area_id, current_city_id, home_city_id from public.human_context where human_id = $1', [
-    human.humanId,
-  ])
+  }>(
+    'select current_area_id, current_city_id, home_city_id from public.human_context where human_id = $1',
+    [human.humanId],
+  )
   return rows[0] ?? null
 }
 
@@ -199,7 +217,11 @@ interface CoordinateColumn {
 
 /** Every geometry / floating-point / numeric column of the public and private schemas. */
 export async function coordinateColumns(db: TestDb): Promise<CoordinateColumn[]> {
-  const { rows } = await db.sql.query<{ table_schema: string; table_name: string; column_name: string }>(
+  const { rows } = await db.sql.query<{
+    table_schema: string
+    table_name: string
+    column_name: string
+  }>(
     `select c.table_schema, c.table_name, c.column_name
        from information_schema.columns c
        join information_schema.tables t
@@ -208,7 +230,11 @@ export async function coordinateColumns(db: TestDb): Promise<CoordinateColumn[]>
         and (c.data_type in ('double precision', 'real', 'numeric') or c.udt_name = 'geometry')
       order by 1, 2, 3`,
   )
-  return rows.map((row) => ({ schema: row.table_schema, table: row.table_name, column: row.column_name }))
+  return rows.map((row) => ({
+    schema: row.table_schema,
+    table: row.table_name,
+    column: row.column_name,
+  }))
 }
 
 /** A digest of every value in every coordinate-typed column: unchanged means nothing geographic was written. */
@@ -228,7 +254,10 @@ export async function coordinateDigest(db: TestDb): Promise<Record<string, strin
  * Tables whose rows, rendered as text, contain any of the given coordinate fragments as a number
  * (not as the tail of a longer number or of a timestamp's seconds).
  */
-export async function tablesMentioning(db: TestDb, fragments: readonly string[]): Promise<string[]> {
+export async function tablesMentioning(
+  db: TestDb,
+  fragments: readonly string[],
+): Promise<string[]> {
   const patterns = fragments.map((fragment) => `(^|[^0-9:.])${fragment.replace(/\./g, '\\.')}`)
   const { rows: tables } = await db.sql.query<{ table_schema: string; table_name: string }>(
     `select table_schema, table_name from information_schema.tables

@@ -56,7 +56,10 @@ describe('GET /api/health', () => {
       expect.arrayContaining(['SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_MAP_STYLE_URL']),
     )
     // Fixed environment, next probe: no restart needed.
-    setEnv({ SUPABASE_SERVICE_ROLE_KEY: 'service-role-key', NEXT_PUBLIC_MAP_STYLE_URL: 'https://demotiles.maplibre.org/style.json' })
+    setEnv({
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+      NEXT_PUBLIC_MAP_STYLE_URL: 'https://demotiles.maplibre.org/style.json',
+    })
     expect(GET().status).toBe(200)
   })
 })

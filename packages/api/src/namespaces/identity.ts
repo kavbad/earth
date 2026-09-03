@@ -4,32 +4,26 @@
 import { type FeatureFlags, resolveFlags } from '@earth/config'
 import {
   type ClaimCompleteDto,
-  ClaimCompleteDtoSchema,
   type ClaimIdentityInput,
   ClaimIdentityInputSchema,
   ClaimStartInputSchema,
   type ClaimStateDto,
-  ClaimStateDtoSchema,
   EarthError,
   type FlagsDto,
   type MeDto,
-  MeDtoSchema,
   type PublicIdentityDto,
-  PublicIdentityDtoSchema,
   type VerificationSessionDto,
-  VerificationSessionDtoSchema,
 } from '@earth/domain'
 import { z } from 'zod'
 
 import {
+  type AccountDeleteDto,
   AppSettingRowsSchema,
   FeatureFlagRowsSchema,
-  HandleAvailableDtoSchema,
   HandleLookupSchema,
   type IdentityReviewCreateInput,
   IdentityReviewCreateInputSchema,
   type IdentityReviewDto,
-  IdentityReviewDtoSchema,
   type IdentityUpdateInput,
   IdentityUpdateInputSchema,
   type MediaBucket,
@@ -41,15 +35,14 @@ import {
   MediaUploadInputSchema,
   type SettingsDto,
   type VerificationBeginDto,
-  VerificationBeginDtoSchema,
   type VerificationResultDto,
-  VerificationResultDtoSchema,
   type VerificationStartInput,
   VerificationStartInputSchema,
   flagsDtoFromRows,
   settingsFromRows,
 } from '../dto'
-import { RPC, SERVER_ROUTES, STORAGE_BUCKETS, TABLES } from '../rpc'
+import { CALLS } from '../manifest'
+import { STORAGE_BUCKETS } from '../rpc'
 import { type Transport, parseInput, parseOutput } from '../transport'
 import type { StorageBody } from '../types'
 
@@ -110,12 +103,18 @@ export interface AvatarUploadInput {
 }
 
 export interface IdentityNamespace {
-  /** `identity_update(...)`: only the fields given change. */
+  /** `identity_update(...)`: only the fields given change; `handle` changes the handle (`handle_invalid` / `handle_taken`). */
   update(input: IdentityUpdateInput): Promise<PublicIdentityDto>
   /** `handle_available(handle)` after case/`@` normalization; handles malformed beyond that are `false` without a round trip. */
   handleAvailable(handle: string): Promise<boolean>
   /** Uploads to the `avatars` bucket and registers the `media_objects` row; pass `id` to `claim.setIdentity` / `identity.update`. */
   uploadAvatar(input: AvatarUploadInput): Promise<MediaObjectDto>
+  /**
+   * `POST /api/account/delete`: the server runs `human_delete_request` as the caller (the Human is
+   * deleted and invisible everywhere; the same credential may claim again as a new Human) and then
+   * deletes the credential through the Supabase admin API. Sign out afterwards.
+   */
+  deleteAccount(): Promise<AccountDeleteDto>
 }
 
 export interface MediaNamespace {
@@ -169,8 +168,8 @@ const SignedUrlExpirySchema = z
 const SessionIdSchema = z.string().min(1)
 const ProviderSchema = z.string().min(1)
 const StorageKeySchema = z.string().min(1).max(512)
-const FLAG_COLUMNS = 'key, enabled, payload, updated_at' as const
-const SETTING_COLUMNS = 'key, value' as const
+const FLAG_COLUMNS = CALLS.flagsGet.args.join(', ')
+const SETTING_COLUMNS = CALLS.settingsGet.args.join(', ')
 const MEDIA_OBJECT_COLUMNS = 'id, bucket, storage_key, content_type' as const
 
 // ---------------------------------------------------------------------------
@@ -180,9 +179,9 @@ const MEDIA_OBJECT_COLUMNS = 'id, bucket, storage_key, content_type' as const
 export function createFlagsNamespace(transport: Transport): FlagsNamespace {
   const rows = () =>
     transport.query(
-      `select ${TABLES.featureFlags}`,
+      `select ${CALLS.flagsGet.table}`,
       (table) => table.select(FLAG_COLUMNS),
-      TABLES.featureFlags,
+      CALLS.flagsGet.table,
       FeatureFlagRowsSchema,
     )
   return {
@@ -197,9 +196,9 @@ export function createSettingsNamespace(transport: Transport): SettingsNamespace
     get: async () =>
       settingsFromRows(
         await transport.query(
-          `select ${TABLES.appSettings}`,
+          `select ${CALLS.settingsGet.table}`,
           (table) => table.select(SETTING_COLUMNS),
-          TABLES.appSettings,
+          CALLS.settingsGet.table,
           AppSettingRowsSchema,
         ),
       ),
@@ -207,65 +206,49 @@ export function createSettingsNamespace(transport: Transport): SettingsNamespace
 }
 
 export function createMeNamespace(transport: Transport): MeNamespace {
-  return { get: () => transport.rpc(RPC.meGet, {}, MeDtoSchema) }
+  return { get: () => transport.call(CALLS.meGet, {}) }
 }
 
 export function createClaimNamespace(transport: Transport): ClaimNamespace {
   const pollVerification = (sessionId: string): Promise<VerificationResultDto> => {
     const id = parseInput(SessionIdSchema, sessionId, 'sessionId')
-    return transport.server(
-      { method: 'GET', path: SERVER_ROUTES.claimVerificationResult(id), auth: 'required' },
-      VerificationResultDtoSchema,
-    )
+    return transport.route(CALLS.claimPollVerification, { params: { sessionId: id } })
   }
   return {
     start(input) {
       const parsed = parseInput(ClaimStartInputSchema, input)
-      return transport.rpc(
-        RPC.claimStart,
-        {
-          intent: parsed.intent,
-          group_label: parsed.groupLabel ?? null,
-          invite_token: parsed.inviteToken ?? null,
-        },
-        ClaimStateDtoSchema,
-      )
+      return transport.call(CALLS.claimStart, {
+        intent: parsed.intent,
+        group_label: parsed.groupLabel ?? null,
+        invite_token: parsed.inviteToken ?? null,
+      })
     },
-    get: () => transport.rpc(RPC.claimGet, {}, ClaimStateDtoSchema),
+    get: () => transport.call(CALLS.claimGet, {}),
     setIdentity(input) {
       const parsed = parseInput(ClaimIdentityInputSchema, input)
-      return transport.rpc(
-        RPC.claimSetIdentity,
-        {
-          display_name: parsed.displayName,
-          handle: parsed.handle,
-          avatar_media_id: parsed.avatarMediaId ?? null,
-        },
-        ClaimStateDtoSchema,
-      )
+      return transport.call(CALLS.claimSetIdentity, {
+        display_name: parsed.displayName,
+        handle: parsed.handle,
+        avatar_media_id: parsed.avatarMediaId ?? null,
+      })
     },
     beginVerification(provider) {
-      const args =
-        provider === undefined ? {} : { provider: parseInput(ProviderSchema, provider, 'provider') }
-      return transport.rpc(RPC.claimVerificationBegin, args, VerificationBeginDtoSchema)
+      return transport.call(CALLS.claimBeginVerification, {
+        // Only sent when given: the RPC defaults it (an `undefined` argument is dropped).
+        provider:
+          provider === undefined ? undefined : parseInput(ProviderSchema, provider, 'provider'),
+      })
     },
     startVerification(input) {
       const body = parseInput(VerificationStartInputSchema, input)
-      return transport.server(
-        { method: 'POST', path: SERVER_ROUTES.claimVerificationStart, body, auth: 'required' },
-        VerificationSessionDtoSchema,
-      )
+      return transport.route(CALLS.claimStartVerification, { body })
     },
     pollVerification,
     verificationResult: pollVerification,
-    complete: () => transport.rpc(RPC.claimComplete, {}, ClaimCompleteDtoSchema),
+    complete: () => transport.call(CALLS.claimComplete, {}),
     createReview(input) {
       const parsed = parseInput(IdentityReviewCreateInputSchema, input)
-      return transport.rpc(
-        RPC.identityReviewCreate,
-        { kind: parsed.kind, details: parsed.details },
-        IdentityReviewDtoSchema,
-      )
+      return transport.call(CALLS.claimCreateReview, { kind: parsed.kind, details: parsed.details })
     },
   }
 }
@@ -274,7 +257,7 @@ export function createMediaNamespace(transport: Transport): MediaNamespace {
   return {
     async upload(body, input) {
       const parsed = parseInput(MediaUploadInputSchema, input)
-      const me = await transport.rpc(RPC.meGet, {}, MeDtoSchema)
+      const me = await transport.call(CALLS.meGet, {})
       if (me.humanId === null) {
         throw new EarthError('not_a_human', { details: { reason: 'media_upload_needs_human' } })
       }
@@ -292,7 +275,7 @@ export function createMediaNamespace(transport: Transport): MediaNamespace {
         })
       }
       const row = await transport.query(
-        `insert ${TABLES.mediaObjects}`,
+        `insert ${CALLS.mediaUpload.table}`,
         (table) =>
           table
             .insert({
@@ -307,7 +290,7 @@ export function createMediaNamespace(transport: Transport): MediaNamespace {
             })
             .select(MEDIA_OBJECT_COLUMNS)
             .single(),
-        TABLES.mediaObjects,
+        CALLS.mediaUpload.table,
         MediaObjectRowSchema,
       )
       const url =
@@ -352,27 +335,23 @@ export function createIdentityNamespace(
   return {
     update(input) {
       const parsed = parseInput(IdentityUpdateInputSchema, input)
-      return transport.rpc(
-        RPC.identityUpdate,
-        {
-          display_name: parsed.displayName ?? null,
-          bio: parsed.bio ?? null,
-          avatar_media_id: parsed.avatarMediaId ?? null,
-          profile_visibility: parsed.profileVisibility ?? null,
-          public_city_visibility: parsed.publicCityVisibility ?? null,
-          home_city_area_id: parsed.homeCityAreaId ?? null,
-        },
-        PublicIdentityDtoSchema,
-      )
+      return transport.call(CALLS.identityUpdate, {
+        display_name: parsed.displayName ?? null,
+        bio: parsed.bio ?? null,
+        avatar_media_id: parsed.avatarMediaId ?? null,
+        profile_visibility: parsed.profileVisibility ?? null,
+        public_city_visibility: parsed.publicCityVisibility ?? null,
+        home_city_area_id: parsed.homeCityAreaId ?? null,
+        handle: parsed.handle ?? null,
+      })
+    },
+    deleteAccount() {
+      return transport.route(CALLS.identityDeleteAccount, { body: {} })
     },
     async handleAvailable(handle) {
       const candidate = HandleLookupSchema.safeParse(handle)
       if (!candidate.success) return false
-      return transport.rpc(
-        RPC.handleAvailable,
-        { handle: candidate.data },
-        HandleAvailableDtoSchema,
-      )
+      return transport.call(CALLS.identityHandleAvailable, { handle: candidate.data })
     },
     uploadAvatar(input) {
       return media.upload(input.body, {

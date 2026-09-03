@@ -60,7 +60,9 @@ function tableFailure(what: string, error: { readonly message: string }): EarthE
   return new EarthError('internal', { message: `${what} failed`, cause: error, details: { what } })
 }
 
-export function createIdentityReviewCallbacks(client: SupabaseTableClientLike): ManualReviewCallbacks {
+export function createIdentityReviewCallbacks(
+  client: SupabaseTableClientLike,
+): ManualReviewCallbacks {
   return {
     async createReview(input: CreateReviewInput): Promise<CreateReviewOutput> {
       const row: IdentityReviewInsert = {

@@ -32,10 +32,22 @@ describe('createWebServerContext', () => {
     const { context, supabase } = createTestContext()
     // Review store + ServerDeps admin (service role), then the anon client.
     expect(supabase.creations.map((c) => c.kind)).toEqual(['admin', 'admin', 'anon'])
-    expect(supabase.creations[0]).toEqual({ url: TEST_SUPABASE_URL, key: TEST_SERVICE_KEY, kind: 'admin' })
-    expect(supabase.creations[2]).toEqual({ url: TEST_SUPABASE_URL, key: TEST_ANON_KEY, kind: 'anon' })
+    expect(supabase.creations[0]).toEqual({
+      url: TEST_SUPABASE_URL,
+      key: TEST_SERVICE_KEY,
+      kind: 'admin',
+    })
+    expect(supabase.creations[2]).toEqual({
+      url: TEST_SUPABASE_URL,
+      key: TEST_ANON_KEY,
+      kind: 'anon',
+    })
     context.deps.supabaseForUser('user.jwt')
-    expect(supabase.creations[3]).toEqual({ url: TEST_SUPABASE_URL, key: TEST_ANON_KEY, kind: 'user:user.jwt' })
+    expect(supabase.creations[3]).toEqual({
+      url: TEST_SUPABASE_URL,
+      key: TEST_ANON_KEY,
+      kind: 'user:user.jwt',
+    })
     expect(context.deps.livekit).toMatchObject(TEST_LIVEKIT)
     expect(context.deps.cronSecret).toBe(TEST_CRON_SECRET)
     expect(context.deps.now()).toBe(TEST_NOW)
@@ -88,7 +100,10 @@ describe('createWebServerContext', () => {
     context.logger.info('quiet')
     context.logger.error('server.request_failed', { code: 'internal', status: 500 })
     expect(logs.records.map((r) => r.msg)).toEqual(['quiet', 'server.request_failed'])
-    expect(logs.records[1]?.fields).toMatchObject({ service: 'earth-web', release: context.env.release })
+    expect(logs.records[1]?.fields).toMatchObject({
+      service: 'earth-web',
+      release: context.env.release,
+    })
     expect(sentry.messages).toHaveLength(1)
     expect(sentry.messages[0]).toMatchObject({
       message: 'server.request_failed',

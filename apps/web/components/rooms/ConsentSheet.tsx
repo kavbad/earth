@@ -23,9 +23,20 @@ export interface ConsentSheetProps {
  * camera, people on Earth may see that you're here." Buttons: Join on camera / Join audio only /
  * Just watch. No hidden audience inheritance.
  */
-export function ConsentSheet({ open, initiatorName, level, busy = false, onChoose, onClose }: ConsentSheetProps) {
+export function ConsentSheet({
+  open,
+  initiatorName,
+  level,
+  busy = false,
+  onChoose,
+  onClose,
+}: ConsentSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title={copy.consent(initiatorName ?? roomCopy.someone, level)}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={copy.consent(initiatorName ?? roomCopy.someone, level)}
+    >
       <div className="flex flex-col gap-2">
         {CONSENT_CHOICES.map((choice, index) => (
           <Button

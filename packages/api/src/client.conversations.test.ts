@@ -96,10 +96,22 @@ describe('conversations', () => {
     expect((await client.conversations.readReceipts(CONVERSATION))[0]?.lastReadMessageId).toBe(
       IDS.message,
     )
-    supabase.rpcData(RPC.conversationMarkRead, null)
-    await client.conversations.markRead({
-      conversationId: CONVERSATION,
-      lastReadMessageId: MESSAGE,
+    supabase.rpcData(RPC.conversationMarkRead, {
+      conversationId: IDS.conversation,
+      lastReadMessageId: IDS.message,
+      lastReadAt: fixtures.AT,
+      unreadCount: 0,
+    })
+    expect(
+      await client.conversations.markRead({
+        conversationId: CONVERSATION,
+        lastReadMessageId: MESSAGE,
+      }),
+    ).toEqual({
+      conversationId: IDS.conversation,
+      lastReadMessageId: IDS.message,
+      lastReadAt: fixtures.AT,
+      unreadCount: 0,
     })
     expect(supabase.lastRpc()).toEqual({
       name: 'conversation_mark_read',
@@ -246,22 +258,33 @@ describe('conversations.messages', () => {
     ).toBe('rate_limited')
   })
 
-  it('edit, delete and reactions.toggle map their rpcs', async () => {
+  it('edit, delete and reactions.toggle map their rpcs and return the message', async () => {
     const { client, supabase } = createTestClient()
-    supabase.rpcData(RPC.messageEdit, null)
-    await client.conversations.messages.edit({ messageId: MESSAGE, text: 'edited' })
+    supabase.rpcData(
+      RPC.messageEdit,
+      fixtures.messageDto({ text: 'edited', editedAt: fixtures.AT }),
+    )
+    expect(
+      (await client.conversations.messages.edit({ messageId: MESSAGE, text: 'edited' })).editedAt,
+    ).toBe(fixtures.AT)
     expect(supabase.lastRpc()).toEqual({
       name: 'message_edit',
       args: { message_id: IDS.message, text: 'edited' },
     })
-    supabase.rpcData(RPC.messageDelete, null)
-    await client.conversations.messages.delete(MESSAGE)
+    supabase.rpcData(RPC.messageDelete, fixtures.messageDto({ text: null, deletedAt: fixtures.AT }))
+    expect((await client.conversations.messages.delete(MESSAGE)).deletedAt).toBe(fixtures.AT)
     expect(supabase.lastRpc()).toEqual({
       name: 'message_delete',
       args: { message_id: IDS.message },
     })
-    supabase.rpcData(RPC.messageReactionToggle, null)
-    await client.conversations.messages.reactions.toggle({ messageId: MESSAGE, reaction: '❤️' })
+    supabase.rpcData(
+      RPC.messageReactionToggle,
+      fixtures.messageDto({ reactions: [{ reaction: '❤️', count: 1, reactedByMe: true }] }),
+    )
+    expect(
+      (await client.conversations.messages.reactions.toggle({ messageId: MESSAGE, reaction: '❤️' }))
+        .reactions,
+    ).toEqual([{ reaction: '❤️', count: 1, reactedByMe: true }])
     expect(supabase.lastRpc()).toEqual({
       name: 'message_reaction_toggle',
       args: { message_id: IDS.message, reaction: '❤️' },

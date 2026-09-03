@@ -13,7 +13,12 @@ import {
   mediaIdentityForHuman,
 } from '@earth/domain'
 import type { TrackReference } from '@livekit/components-core'
-import { RoomAudioRenderer, RoomContext, useSpeakingParticipants, useTracks } from '@livekit/components-react'
+import {
+  RoomAudioRenderer,
+  RoomContext,
+  useSpeakingParticipants,
+  useTracks,
+} from '@livekit/components-react'
 import { type Room, Track } from 'livekit-client'
 import { useState } from 'react'
 
@@ -82,7 +87,13 @@ const LAYOUT_CLASS: Record<StageLayout, string> = {
   adaptive: 'grid-cols-1',
 }
 
-function StageGrid({ tiles, className }: { tiles: readonly StageParticipant[]; className?: string | undefined }) {
+function StageGrid({
+  tiles,
+  className,
+}: {
+  tiles: readonly StageParticipant[]
+  className?: string | undefined
+}) {
   const layout = stageLayout(tiles.length)
   const [featured, setFeatured] = useState<string | null>(null)
   const next = layout === 'adaptive' ? featuredTileId(tiles, featured) : null
@@ -93,7 +104,9 @@ function StageGrid({ tiles, className }: { tiles: readonly StageParticipant[]; c
     const [lead, ...rest] = ordered
     return (
       <div className={cx('flex min-h-0 flex-1 flex-col gap-1', className)}>
-        {lead !== undefined ? <ParticipantTile participant={lead} featured className="min-h-0 flex-1" /> : null}
+        {lead !== undefined ? (
+          <ParticipantTile participant={lead} featured className="min-h-0 flex-1" />
+        ) : null}
         <div className="grid h-[28%] shrink-0 auto-cols-[minmax(33%,1fr)] grid-flow-col gap-1 overflow-x-auto">
           {rest.map((tile) => (
             <ParticipantTile key={tile.id} participant={tile} />
@@ -112,7 +125,9 @@ function StageGrid({ tiles, className }: { tiles: readonly StageParticipant[]; c
 }
 
 function ConnectedStage(props: RoomStageProps) {
-  const cameraTracks = useTracks([Track.Source.Camera, Track.Source.Microphone], { onlySubscribed: false })
+  const cameraTracks = useTracks([Track.Source.Camera, Track.Source.Microphone], {
+    onlySubscribed: false,
+  })
   const speakers = useSpeakingParticipants()
   const camera = new Map<string, TrackReference>()
   const micOn = new Set<string>()
@@ -140,7 +155,12 @@ function ConnectedStage(props: RoomStageProps) {
 
 export function RoomStage(props: RoomStageProps) {
   if (props.livekitRoom === null) {
-    const tiles = toStageParticipants(props.participants, props.selfIdentity, props.facing, EMPTY_LOOKUP)
+    const tiles = toStageParticipants(
+      props.participants,
+      props.selfIdentity,
+      props.facing,
+      EMPTY_LOOKUP,
+    )
     return <StageGrid tiles={tiles} className={props.className} />
   }
   return (

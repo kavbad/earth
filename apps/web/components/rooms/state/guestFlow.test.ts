@@ -13,7 +13,10 @@ import {
 const GUEST = '44444444-4444-4444-8444-444444444444' as GuestSessionId
 const ROOM = '55555555-5555-4555-8555-555555555555' as RoomId
 
-function run(events: Parameters<typeof guestFlowReducer>[1][], from = INITIAL_GUEST_FLOW): GuestFlowState {
+function run(
+  events: Parameters<typeof guestFlowReducer>[1][],
+  from = INITIAL_GUEST_FLOW,
+): GuestFlowState {
   return events.reduce(guestFlowReducer, from)
 }
 
@@ -29,7 +32,12 @@ describe('guestFlowReducer (SCREEN 17–19)', () => {
       roomId: ROOM,
       at: 1_000,
     })
-    expect(inRoom).toMatchObject({ step: 'in_room', guestSessionId: GUEST, roomId: ROOM, joinedAt: 1_000 })
+    expect(inRoom).toMatchObject({
+      step: 'in_room',
+      guestSessionId: GUEST,
+      roomId: ROOM,
+      joinedAt: 1_000,
+    })
     const post = guestFlowReducer(inRoom, { type: 'left', outcome: 'left' })
     expect(post).toMatchObject({ step: 'post_room', outcome: 'left' })
     expect(guestFlowReducer(post, { type: 'finish' }).step).toBe('done')
@@ -48,32 +56,53 @@ describe('guestFlowReducer (SCREEN 17–19)', () => {
   })
 
   it('returns to the name step after a recoverable failure and to the preview after a final one', () => {
-    const joining = run([{ type: 'start' }, { type: 'name_changed', name: 'Sam' }, { type: 'submit' }])
+    const joining = run([
+      { type: 'start' },
+      { type: 'name_changed', name: 'Sam' },
+      { type: 'submit' },
+    ])
     expect(guestFlowReducer(joining, { type: 'join_failed', error: 'join_failed' })).toMatchObject({
       step: 'name',
       error: 'join_failed',
     })
-    expect(guestFlowReducer(joining, { type: 'join_failed', error: 'guests_disabled' })).toMatchObject({
+    expect(
+      guestFlowReducer(joining, { type: 'join_failed', error: 'guests_disabled' }),
+    ).toMatchObject({
       step: 'preview',
       error: 'guests_disabled',
     })
-    expect(guestFlowReducer(joining, { type: 'join_failed', error: 'link_unusable' }).step).toBe('preview')
+    expect(guestFlowReducer(joining, { type: 'join_failed', error: 'link_unusable' }).step).toBe(
+      'preview',
+    )
   })
 
   it('records the room ending while joining or in the room, and ignores stray events', () => {
-    const joining = run([{ type: 'start' }, { type: 'name_changed', name: 'Sam' }, { type: 'submit' }])
-    expect(guestFlowReducer(joining, { type: 'left', outcome: 'room_ended' }).step).toBe('post_room')
+    const joining = run([
+      { type: 'start' },
+      { type: 'name_changed', name: 'Sam' },
+      { type: 'submit' },
+    ])
+    expect(guestFlowReducer(joining, { type: 'left', outcome: 'room_ended' }).step).toBe(
+      'post_room',
+    )
     expect(guestFlowReducer(INITIAL_GUEST_FLOW, { type: 'submit' })).toBe(INITIAL_GUEST_FLOW)
     expect(guestFlowReducer(INITIAL_GUEST_FLOW, { type: 'finish' })).toBe(INITIAL_GUEST_FLOW)
     expect(
-      guestFlowReducer(INITIAL_GUEST_FLOW, { type: 'joined', guestSessionId: GUEST, roomId: ROOM, at: 1 }),
+      guestFlowReducer(INITIAL_GUEST_FLOW, {
+        type: 'joined',
+        guestSessionId: GUEST,
+        roomId: ROOM,
+        at: 1,
+      }),
     ).toBe(INITIAL_GUEST_FLOW)
   })
 
   it('joins with camera only when the preview was on', () => {
     expect(guestJoinMediaState({ wantsCamera: false })).toBe('audio')
     expect(guestJoinMediaState({ wantsCamera: true })).toBe('camera')
-    expect(guestFlowReducer(INITIAL_GUEST_FLOW, { type: 'camera_toggled', on: true }).wantsCamera).toBe(true)
+    expect(
+      guestFlowReducer(INITIAL_GUEST_FLOW, { type: 'camera_toggled', on: true }).wantsCamera,
+    ).toBe(true)
   })
 
   it('measures time in the room', () => {
@@ -87,7 +116,9 @@ describe('normalizeGuestName', () => {
   it('trims and collapses whitespace, rejects blank and overlong names', () => {
     expect(normalizeGuestName('  Sam   Lee ')).toBe('Sam Lee')
     expect(normalizeGuestName('   ')).toBeNull()
-    expect(normalizeGuestName('x'.repeat(GUEST_DISPLAY_NAME_MAX))).toHaveLength(GUEST_DISPLAY_NAME_MAX)
+    expect(normalizeGuestName('x'.repeat(GUEST_DISPLAY_NAME_MAX))).toHaveLength(
+      GUEST_DISPLAY_NAME_MAX,
+    )
     expect(normalizeGuestName('x'.repeat(GUEST_DISPLAY_NAME_MAX + 1))).toBeNull()
   })
 })

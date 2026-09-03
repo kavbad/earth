@@ -26,7 +26,10 @@ export function CameraPreview({ on, onUnavailable }: CameraPreviewProps) {
     let cancelled = false
     const open = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false,
+        })
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop())
           return

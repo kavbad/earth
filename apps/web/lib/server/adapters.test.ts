@@ -52,8 +52,15 @@ describe('expoClientFrom', () => {
       { r1: { status: 'ok', details: { extra: true } }, r2: { status: 'error', message: 'late' } },
     )
     const client = expoClientFrom(sdk)
-    const messages = [{ to: 'ExponentPushToken[a]' }, { to: 'ExponentPushToken[b]' }, { to: 'ExponentPushToken[c]' }]
-    expect(client.chunkPushNotifications(messages)).toEqual([messages.slice(0, 2), messages.slice(2)])
+    const messages = [
+      { to: 'ExponentPushToken[a]' },
+      { to: 'ExponentPushToken[b]' },
+      { to: 'ExponentPushToken[c]' },
+    ]
+    expect(client.chunkPushNotifications(messages)).toEqual([
+      messages.slice(0, 2),
+      messages.slice(2),
+    ])
     await expect(client.sendPushNotificationsAsync(messages)).resolves.toEqual([
       { status: 'ok', id: 'r1' },
       { status: 'error', message: 'gone', details: { error: 'DeviceNotRegistered' } },
@@ -70,7 +77,11 @@ describe('expoClientFrom', () => {
 
 describe('withoutUndefined', () => {
   it('drops undefined members and keeps everything else', () => {
-    expect(withoutUndefined({ a: 1, b: undefined, c: null, d: 'x' })).toEqual({ a: 1, c: null, d: 'x' })
+    expect(withoutUndefined({ a: 1, b: undefined, c: null, d: 'x' })).toEqual({
+      a: 1,
+      c: null,
+      d: 'x',
+    })
   })
 })
 
@@ -102,9 +113,19 @@ describe('sentrySdkFrom', () => {
     const { sentry, calls } = fakeNamespace()
     const sdk = sentrySdkFrom(sentry)
     const error = new Error('boom')
-    sdk.init({ dsn: 'https://k@s.example/1', environment: 'preview', release: 'r', sendDefaultPii: false })
+    sdk.init({
+      dsn: 'https://k@s.example/1',
+      environment: 'preview',
+      release: 'r',
+      sendDefaultPii: false,
+    })
     sdk.captureException(error)
-    sdk.captureException(error, { level: 'error', tags: undefined, extra: { a: 1 }, fingerprint: undefined })
+    sdk.captureException(error, {
+      level: 'error',
+      tags: undefined,
+      extra: { a: 1 },
+      fingerprint: undefined,
+    })
     sdk.captureMessage('m')
     sdk.captureMessage('m', 'warning')
     sdk.captureMessage('m', { level: 'info', extra: undefined })
@@ -114,7 +135,17 @@ describe('sentrySdkFrom', () => {
     sdk.setTag?.('k', 'v')
     await expect(sdk.flush?.(500)).resolves.toBe(true)
     expect(calls).toEqual([
-      { method: 'init', args: [{ dsn: 'https://k@s.example/1', environment: 'preview', release: 'r', sendDefaultPii: false }] },
+      {
+        method: 'init',
+        args: [
+          {
+            dsn: 'https://k@s.example/1',
+            environment: 'preview',
+            release: 'r',
+            sendDefaultPii: false,
+          },
+        ],
+      },
       { method: 'captureException', args: [error] },
       { method: 'captureException', args: [error, { level: 'error', extra: { a: 1 } }] },
       { method: 'captureMessage', args: ['m'] },

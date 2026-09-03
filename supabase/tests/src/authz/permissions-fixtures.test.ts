@@ -24,7 +24,15 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createTestDb, unwrapRpcResult, type RoleSpec, type TestDb } from '../harness'
-import { addMember, befriend, block, createGroup, createHuman, relate, type Human } from '../admission/fixtures'
+import {
+  addMember,
+  befriend,
+  block,
+  createGroup,
+  createHuman,
+  relate,
+  type Human,
+} from '../admission/fixtures'
 import { createPost } from '../posts/fixtures'
 import { BASE_AREA_SLUGS, areaBySlug } from '../geo/fixtures'
 import { setContext } from '../rooms/fixtures'
@@ -71,17 +79,25 @@ describe('permission-fixture parity (DB_API §11)', () => {
   }
 
   /** Runs an RPC inside a rolled-back transaction; a P0001 becomes `{ ok: false, code }`. */
-  async function probe(as: RoleSpec, name: string, args: Record<string, unknown>): Promise<ProbeResult> {
+  async function probe(
+    as: RoleSpec,
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<ProbeResult> {
     return db.asRole(
       as,
       async (client) => {
         const keys = Object.keys(args)
         const placeholders = keys.map((k, i) => `"${k}" => $${i + 1}`).join(', ')
         try {
-          const r = await client.query(`select * from public."${name}"(${placeholders})`, keys.map((k) => args[k]))
+          const r = await client.query(
+            `select * from public."${name}"(${placeholders})`,
+            keys.map((k) => args[k]),
+          )
           return { ok: true, result: unwrapRpcResult(r) }
         } catch (error) {
-          if (error instanceof pg.DatabaseError && error.code === 'P0001') return { ok: false, code: error.message }
+          if (error instanceof pg.DatabaseError && error.code === 'P0001')
+            return { ok: false, code: error.message }
           throw error
         }
       },
@@ -90,7 +106,12 @@ describe('permission-fixture parity (DB_API §11)', () => {
   }
 
   /** A `*_get` view probe: succeeds → true; raises the given not-visible code → false. */
-  async function viewSucceeds(as: RoleSpec, name: string, args: Record<string, unknown>, notVisible: string): Promise<boolean> {
+  async function viewSucceeds(
+    as: RoleSpec,
+    name: string,
+    args: Record<string, unknown>,
+    notVisible: string,
+  ): Promise<boolean> {
     const r = await probe(as, name, args)
     if (r.ok) return true
     // Any raised error means "not visible" for the view probe; the not-visible code is the common
@@ -123,7 +144,10 @@ describe('permission-fixture parity (DB_API §11)', () => {
         status,
       })
       if (humanStatus !== 'active' && humanStatus !== 'pending') {
-        await db.sql.query('update public.humans set status = $2::public.human_status where id = $1', [target.humanId, humanStatus])
+        await db.sql.query(
+          'update public.humans set status = $2::public.human_status where id = $1',
+          [target.humanId, humanStatus],
+        )
       }
       return target
     }
@@ -140,7 +164,8 @@ describe('permission-fixture parity (DB_API §11)', () => {
       // Active human viewer wired to the target.
       const viewer = await createHuman(db, { handle: nextHandle('pfview') })
       if (v.relationToAuthor === 'friend') await befriend(db, viewer, target)
-      else if (v.relationToAuthor === 'familiar') await relate(db, viewer, target, 'familiar_private')
+      else if (v.relationToAuthor === 'familiar')
+        await relate(db, viewer, target, 'familiar_private')
       else if (v.relationToAuthor === 'shared_group') {
         const group = await createGroup(db, viewer, 'pf')
         await addMember(db, group, target)
@@ -179,14 +204,19 @@ describe('permission-fixture parity (DB_API §11)', () => {
     })
 
     /** Builds a conversation of the given type and returns its id plus the viewer role. */
-    async function materialize(c: ResolvedFixtureCase): Promise<{ conversationId: string; as: RoleSpec }> {
+    async function materialize(
+      c: ResolvedFixtureCase,
+    ): Promise<{ conversationId: string; as: RoleSpec }> {
       const v = c.viewer
       const type = (c.object as { conversationType: 'direct' | 'group' }).conversationType
       const owner = await createHuman(db, { handle: nextHandle('cvowner') })
       if (v.kind === 'visitor' || v.kind === 'guest' || v.kind === 'claiming') {
         // Non-Humans are never members; a conversation between other Humans is enough to probe.
         const conv = await conversationOf(type, owner)
-        return { conversationId: conv, as: v.kind === 'visitor' ? visitor : v.kind === 'guest' ? guest : claiming.as }
+        return {
+          conversationId: conv,
+          as: v.kind === 'visitor' ? visitor : v.kind === 'guest' ? guest : claiming.as,
+        }
       }
       const viewer = await createHuman(db, { handle: nextHandle('cvview') })
       if (v.relationToAuthor === 'friend') await befriend(db, viewer, owner)
@@ -195,7 +225,11 @@ describe('permission-fixture parity (DB_API §11)', () => {
       if (v.isConversationMember === true) {
         if (type === 'direct') {
           conversationId = (
-            await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: owner.humanId }, viewer.as)
+            await db.rpc<{ id: string }>(
+              'conversation_direct_get_or_create',
+              { other_human_id: owner.humanId },
+              viewer.as,
+            )
           ).id
         } else {
           const group = await createGroup(db, owner, 'cv')
@@ -213,7 +247,13 @@ describe('permission-fixture parity (DB_API §11)', () => {
     async function conversationOf(type: 'direct' | 'group', owner: Human): Promise<string> {
       if (type === 'direct') {
         const stranger = await createHuman(db, { handle: nextHandle('cvstr') })
-        return (await db.rpc<{ id: string }>('conversation_direct_get_or_create', { other_human_id: stranger.humanId }, owner.as)).id
+        return (
+          await db.rpc<{ id: string }>(
+            'conversation_direct_get_or_create',
+            { other_human_id: stranger.humanId },
+            owner.as,
+          )
+        ).id
       }
       const group = await createGroup(db, owner, 'cv')
       return group.conversationId
@@ -224,7 +264,12 @@ describe('permission-fixture parity (DB_API §11)', () => {
       it(c.name, async () => {
         await applyFlags(c)
         const { conversationId, as } = await materialize(c)
-        const read = await viewSucceeds(as, 'conversation_get', { conversation_id: conversationId }, 'conversation_not_found')
+        const read = await viewSucceeds(
+          as,
+          'conversation_get',
+          { conversation_id: conversationId },
+          'conversation_not_found',
+        )
         expect(read, `${c.name} (read)`).toBe(c.expect)
         if (c.send !== undefined) {
           const r = await probe(as, 'message_send', {
@@ -262,12 +307,21 @@ describe('permission-fixture parity (DB_API §11)', () => {
     for (const c of file.cases) {
       it(c.name, async () => {
         await applyFlags(c)
-        const obj = c.object as { profileVisibility: string; isFriendOfViewer: boolean; humanStatus: string }
+        const obj = c.object as {
+          profileVisibility: string
+          isFriendOfViewer: boolean
+          humanStatus: string
+        }
         const owner = await createHuman(db, { handle: nextHandle('giowner') })
         const group = await createGroup(db, owner, 'gi')
 
         // The sample member under test.
-        const memberStatus = obj.humanStatus === 'active' ? 'active' : obj.humanStatus === 'pending' ? 'pending' : 'active'
+        const memberStatus =
+          obj.humanStatus === 'active'
+            ? 'active'
+            : obj.humanStatus === 'pending'
+              ? 'pending'
+              : 'active'
         const member = await createHuman(db, {
           handle: nextHandle('gimem'),
           displayName: `Member-${handleCounter}`,
@@ -275,7 +329,10 @@ describe('permission-fixture parity (DB_API §11)', () => {
           status: memberStatus,
         })
         if (obj.humanStatus !== 'active' && obj.humanStatus !== 'pending') {
-          await db.sql.query('update public.humans set status = $2::public.human_status where id = $1', [member.humanId, obj.humanStatus])
+          await db.sql.query(
+            'update public.humans set status = $2::public.human_status where id = $1',
+            [member.humanId, obj.humanStatus],
+          )
         }
         await addMember(db, group, member)
 
@@ -292,15 +349,24 @@ describe('permission-fixture parity (DB_API §11)', () => {
           as = claiming.as
         } else {
           const viewer = await createHuman(db, { handle: nextHandle('giview') })
-          if (obj.isFriendOfViewer || v.relationToAuthor === 'friend') await befriend(db, viewer, member)
+          if (obj.isFriendOfViewer || v.relationToAuthor === 'friend')
+            await befriend(db, viewer, member)
           if (v.blockedEitherWay) await block(db, viewer, member)
           as = viewer.as
         }
 
         const token = (
-          await db.rpc<{ token: string }>('group_invite_create', { group_id: group.groupId, expires_in_seconds: null, max_uses: null }, owner.as)
+          await db.rpc<{ token: string }>(
+            'group_invite_create',
+            { group_id: group.groupId, expires_in_seconds: null, max_uses: null },
+            owner.as,
+          )
         ).token
-        const preview = await db.rpc<{ sampleMembers: Array<{ displayName: string }> }>('group_invite_preview', { token }, as)
+        const preview = await db.rpc<{ sampleMembers: Array<{ displayName: string }> }>(
+          'group_invite_preview',
+          { token },
+          as,
+        )
         const sampled = preview.sampleMembers.some((s) => s.displayName === member.displayName)
         expect(sampled, c.name).toBe(c.expect)
       })
@@ -347,20 +413,27 @@ describe('permission-fixture parity (DB_API §11)', () => {
       if (cached !== undefined) return cached
       const viewer = await createHuman(db, { handle: nextHandle('poview') })
       if (v.relationToAuthor === 'friend') await befriend(db, viewer, author)
-      else if (v.relationToAuthor === 'familiar') await relate(db, viewer, author, 'familiar_private')
+      else if (v.relationToAuthor === 'familiar')
+        await relate(db, viewer, author, 'familiar_private')
       else if (v.relationToAuthor === 'shared_group') {
         const group = await createGroup(db, author, 'po')
         await addMember(db, group, viewer)
       }
       if (v.blockedEitherWay) await block(db, viewer, author)
-      if (v.sameNeighborhood === true) await setContext(db, viewer, { currentAreaId: neighborhoodId, currentCityId: cityId })
+      if (v.sameNeighborhood === true)
+        await setContext(db, viewer, { currentAreaId: neighborhoodId, currentCityId: cityId })
       else if (v.sameCity === true) await setContext(db, viewer, { currentCityId: cityId })
       viewerCache.set(key, viewer.as)
       return viewer.as
     }
 
     async function postFor(c: ResolvedFixtureCase): Promise<string> {
-      const o = c.object as { audience: string; status: string; isReply: boolean; rootAudience?: string }
+      const o = c.object as {
+        audience: string
+        status: string
+        isReply: boolean
+        rootAudience?: string
+      }
       const key = `${o.audience}|${o.status}|${o.isReply}|${o.rootAudience ?? ''}`
       const cached = postCache.get(key)
       if (cached !== undefined) return cached
@@ -370,8 +443,13 @@ describe('permission-fixture parity (DB_API §11)', () => {
         audience === 'neighborhood' ? neighborhoodId : audience === 'city' ? cityId : null
       let postId: string
       if (o.isReply) {
-        const rootAudience = (o.rootAudience ?? o.audience) as 'friends' | 'neighborhood' | 'city' | 'world'
-        const root = await createPost(db, author, { text: 'root', audience: rootAudience, areaId: areaOf(rootAudience) })
+        const rootAudience = (o.rootAudience ?? o.audience) as
+          'friends' | 'neighborhood' | 'city' | 'world'
+        const root = await createPost(db, author, {
+          text: 'root',
+          audience: rootAudience,
+          areaId: areaOf(rootAudience),
+        })
         const reply = await createPost(db, author, {
           text: 'reply',
           audience: o.audience as 'friends' | 'neighborhood' | 'city' | 'world',
@@ -507,7 +585,8 @@ describe('permission-fixture parity (DB_API §11)', () => {
       if (v.isInvitedParticipant === true) return 'invited'
       if (v.hasLink === true) return v.blockedEitherWay ? 'blockedLink' : 'link'
       if (v.isGroupMember === true) return v.blockedEitherWay ? 'blockedGroupMember' : 'groupMember'
-      if (v.isFriendOfConsentingParticipant === true) return v.blockedEitherWay ? 'blockedFriend' : 'friend'
+      if (v.isFriendOfConsentingParticipant === true)
+        return v.blockedEitherWay ? 'blockedFriend' : 'friend'
       if (v.isFriendOfFriendOfConsentingParticipant === true) return 'fof'
       if (v.sameNeighborhood === true) return 'sameNbh'
       if (v.sameCity === true) return 'sameCity'
@@ -557,7 +636,12 @@ describe('permission-fixture parity (DB_API §11)', () => {
 
     /** Builds (or reuses) a room for the object signature, grouped when the viewer is a group member. */
     async function roomFor(c: ResolvedFixtureCase): Promise<{ roomId: string; token: string }> {
-      const o = c.object as { visibility: string; joinPolicy?: string; status?: string; guestsDisabled: boolean }
+      const o = c.object as {
+        visibility: string
+        joinPolicy?: string
+        status?: string
+        guestsDisabled: boolean
+      }
       const profile = profileOf(c)
       const grouped = profile === 'groupMember' || profile === 'blockedGroupMember'
       const status = o.status ?? 'active'
@@ -585,8 +669,10 @@ describe('permission-fixture parity (DB_API §11)', () => {
         contextType = 'group'
         contextId = gid
       }
-      const areaId = o.visibility === 'neighborhood' ? neighborhoodId : o.visibility === 'city' ? cityId : null
-      const areaPrecision = o.visibility === 'neighborhood' ? 'neighborhood' : o.visibility === 'city' ? 'city' : 'none'
+      const areaId =
+        o.visibility === 'neighborhood' ? neighborhoodId : o.visibility === 'city' ? cityId : null
+      const areaPrecision =
+        o.visibility === 'neighborhood' ? 'neighborhood' : o.visibility === 'city' ? 'city' : 'none'
       const endedAt = status === 'ended' ? 'now()' : 'null'
       const roomId = (
         await db.sql.query<{ id: string }>(
@@ -597,7 +683,17 @@ describe('permission-fixture parity (DB_API §11)', () => {
                    $6::public.room_status, $7::public.area_precision, $8, $9, now(), ${endedAt},
                    ${status === 'ended' ? `'ended'` : 'null'})
            returning id`,
-          [contextType, contextId, publisher.humanId, o.visibility, joinPolicy, status, areaPrecision, areaId, o.guestsDisabled],
+          [
+            contextType,
+            contextId,
+            publisher.humanId,
+            o.visibility,
+            joinPolicy,
+            status,
+            areaPrecision,
+            areaId,
+            o.guestsDisabled,
+          ],
         )
       ).rows[0]!.id
 
@@ -668,9 +764,17 @@ describe('permission-fixture parity (DB_API §11)', () => {
               media_state: media,
             })
           } else if (profile === 'link' || profile === 'blockedLink') {
-            r = await probe(as, 'room_invite_join', { token, media_state: media, consent_level: consent })
+            r = await probe(as, 'room_invite_join', {
+              token,
+              media_state: media,
+              consent_level: consent,
+            })
           } else {
-            r = await probe(as, 'room_join', { room_id: roomId, media_state: media, consent_level: consent })
+            r = await probe(as, 'room_join', {
+              room_id: roomId,
+              media_state: media,
+              consent_level: consent,
+            })
           }
           expect(r.ok, `${c.name} (join ok)`).toBe(c.join.expect)
           if (!r.ok) {
@@ -685,8 +789,14 @@ describe('permission-fixture parity (DB_API §11)', () => {
               c.join.reason === 'room_not_found' &&
               r.code === 'room_ended'
             if (!endedLinkDivergence) expect(r.code, `${c.name} (join reason)`).toBe(c.join.reason)
-          } else if (c.join.requiresApproval === true && (r.result as { myParticipant?: { status?: string } })?.myParticipant) {
-            expect((r.result as { myParticipant: { status: string } }).myParticipant.status, `${c.name} (waiting)`).toBe('waiting')
+          } else if (
+            c.join.requiresApproval === true &&
+            (r.result as { myParticipant?: { status?: string } })?.myParticipant
+          ) {
+            expect(
+              (r.result as { myParticipant: { status: string } }).myParticipant.status,
+              `${c.name} (waiting)`,
+            ).toBe('waiting')
           }
         }
       })

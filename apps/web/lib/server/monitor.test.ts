@@ -98,7 +98,12 @@ describe('createMonitoringSink', () => {
           extra: { [LOG_CODE_FIELD]: 'internal', status: 500 },
         },
       },
-      { method: 'captureMessage', message: 'plain', level: 'error', context: { extra: { status: 500 } } },
+      {
+        method: 'captureMessage',
+        message: 'plain',
+        level: 'error',
+        context: { extra: { status: 500 } },
+      },
     ])
   })
 })

@@ -47,7 +47,9 @@ function expectRowShape(row: UnsentRow): void {
   }
   if (row.presence !== null) {
     expect(Number.isNaN(Date.parse(row.presence.lastActiveAt))).toBe(false)
-    expect(row.presence.activeConversationId === null || UUID.test(row.presence.activeConversationId)).toBe(true)
+    expect(
+      row.presence.activeConversationId === null || UUID.test(row.presence.activeConversationId),
+    ).toBe(true)
     expect(row.presence.activeRoomId === null || UUID.test(row.presence.activeRoomId)).toBe(true)
   }
 }
@@ -97,8 +99,18 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     const toBob = await sendMessage(db, alice, convBob, 'hey bob')
     const toCarol = await sendMessage(db, alice, convCarol, 'hey carol')
     const toDave = await sendMessage(db, alice, convDave, 'hey dave')
-    const alreadyPushed = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, pushSentAt: new Date() })
-    await setPresence(db, carol, { lastActiveAt: secondsFromNow(-5), activeConversationId: null, activeRoomId: null, platform: 'web' })
+    const alreadyPushed = await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      pushSentAt: new Date(),
+    })
+    await setPresence(db, carol, {
+      lastActiveAt: secondsFromNow(-5),
+      activeConversationId: null,
+      activeRoomId: null,
+      platform: 'web',
+    })
 
     const rows = await unsent(db)
     expect(rows.map((r) => r.objectId)).toEqual([toBob, toCarol, toDave])
@@ -115,19 +127,29 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
       objectId: toBob,
       presence: null,
     })
-    expect(bobRow?.payload).toEqual({ senderName: 'Alice', preview: 'hey bob', conversationId: convBob })
+    expect(bobRow?.payload).toEqual({
+      senderName: 'Alice',
+      preview: 'hey bob',
+      conversationId: convBob,
+    })
     expect(bobRow?.pushTokens).toEqual([
       { token: 'ExponentPushToken[bob-ios]', platform: 'ios' },
       { token: 'ExponentPushToken[bob-android]', platform: 'android' },
     ])
-    expect(rows[1]?.pushTokens).toEqual([{ token: 'ExponentPushToken[carol-web]', platform: 'web' }])
+    expect(rows[1]?.pushTokens).toEqual([
+      { token: 'ExponentPushToken[carol-web]', platform: 'web' },
+    ])
     expect(rows[1]?.presence).toEqual({
       lastActiveAt: expect.any(String),
       activeConversationId: null,
       activeRoomId: null,
     })
     // No device: still returned (the dispatcher marks it handled); no presence row: null.
-    expect(rows[2]).toMatchObject({ recipientHumanId: dave.humanId, pushTokens: [], presence: null })
+    expect(rows[2]).toMatchObject({
+      recipientHumanId: dave.humanId,
+      pushTokens: [],
+      presence: null,
+    })
     // Listing does not mark anything.
     for (const row of rows) expect(await pushSentAt(db, row.id)).toBeNull()
   })
@@ -139,10 +161,21 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     const toDave = await sendMessage(db, alice, convDave, 'dave went idle')
     const toErin = await sendMessage(db, alice, convErin, 'erin has no presence')
     // A non-message notification for Bob is unaffected by what he is looking at.
-    const bobFollow = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, payload: { name: 'Alice' } })
+    const bobFollow = await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      payload: { name: 'Alice' },
+    })
     await setPresence(db, bob, { lastActiveAt: secondsFromNow(-5), activeConversationId: convBob })
-    await setPresence(db, carol, { lastActiveAt: secondsFromNow(-5), activeConversationId: convBob })
-    await setPresence(db, dave, { lastActiveAt: secondsFromNow(-45), activeConversationId: convDave })
+    await setPresence(db, carol, {
+      lastActiveAt: secondsFromNow(-5),
+      activeConversationId: convBob,
+    })
+    await setPresence(db, dave, {
+      lastActiveAt: secondsFromNow(-45),
+      activeConversationId: convDave,
+    })
 
     const rows = await unsent(db)
     const byObject = new Map(rows.map((r) => [r.objectId, r]))
@@ -154,7 +187,11 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     expect(byObject.get(toDave)?.presence).toMatchObject({ activeConversationId: convDave })
 
     // The suppressed row is handled: marked pushed, and never returned later, even once Bob leaves.
-    const suppressed = await scalar<string>(db, 'id from public.notifications where object_id = $1', [toBob])
+    const suppressed = await scalar<string>(
+      db,
+      'id from public.notifications where object_id = $1',
+      [toBob],
+    )
     expect(await pushSentAt(db, suppressed)).not.toBeNull()
     await setPresence(db, bob, { lastActiveAt: secondsFromNow(-120), activeConversationId: null })
     expect((await unsent(db)).map((r) => r.objectId)).not.toContain(toBob)
@@ -169,7 +206,12 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     await setPresence(db, bob, { lastActiveAt: secondsFromNow(-1), activeConversationId: convBob })
     const again = await sendMessage(db, alice, convBob, 'bob is back')
     expect((await unsent(db)).map((r) => r.objectId)).not.toContain(again)
-    expect(await pushSentAt(db, await scalar<string>(db, 'id from public.notifications where object_id = $1', [again]))).not.toBeNull()
+    expect(
+      await pushSentAt(
+        db,
+        await scalar<string>(db, 'id from public.notifications where object_id = $1', [again]),
+      ),
+    ).not.toBeNull()
   })
 
   it('a conversation object is matched by object id, and Live/social rows are never suppressed', async () => {
@@ -197,7 +239,11 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
       objectId: '22222222-2222-4222-8222-222222222222',
       payload: { senderName: 'Alice', preview: 'x', conversationId: 'not-a-uuid' },
     })
-    await setPresence(db, bob, { lastActiveAt: secondsFromNow(-2), activeConversationId: convBob, activeRoomId: '11111111-1111-4111-8111-111111111111' })
+    await setPresence(db, bob, {
+      lastActiveAt: secondsFromNow(-2),
+      activeConversationId: convBob,
+      activeRoomId: '11111111-1111-4111-8111-111111111111',
+    })
     const ids = (await unsent(db)).map((r) => r.id)
     expect(ids).not.toContain(conversationRow)
     expect(ids).toContain(live)
@@ -208,7 +254,14 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     const base = Date.parse('2026-09-01T10:00:00Z')
     const ids: string[] = []
     for (let i = 0; i < 5; i += 1) {
-      ids.push(await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, createdAt: new Date(base + i * 1000) }))
+      ids.push(
+        await insertNotification(db, {
+          recipient: bob,
+          type: 'follow',
+          actor: alice,
+          createdAt: new Date(base + i * 1000),
+        }),
+      )
     }
     expect((await unsent(db, 2)).map((r) => r.id)).toEqual(ids.slice(0, 2))
     expect((await unsent(db, 0)).map((r) => r.id)).toEqual(ids.slice(0, 1))
@@ -233,7 +286,9 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     const a = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice })
     const b = await insertNotification(db, { recipient: carol, type: 'follow', actor: alice })
     const c = await insertNotification(db, { recipient: dave, type: 'follow', actor: alice })
-    expect(await db.rpc('notifications_mark_pushed', { ids: [a, b, a] }, 'service')).toEqual({ markedCount: 2 })
+    expect(await db.rpc('notifications_mark_pushed', { ids: [a, b, a] }, 'service')).toEqual({
+      markedCount: 2,
+    })
     const firstA = await pushSentAt(db, a)
     const firstB = await pushSentAt(db, b)
     expect(firstA).not.toBeNull()
@@ -252,15 +307,36 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     expect(await pushSentAt(db, a)).toBe(firstA)
     expect(await pushSentAt(db, b)).toBe(firstB)
     expect(await pushSentAt(db, c)).not.toBeNull()
-    expect(await db.rpc('notifications_mark_pushed', { ids: [] }, 'service')).toEqual({ markedCount: 0 })
-    expect(await db.rpc('notifications_mark_pushed', { ids: null }, 'service')).toEqual({ markedCount: 0 })
+    expect(await db.rpc('notifications_mark_pushed', { ids: [] }, 'service')).toEqual({
+      markedCount: 0,
+    })
+    expect(await db.rpc('notifications_mark_pushed', { ids: null }, 'service')).toEqual({
+      markedCount: 0,
+    })
     expect(await unsent(db)).toEqual([])
   })
 
   it('notifications_prune removes rows and cooldowns older than the retention window', async () => {
-    const old = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, createdAt: secondsFromNow(-91 * 86_400), readAt: new Date(), pushSentAt: new Date() })
-    const unreadOld = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, createdAt: secondsFromNow(-100 * 86_400) })
-    const recent = await insertNotification(db, { recipient: bob, type: 'follow', actor: alice, createdAt: secondsFromNow(-89 * 86_400) })
+    const old = await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      createdAt: secondsFromNow(-91 * 86_400),
+      readAt: new Date(),
+      pushSentAt: new Date(),
+    })
+    const unreadOld = await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      createdAt: secondsFromNow(-100 * 86_400),
+    })
+    const recent = await insertNotification(db, {
+      recipient: bob,
+      type: 'follow',
+      actor: alice,
+      createdAt: secondsFromNow(-89 * 86_400),
+    })
     const room = '44444444-4444-4444-8444-444444444444'
     await db.sql.query(
       `insert into public.notification_cooldowns (recipient_human_id, room_id, last_sent_at)
@@ -269,14 +345,27 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
     )
     await db.expectError(db.rpc('notifications_prune', { days: 0 }, 'service'), 'invalid_input')
     await db.expectError(db.rpc('notifications_prune', { days: null }, 'service'), 'invalid_input')
-    expect(await db.rpc('notifications_prune', { days: 90 }, 'service')).toEqual({ deleted: 2, cooldownsDeleted: 1 })
-    expect(await count(db, 'public.notifications', 'id = any($1::uuid[])', [[old, unreadOld]])).toBe(0)
+    expect(await db.rpc('notifications_prune', { days: 90 }, 'service')).toEqual({
+      deleted: 2,
+      cooldownsDeleted: 1,
+    })
+    expect(
+      await count(db, 'public.notifications', 'id = any($1::uuid[])', [[old, unreadOld]]),
+    ).toBe(0)
     expect(await count(db, 'public.notifications', 'id = $1', [recent])).toBe(1)
     expect(await count(db, 'public.notification_cooldowns', 'room_id = $1', [room])).toBe(1)
-    expect(await count(db, 'public.notification_cooldowns', 'recipient_human_id = $1', [carol.humanId])).toBe(1)
+    expect(
+      await count(db, 'public.notification_cooldowns', 'recipient_human_id = $1', [carol.humanId]),
+    ).toBe(1)
     // The default window is 90 days; pruning again is a no-op.
-    expect(await db.rpc('notifications_prune', {}, 'service')).toEqual({ deleted: 0, cooldownsDeleted: 0 })
-    expect(await db.rpc('notifications_prune', { days: 1 }, 'service')).toEqual({ deleted: 1, cooldownsDeleted: 0 })
+    expect(await db.rpc('notifications_prune', {}, 'service')).toEqual({
+      deleted: 0,
+      cooldownsDeleted: 0,
+    })
+    expect(await db.rpc('notifications_prune', { days: 1 }, 'service')).toEqual({
+      deleted: 1,
+      cooldownsDeleted: 0,
+    })
     await db.sql.query('delete from public.notification_cooldowns')
   })
 
@@ -295,18 +384,28 @@ describe('push queue (ARCHITECTURE §11; DB_API §6)', () => {
       }
       for (const role of ['anon', 'authenticated', 'public']) {
         expect(
-          await scalar(db, 'has_function_privilege($1, $2, $3)', [role, `public.${name}(${name === 'notifications_mark_pushed' ? 'uuid[]' : 'integer'})`, 'EXECUTE']),
+          await scalar(db, 'has_function_privilege($1, $2, $3)', [
+            role,
+            `public.${name}(${name === 'notifications_mark_pushed' ? 'uuid[]' : 'integer'})`,
+            'EXECUTE',
+          ]),
           `${role} ${name}`,
         ).toBe(false)
       }
       expect(
-        await scalar(db, 'has_function_privilege($1, $2, $3)', ['service_role', `public.${name}(${name === 'notifications_mark_pushed' ? 'uuid[]' : 'integer'})`, 'EXECUTE']),
+        await scalar(db, 'has_function_privilege($1, $2, $3)', [
+          'service_role',
+          `public.${name}(${name === 'notifications_mark_pushed' ? 'uuid[]' : 'integer'})`,
+          'EXECUTE',
+        ]),
       ).toBe(true)
     }
     expect(await pushSentAt(db, id)).toBeNull()
     expect(await count(db, 'public.notifications')).toBe(1)
     // A superuser session without a JWT (migrations, cron over a direct connection) is the service.
-    const { rows } = await db.sql.query<{ r: unknown[] }>('select public.notifications_unsent(10) as r')
+    const { rows } = await db.sql.query<{ r: unknown[] }>(
+      'select public.notifications_unsent(10) as r',
+    )
     expect(rows[0]?.r).toHaveLength(1)
   })
 })

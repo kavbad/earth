@@ -39,6 +39,15 @@ import type { WebSupabaseClient } from './wiring'
 
 export function supabaseClientFrom(client: SupabaseClient): WebSupabaseClient {
   const rpc: SupabaseRpcClient = { rpc: (name, args) => client.rpc(name, args) }
+  // `auth.admin` only does anything with the service-role key (`POST /api/account/delete`).
+  const auth: WebSupabaseClient['auth'] = {
+    admin: {
+      deleteUser: async (userId) => {
+        const { error } = await client.auth.admin.deleteUser(userId)
+        return { error: error === null ? null : { message: error.message } }
+      },
+    },
+  }
   const tables: SupabaseTableClientLike = {
     from: (table) => ({
       insert: (row: IdentityReviewInsert) => ({
@@ -53,7 +62,7 @@ export function supabaseClientFrom(client: SupabaseClient): WebSupabaseClient {
       }),
     }),
   }
-  return { ...rpc, ...tables }
+  return { ...rpc, ...tables, auth }
 }
 
 // ---------------------------------------------------------------------------
@@ -91,11 +100,15 @@ export function expoClientFrom(expo: ExpoSdkLike): ExpoClientLike {
       const chunks: ExpoPushMessage[][] = expo.chunkPushNotifications(messages)
       return chunks as ExpoPushMessageLike[][]
     },
-    async sendPushNotificationsAsync(messages: ExpoPushMessageLike[]): Promise<ExpoPushTicketLike[]> {
+    async sendPushNotificationsAsync(
+      messages: ExpoPushMessageLike[],
+    ): Promise<ExpoPushTicketLike[]> {
       const tickets = await expo.sendPushNotificationsAsync(messages)
       return tickets.map(toExpoTicketLike)
     },
-    async getPushNotificationReceiptsAsync(ids: string[]): Promise<Record<string, ExpoPushReceiptLike>> {
+    async getPushNotificationReceiptsAsync(
+      ids: string[],
+    ): Promise<Record<string, ExpoPushReceiptLike>> {
       const receipts = await expo.getPushNotificationReceiptsAsync(ids)
       const out: Record<string, ExpoPushReceiptLike> = {}
       for (const [id, receipt] of Object.entries(receipts)) out[id] = toExpoReceiptLike(receipt)

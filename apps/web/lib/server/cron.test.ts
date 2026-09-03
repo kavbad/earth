@@ -46,7 +46,10 @@ describe('cronSecretForBearer', () => {
   })
 
   it('never maps when CRON_SECRET is unset, and yields null without a bearer', () => {
-    const without: CronCredentials = { internalSecret: TEST_CRON_SECRET, vercelCronSecret: undefined }
+    const without: CronCredentials = {
+      internalSecret: TEST_CRON_SECRET,
+      vercelCronSecret: undefined,
+    }
     expect(cronSecretForBearer(TEST_VERCEL_CRON_SECRET, without)).toBe(TEST_VERCEL_CRON_SECRET)
     expect(cronSecretForBearer(null, credentials)).toBeNull()
   })
@@ -94,7 +97,11 @@ describe('adaptCronRequest', () => {
   })
 
   it('leaves a POST method alone and preserves the body', async () => {
-    const req = earthRequest(SWEEP, { method: 'POST', body: { day: '2026-09-02' }, bearer: TEST_VERCEL_CRON_SECRET })
+    const req = earthRequest(SWEEP, {
+      method: 'POST',
+      body: { day: '2026-09-02' },
+      bearer: TEST_VERCEL_CRON_SECRET,
+    })
     const adapted = adaptCronRequest(req, credentials)
     expect(adapted.method).toBe('POST')
     await expect(adapted.text()).resolves.toBe('{"day":"2026-09-02"}')

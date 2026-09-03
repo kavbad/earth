@@ -34,7 +34,9 @@ export function toNamingParticipant(participant: RoomParticipantDto): NamingPart
 }
 
 /** "Weekend Crew" or "Xavier + Kavon" (spec §60, viewer-aware). */
-export function roomViewTitle(room: Pick<RoomDto, 'contextType' | 'contextTitle' | 'participants'>): string {
+export function roomViewTitle(
+  room: Pick<RoomDto, 'contextType' | 'contextTitle' | 'participants'>,
+): string {
   return roomHeaderTitle({
     kind: roomTitleKindFor(room.contextType),
     contextTitle: room.contextTitle,
@@ -67,7 +69,9 @@ export interface RoomViewProps {
 export function RoomView(props: RoomViewProps) {
   const { room, media } = props
   const onStage = room.participants.filter(isPublishing)
-  const watching = room.participants.filter((p) => p.status === 'active' && p.mediaState === 'watching').length
+  const watching = room.participants.filter(
+    (p) => p.status === 'active' && p.mediaState === 'watching',
+  ).length
   return (
     <div className="flex h-dvh w-full flex-col bg-background text-text-primary">
       <RoomHeader
@@ -85,7 +89,11 @@ export function RoomView(props: RoomViewProps) {
           facing={media?.facing ?? 'user'}
         />
         {media !== null ? (
-          <ConnectionOverlay status={media.status} onRetry={props.onRetry} onLeave={props.onLeave} />
+          <ConnectionOverlay
+            status={media.status}
+            onRetry={props.onRetry}
+            onLeave={props.onLeave}
+          />
         ) : null}
       </div>
       {props.notice ? (

@@ -57,8 +57,18 @@ describe('feed_candidates (spec §64–§69)', () => {
   beforeAll(async () => {
     db = await createTestDb()
     sf = await createArea(db, { name: 'San Francisco', slug: 'sf', type: 'city' })
-    mission = await createArea(db, { name: 'Mission', slug: 'mission', type: 'neighborhood', parentAreaId: sf })
-    marina = await createArea(db, { name: 'Marina', slug: 'marina', type: 'neighborhood', parentAreaId: sf })
+    mission = await createArea(db, {
+      name: 'Mission',
+      slug: 'mission',
+      type: 'neighborhood',
+      parentAreaId: sf,
+    })
+    marina = await createArea(db, {
+      name: 'Marina',
+      slug: 'marina',
+      type: 'neighborhood',
+      parentAreaId: sf,
+    })
     la = await createArea(db, { name: 'Los Angeles', slug: 'la', type: 'city' })
     me = await human(db, 'Me')
     friend = await human(db, 'Friend')
@@ -87,7 +97,11 @@ describe('feed_candidates (spec §64–§69)', () => {
     const seed: Array<[string, Human, Parameters<typeof postArgs>[0]]> = [
       ['mine', me, { text: 'mine', audience: 'friends' }],
       ['friendFriends', friend, { text: 'friend friends', audience: 'friends' }],
-      ['friendNeighborhood', friend, { text: 'friend nb in la', audience: 'neighborhood', areaId: la }],
+      [
+        'friendNeighborhood',
+        friend,
+        { text: 'friend nb in la', audience: 'neighborhood', areaId: la },
+      ],
       ['friendWorld', friend, { text: 'friend world', audience: 'world' }],
       ['followedWorld', followed, { text: 'followed world', audience: 'world' }],
       ['followedFriends', followed, { text: 'followed friends', audience: 'friends' }],
@@ -97,9 +111,17 @@ describe('feed_candidates (spec §64–§69)', () => {
       ['strangerWorld', stranger, { text: 'stranger world', audience: 'world' }],
       ['strangerMarina', stranger, { text: 'stranger marina', audience: 'neighborhood' }],
       ['strangerCity', stranger, { text: 'stranger city', audience: 'city' }],
-      ['strangerCityInMission', stranger, { text: 'stranger city tagged mission', audience: 'city', areaId: mission }],
+      [
+        'strangerCityInMission',
+        stranger,
+        { text: 'stranger city tagged mission', audience: 'city', areaId: mission },
+      ],
       ['blockedFriendWorld', blockedFriend, { text: 'blocked friend world', audience: 'world' }],
-      ['blockedFriendFriends', blockedFriend, { text: 'blocked friend friends', audience: 'friends' }],
+      [
+        'blockedFriendFriends',
+        blockedFriend,
+        { text: 'blocked friend friends', audience: 'friends' },
+      ],
       ['blockerWorld', blocker, { text: 'blocker world', audience: 'world' }],
       ['fixtureWorld', fixture, { text: 'fixture world', audience: 'world' }],
       ['fixtureNeighborhood', fixture, { text: 'fixture mission', audience: 'neighborhood' }],
@@ -108,13 +130,17 @@ describe('feed_candidates (spec §64–§69)', () => {
     for (const [key, author, options] of seed) {
       minute += 1
       const at = new Date(Date.UTC(2026, 8, 1, 10, minute)).toISOString()
-      const view = PostViewDtoSchema.parse(await rpcAt(db, 'post_create', postArgs(options), author.as, at))
+      const view = PostViewDtoSchema.parse(
+        await rpcAt(db, 'post_create', postArgs(options), author.as, at),
+      )
       posts[key] = view.post.id
     }
     // A reply never appears as a candidate of its own.
     const friendWorld = posts['friendWorld']
     if (friendWorld === undefined) throw new Error('seed missing')
-    posts['replyToFriend'] = (await createPost(db, me, { text: 'reply', audience: 'world', parentPostId: friendWorld })).post.id
+    posts['replyToFriend'] = (
+      await createPost(db, me, { text: 'reply', audience: 'world', parentPostId: friendWorld })
+    ).post.id
   })
 
   afterAll(async () => {
@@ -164,8 +190,14 @@ describe('feed_candidates (spec §64–§69)', () => {
         areaId: null,
         startedAt: null,
       })
-      expect(rows.get(posts['followedWorld'] ?? '')).toMatchObject({ relationship: 'follow', authorPostCountRecent: 1 })
-      expect(rows.get(posts['mine'] ?? '')).toMatchObject({ relationship: 'friend', authorHumanId: me.humanId })
+      expect(rows.get(posts['followedWorld'] ?? '')).toMatchObject({
+        relationship: 'follow',
+        authorPostCountRecent: 1,
+      })
+      expect(rows.get(posts['mine'] ?? '')).toMatchObject({
+        relationship: 'friend',
+        authorHumanId: me.humanId,
+      })
       // Every row parses as a FeedCandidate and carries a PostViewDto payload.
       for (const row of result.candidates) {
         FeedCandidateSchema.parse(row)
@@ -183,7 +215,9 @@ describe('feed_candidates (spec §64–§69)', () => {
       try {
         const result = await feed(db, 'friends', me.as)
         const lives = result.candidates.filter((c) => c.kind === 'live')
-        expect(lives.map((c) => c.id).sort()).toEqual([friendsLive.room.id, groupLive.room.id].sort())
+        expect(lives.map((c) => c.id).sort()).toEqual(
+          [friendsLive.room.id, groupLive.room.id].sort(),
+        )
         expect(lives.map((c) => c.id)).not.toContain(strangerLive.room.id)
         const rows = rowsById(result)
         const friendRow = rows.get(friendsLive.room.id)
@@ -208,10 +242,24 @@ describe('feed_candidates (spec §64–§69)', () => {
           visibility: 'friends',
           participantCount: 1,
         })
-        expect(friendRow?.live?.participants[0]).toMatchObject({ humanId: friend.humanId, relationToViewer: 'friend', mediaState: 'camera' })
+        expect(friendRow?.live?.participants[0]).toMatchObject({
+          humanId: friend.humanId,
+          relationToViewer: 'friend',
+          mediaState: 'camera',
+        })
         const groupRow = rows.get(groupLive.room.id)
-        expect(groupRow).toMatchObject({ kind: 'live', relationship: 'shared_group', sharedGroupCount: 1, liveFriendCount: 0, audience: 'friends' })
-        expect(groupRow?.live).toMatchObject({ contextType: 'group', contextTitle: 'Weekend Crew', visibility: 'group' })
+        expect(groupRow).toMatchObject({
+          kind: 'live',
+          relationship: 'shared_group',
+          sharedGroupCount: 1,
+          liveFriendCount: 0,
+          audience: 'friends',
+        })
+        expect(groupRow?.live).toMatchObject({
+          contextType: 'group',
+          contextTitle: 'Weekend Crew',
+          visibility: 'group',
+        })
         for (const row of lives) FeedCandidateSchema.parse(row)
         // Lives come first in the array; posts follow newest first.
         expect(result.candidates.slice(0, 2).every((c) => c.kind === 'live')).toBe(true)
@@ -220,7 +268,9 @@ describe('feed_candidates (spec §64–§69)', () => {
         await db.rpc('room_end', { room_id: groupLive.room.id }, groupmate.as)
         await db.rpc('room_end', { room_id: strangerLive.room.id }, stranger.as)
       }
-      expect((await feed(db, 'friends', me.as)).candidates.some((c) => c.kind === 'live')).toBe(false)
+      expect((await feed(db, 'friends', me.as)).candidates.some((c) => c.kind === 'live')).toBe(
+        false,
+      )
     })
 
     it('a hidden post leaves the candidates but not post_get; a deleted post leaves both', async () => {
@@ -239,11 +289,23 @@ describe('feed_candidates (spec §64–§69)', () => {
     })
 
     it('requires a Human: visitors, guests, claiming and unclaimed credentials get not_authenticated', async () => {
-      await db.expectError(db.rpc('feed_candidates', { scope: 'friends' }, 'visitor'), 'not_authenticated')
-      await db.expectError(db.rpc('feed_candidates', { scope: 'friends' }, (await createGuest(db)).as), 'not_authenticated')
-      await db.expectError(db.rpc('feed_candidates', { scope: 'friends' }, (await createUnclaimed(db)).as), 'not_authenticated')
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'friends' }, 'visitor'),
+        'not_authenticated',
+      )
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'friends' }, (await createGuest(db)).as),
+        'not_authenticated',
+      )
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'friends' }, (await createUnclaimed(db)).as),
+        'not_authenticated',
+      )
       const pending = await createHuman(db, { handle: 'pendingfeed', status: 'pending' })
-      await db.expectError(db.rpc('feed_candidates', { scope: 'friends' }, pending.as), 'not_authenticated')
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'friends' }, pending.as),
+        'not_authenticated',
+      )
       await db.expectError(db.rpc('feed_candidates', { scope: null }, me.as), 'invalid_input')
     })
   })
@@ -252,17 +314,38 @@ describe('feed_candidates (spec §64–§69)', () => {
     it('neighborhood: posts tagged inside the browsed area that the viewer may see; area from context or explicit', async () => {
       const result = await feed(db, 'neighborhood', me.as)
       expect(result).toMatchObject({ scope: 'neighborhood', areaId: mission, areaName: 'Mission' })
-      expect(result.candidates.map((c) => c.id).sort()).toEqual(ids(['groupmateNeighborhood', 'strangerCityInMission', 'fixtureNeighborhood']))
-      expect(rowsById(result).get(posts['groupmateNeighborhood'] ?? '')).toMatchObject({ relationship: 'shared_group', sharedGroupCount: 1, placeAffinity: 1 })
+      expect(result.candidates.map((c) => c.id).sort()).toEqual(
+        ids(['groupmateNeighborhood', 'strangerCityInMission', 'fixtureNeighborhood']),
+      )
+      expect(rowsById(result).get(posts['groupmateNeighborhood'] ?? '')).toMatchObject({
+        relationship: 'shared_group',
+        sharedGroupCount: 1,
+        placeAffinity: 1,
+      })
       // The stranger in Marina browses Marina: their own post only (Mission posts do not reach them).
       expect(await feedIds(db, 'neighborhood', stranger.as)).toEqual(ids(['strangerMarina']))
       // Browsing Mission explicitly does not widen permissions: a neighborhood post of Mission stays out for a Human in Marina.
-      expect(await feedIds(db, 'neighborhood', stranger.as, { areaId: mission })).toEqual(ids(['strangerCityInMission']))
+      expect(await feedIds(db, 'neighborhood', stranger.as, { areaId: mission })).toEqual(
+        ids(['strangerCityInMission']),
+      )
       const noContext = await human(db, 'Nocontext')
-      await db.expectError(db.rpc('feed_candidates', { scope: 'neighborhood' }, noContext.as), 'area_not_found')
-      await db.expectError(db.rpc('feed_candidates', { scope: 'neighborhood', area_id: '00000000-0000-4000-8000-000000000000' }, me.as), 'area_not_found')
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'neighborhood' }, noContext.as),
+        'area_not_found',
+      )
+      await db.expectError(
+        db.rpc(
+          'feed_candidates',
+          { scope: 'neighborhood', area_id: '00000000-0000-4000-8000-000000000000' },
+          me.as,
+        ),
+        'area_not_found',
+      )
       await setFlag(db, 'NEIGHBORHOOD_ENABLED', false)
-      await db.expectError(db.rpc('feed_candidates', { scope: 'neighborhood' }, me.as), 'feature_disabled')
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'neighborhood' }, me.as),
+        'feature_disabled',
+      )
       await setFlag(db, 'NEIGHBORHOOD_ENABLED', true)
     })
 
@@ -270,13 +353,25 @@ describe('feed_candidates (spec §64–§69)', () => {
       const result = await feed(db, 'city', me.as)
       expect(result).toMatchObject({ scope: 'city', areaId: sf, areaName: 'San Francisco' })
       expect(result.candidates.map((c) => c.id).sort()).toEqual(
-        ids(['groupmateNeighborhood', 'strangerCity', 'strangerCityInMission', 'fixtureNeighborhood']),
+        ids([
+          'groupmateNeighborhood',
+          'strangerCity',
+          'strangerCityInMission',
+          'fixtureNeighborhood',
+        ]),
       )
-      expect(rowsById(result).get(posts['strangerCity'] ?? '')).toMatchObject({ relationship: 'none', placeAffinity: 0.6, audience: 'city', areaId: sf })
+      expect(rowsById(result).get(posts['strangerCity'] ?? '')).toMatchObject({
+        relationship: 'none',
+        placeAffinity: 0.6,
+        audience: 'city',
+        areaId: sf,
+      })
       // LA: the followed Human's city post is visible to a friend whose home city is LA.
       const homeInLa = await human(db, 'Homeinla')
       await setContext(db, homeInLa, { currentCityId: sf, homeCityId: la })
-      expect(await feedIds(db, 'city', homeInLa.as, { areaId: la })).toEqual(ids(['followedCityLa']))
+      expect(await feedIds(db, 'city', homeInLa.as, { areaId: la })).toEqual(
+        ids(['followedCityLa']),
+      )
       // Someone in SF browsing LA explicitly sees nothing they are not eligible for.
       expect(await feedIds(db, 'city', stranger.as, { areaId: la })).toEqual([])
       await setFlag(db, 'CITY_ENABLED', false)
@@ -291,7 +386,10 @@ describe('feed_candidates (spec §64–§69)', () => {
       expect(result.candidates.map((c) => c.id).sort()).toEqual(
         ids(['friendWorld', 'followedWorld', 'groupmateWorld', 'strangerWorld', 'fixtureWorld']),
       )
-      expect(rowsById(result).get(posts['groupmateWorld'] ?? '')).toMatchObject({ relationship: 'shared_group', sharedGroupCount: 1 })
+      expect(rowsById(result).get(posts['groupmateWorld'] ?? '')).toMatchObject({
+        relationship: 'shared_group',
+        sharedGroupCount: 1,
+      })
       await setFlag(db, 'WORLD_ENABLED', false)
       await db.expectError(db.rpc('feed_candidates', { scope: 'world' }, me.as), 'feature_disabled')
       await setFlag(db, 'WORLD_ENABLED', true)
@@ -301,16 +399,40 @@ describe('feed_candidates (spec §64–§69)', () => {
       const host = await human(db, 'Host')
       await setContext(db, host, { currentAreaId: mission, currentCityId: sf })
       const worldLive = await startStandaloneRoom(db, host, 'Hello world')
-      await db.rpc('room_set_visibility', { room_id: worldLive.room.id, visibility: 'world' }, host.as)
+      await db.rpc(
+        'room_set_visibility',
+        { room_id: worldLive.room.id, visibility: 'world' },
+        host.as,
+      )
       const friendsLive = await startStandaloneRoom(db, friend)
       try {
         const result = await feed(db, 'world', 'visitor')
         expect(result.candidates.map((c) => c.id).sort()).toEqual(
-          [...ids(['friendWorld', 'followedWorld', 'groupmateWorld', 'strangerWorld', 'blockedFriendWorld', 'blockerWorld', 'fixtureWorld']), worldLive.room.id].sort(),
+          [
+            ...ids([
+              'friendWorld',
+              'followedWorld',
+              'groupmateWorld',
+              'strangerWorld',
+              'blockedFriendWorld',
+              'blockerWorld',
+              'fixtureWorld',
+            ]),
+            worldLive.room.id,
+          ].sort(),
         )
         const rows = rowsById(result)
-        expect(rows.get(worldLive.room.id)).toMatchObject({ kind: 'live', relationship: 'none', liveFriendCount: 0, liveParticipantCount: 1, audience: 'world', areaId: sf })
-        expect(rows.get(worldLive.room.id)?.live?.participants[0]).toMatchObject({ relationToViewer: null })
+        expect(rows.get(worldLive.room.id)).toMatchObject({
+          kind: 'live',
+          relationship: 'none',
+          liveFriendCount: 0,
+          liveParticipantCount: 1,
+          audience: 'world',
+          areaId: sf,
+        })
+        expect(rows.get(worldLive.room.id)?.live?.participants[0]).toMatchObject({
+          relationToViewer: null,
+        })
         for (const row of result.candidates) {
           FeedCandidateSchema.parse(row)
           if (row.kind === 'post') {
@@ -323,14 +445,26 @@ describe('feed_candidates (spec §64–§69)', () => {
         // Guests and claiming credentials browse World like visitors (without Lives for Guests).
         const guest = await createGuest(db)
         const asGuest = await feed(db, 'world', guest.as)
-        expect(asGuest.candidates.filter((c) => c.kind === 'post').map((c) => c.id).sort()).toEqual(
-          result.candidates.filter((c) => c.kind === 'post').map((c) => c.id).sort(),
+        expect(
+          asGuest.candidates
+            .filter((c) => c.kind === 'post')
+            .map((c) => c.id)
+            .sort(),
+        ).toEqual(
+          result.candidates
+            .filter((c) => c.kind === 'post')
+            .map((c) => c.id)
+            .sort(),
         )
         expect(asGuest.candidates.some((c) => c.kind === 'live')).toBe(false)
         const pending = await createHuman(db, { handle: 'pendingworld', status: 'pending' })
-        expect((await feed(db, 'world', pending.as)).candidates.map((c) => c.id).sort()).toEqual(result.candidates.map((c) => c.id).sort())
+        expect((await feed(db, 'world', pending.as)).candidates.map((c) => c.id).sort()).toEqual(
+          result.candidates.map((c) => c.id).sort(),
+        )
         // The service role reads the public pool.
-        expect((await feed(db, 'world', 'service')).candidates.map((c) => c.id).sort()).toEqual(result.candidates.map((c) => c.id).sort())
+        expect((await feed(db, 'world', 'service')).candidates.map((c) => c.id).sort()).toEqual(
+          result.candidates.map((c) => c.id).sort(),
+        )
         // Lives need PUBLIC_LIVE_ENABLED; posts do not.
         await setFlag(db, 'PUBLIC_LIVE_ENABLED', false)
         const noLive = await feed(db, 'world', 'visitor')
@@ -345,8 +479,14 @@ describe('feed_candidates (spec §64–§69)', () => {
 
     it('PUBLIC_WORLD_ENABLED off closes World to visitors and guests, not to Humans', async () => {
       await setFlag(db, 'PUBLIC_WORLD_ENABLED', false)
-      await db.expectError(db.rpc('feed_candidates', { scope: 'world' }, 'visitor'), 'feature_disabled')
-      await db.expectError(db.rpc('feed_candidates', { scope: 'world' }, (await createGuest(db)).as), 'feature_disabled')
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'world' }, 'visitor'),
+        'feature_disabled',
+      )
+      await db.expectError(
+        db.rpc('feed_candidates', { scope: 'world' }, (await createGuest(db)).as),
+        'feature_disabled',
+      )
       await db.expectError(db.rpc('public_feed', {}, 'visitor'), 'feature_disabled')
       expect((await feed(db, 'world', me.as)).candidates.length).toBeGreaterThan(0)
       await setFlag(db, 'PUBLIC_WORLD_ENABLED', true)
@@ -359,7 +499,11 @@ describe('feed_candidates (spec §64–§69)', () => {
       expect(await feedIds(db, 'world', 'visitor')).not.toContain(posts['fixtureWorld'])
       expect(await feedIds(db, 'world', me.as)).not.toContain(posts['fixtureWorld'])
       expect(await feedIds(db, 'neighborhood', me.as)).not.toContain(posts['fixtureNeighborhood'])
-      expect(PublicFeedResultSchema.parse(await db.rpc('public_feed', {}, 'visitor')).candidates.map((c) => c.id)).not.toContain(posts['fixtureWorld'])
+      expect(
+        PublicFeedResultSchema.parse(await db.rpc('public_feed', {}, 'visitor')).candidates.map(
+          (c) => c.id,
+        ),
+      ).not.toContain(posts['fixtureWorld'])
       await setSetting(db, 'environment', 'development')
       expect(await feedIds(db, 'world', 'visitor')).toContain(posts['fixtureWorld'])
     })
@@ -371,9 +515,12 @@ describe('feed_candidates (spec §64–§69)', () => {
       // The first world post is friendWorld at 10:04: nothing qualifies at 10:03:30.
       expect(pinned.candidates.filter((c) => c.kind === 'post')).toEqual([])
       const upTo = new Date(Date.UTC(2026, 8, 1, 10, 5)).toISOString()
-      expect((await feed(db, 'world', 'visitor', { snapshotAt: upTo })).candidates.filter((c) => c.kind === 'post').map((c) => c.id).sort()).toEqual(
-        ids(['friendWorld', 'followedWorld']),
-      )
+      expect(
+        (await feed(db, 'world', 'visitor', { snapshotAt: upTo })).candidates
+          .filter((c) => c.kind === 'post')
+          .map((c) => c.id)
+          .sort(),
+      ).toEqual(ids(['friendWorld', 'followedWorld']))
       const limited = await feed(db, 'world', 'visitor', { limit: 2 })
       expect(limited.candidates.filter((c) => c.kind === 'post')).toHaveLength(2)
       expect(limited.candidates[0]?.id).toBe(posts['fixtureWorld'])
@@ -382,13 +529,27 @@ describe('feed_candidates (spec §64–§69)', () => {
 
   describe('public_feed (spec §69; SCREEN 01)', () => {
     it('pages world posts newest first for visitors with a created_at cursor', async () => {
-      const page1 = PublicFeedResultSchema.parse(await db.rpc('public_feed', { cursor: null, limit: 3 }, 'visitor'))
+      const page1 = PublicFeedResultSchema.parse(
+        await db.rpc('public_feed', { cursor: null, limit: 3 }, 'visitor'),
+      )
       expect(page1.scope).toBe('world')
-      expect(page1.candidates.map((c) => c.id)).toEqual([posts['fixtureWorld'], posts['blockerWorld'], posts['blockedFriendWorld']])
+      expect(page1.candidates.map((c) => c.id)).toEqual([
+        posts['fixtureWorld'],
+        posts['blockerWorld'],
+        posts['blockedFriendWorld'],
+      ])
       expect(page1.nextCursor).toBe(page1.candidates[2]?.createdAt)
-      const page2 = PublicFeedResultSchema.parse(await db.rpc('public_feed', { cursor: page1.nextCursor, limit: 3 }, 'visitor'))
-      expect(page2.candidates.map((c) => c.id)).toEqual([posts['strangerWorld'], posts['groupmateWorld'], posts['followedWorld']])
-      const page3 = PublicFeedResultSchema.parse(await db.rpc('public_feed', { cursor: page2.nextCursor, limit: 3 }, 'visitor'))
+      const page2 = PublicFeedResultSchema.parse(
+        await db.rpc('public_feed', { cursor: page1.nextCursor, limit: 3 }, 'visitor'),
+      )
+      expect(page2.candidates.map((c) => c.id)).toEqual([
+        posts['strangerWorld'],
+        posts['groupmateWorld'],
+        posts['followedWorld'],
+      ])
+      const page3 = PublicFeedResultSchema.parse(
+        await db.rpc('public_feed', { cursor: page2.nextCursor, limit: 3 }, 'visitor'),
+      )
       expect(page3.candidates.map((c) => c.id)).toEqual([posts['friendWorld']])
       expect(page3.nextCursor).toBeNull()
       for (const row of [...page1.candidates, ...page2.candidates, ...page3.candidates]) {
@@ -397,7 +558,9 @@ describe('feed_candidates (spec §64–§69)', () => {
         expect(row.audience).toBe('world')
       }
       // Humans get their own permission view (blocks apply).
-      const mine = PublicFeedResultSchema.parse(await db.rpc('public_feed', { cursor: null, limit: 50 }, me.as))
+      const mine = PublicFeedResultSchema.parse(
+        await db.rpc('public_feed', { cursor: null, limit: 50 }, me.as),
+      )
       expect(mine.candidates.map((c) => c.id)).not.toContain(posts['blockerWorld'])
       expect(mine.candidates.map((c) => c.id)).not.toContain(posts['blockedFriendWorld'])
     })

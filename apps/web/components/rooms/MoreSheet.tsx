@@ -53,12 +53,23 @@ export function MoreSheet(props: MoreSheetProps) {
           {props.shareUrl !== null ? (
             <label className="flex flex-col gap-1 text-secondary text-text-secondary">
               {roomCopy.linkReady}
-              <input readOnly value={props.shareUrl} className={FIELD_INPUT_CLASS} onFocus={(e) => e.currentTarget.select()} />
+              <input
+                readOnly
+                value={props.shareUrl}
+                className={FIELD_INPUT_CLASS}
+                onFocus={(e) => e.currentTarget.select()}
+              />
             </label>
           ) : null}
           <List>
             {!props.isGuest ? (
-              <ListRow as="button" title={copy.shareLink} disabled={props.busy} onClick={props.onShare} className="px-0" />
+              <ListRow
+                as="button"
+                title={copy.shareLink}
+                disabled={props.busy}
+                onClick={props.onShare}
+                className="px-0"
+              />
             ) : null}
             {props.canModerate ? (
               <ListRow
@@ -70,9 +81,19 @@ export function MoreSheet(props: MoreSheetProps) {
               />
             ) : null}
             {props.canModerate ? (
-              <ListRow as="button" title={copy.safety.endRoom} onClick={() => setConfirmingEnd(true)} className="px-0" />
+              <ListRow
+                as="button"
+                title={copy.safety.endRoom}
+                onClick={() => setConfirmingEnd(true)}
+                className="px-0"
+              />
             ) : null}
-            <ListRow as="button" title={copy.safety.report} onClick={props.onReport} className="px-0" />
+            <ListRow
+              as="button"
+              title={copy.safety.report}
+              onClick={props.onReport}
+              className="px-0"
+            />
             <ListRow as="button" title={copy.leave} onClick={props.onLeave} className="px-0" />
           </List>
           <Button variant="quiet" fullWidth onClick={close}>
