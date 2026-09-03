@@ -20,6 +20,7 @@ import {
   messagesReducer,
   newestSentMessageId,
   oldestSentMessageId,
+  serverCopyChanged,
 } from './messages'
 
 const XAVIER = asHumanId(fixtures.IDS.xavier)
@@ -269,6 +270,35 @@ describe('messagesReducer updates and reactions', () => {
       },
     ])
     expect(state.messages[0]?.reactions).toEqual([{ reaction: '❤️', count: 2, reactedByMe: false }])
+  })
+})
+
+describe('serverCopyChanged (the polling fallback re-reads the window, ARCHITECTURE §8)', () => {
+  const held = (overrides: Partial<ChatMessage> = {}): ChatMessage => ({
+    ...server(1),
+    status: 'sent',
+    ...overrides,
+  })
+
+  it('is false for an unchanged copy and for a message still in the outbox', () => {
+    expect(serverCopyChanged(held(), server(1))).toBe(false)
+    expect(serverCopyChanged(held({ status: 'pending' }), { ...server(1), text: 'other' })).toBe(
+      false,
+    )
+  })
+
+  it('is true when a reaction, an edit or a delete arrived', () => {
+    const reacted = { ...server(1), reactions: [{ reaction: '❤️', count: 1, reactedByMe: false }] }
+    expect(serverCopyChanged(held(), reacted)).toBe(true)
+    expect(serverCopyChanged({ ...held(), reactions: reacted.reactions }, server(1))).toBe(true)
+    expect(
+      serverCopyChanged(
+        { ...held(), reactions: [{ reaction: '❤️', count: 1, reactedByMe: false }] },
+        { ...server(1), reactions: [{ reaction: '❤️', count: 2, reactedByMe: false }] },
+      ),
+    ).toBe(true)
+    expect(serverCopyChanged(held(), { ...server(1), text: 'edited', editedAt: at(30) })).toBe(true)
+    expect(serverCopyChanged(held(), { ...server(1), text: null, deletedAt: at(31) })).toBe(true)
   })
 })
 

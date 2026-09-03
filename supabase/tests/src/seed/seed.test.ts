@@ -859,7 +859,7 @@ describe('development seed fixtures (spec §117; DB_API §10)', () => {
       ).toBeGreaterThan(0)
     })
 
-    it('places: four fixture places in North Beach / the Mission; the base rows, the other settings and every feature flag are untouched', async () => {
+    it('places: four fixture places in North Beach / the Mission; the base rows and every feature flag are untouched, and the dev settings point at the local web app', async () => {
       const { rows } = await db.sql.query<{ name: string; area: string; category: string | null }>(
         `select p.name, a.slug as area, p.category
            from public.places p join public.areas a on a.id = p.area_id
@@ -891,7 +891,7 @@ describe('development seed fixtures (spec §117; DB_API §10)', () => {
         { key: 'environment', value: 'development' },
         { key: 'public_storage_base_url', value: '' },
         { key: 'room_grace_seconds', value: '120' },
-        { key: 'web_origin', value: 'https://earth.social' },
+        { key: 'web_origin', value: 'http://localhost:3000' },
       ])
     })
   })

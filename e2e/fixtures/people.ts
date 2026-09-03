@@ -43,9 +43,20 @@ export function uniqueEmail(label = 'person'): string {
   return `${label.toLowerCase()}-${nextSuffix()}@${E2E_EMAIL_DOMAIN}`
 }
 
-/** A display name nobody else has, so the suggested handle is free (`Ada mgk1f3z71`). */
+/**
+ * A display name nobody else has — and that nothing else is even *similar* to (`Ada 4f1c…`).
+ *
+ * The tail is random per name rather than `runId()` plus a counter, because `search`
+ * (0900_search.sql) matches people by trigram similarity ≥ 0.3 as well as by substring: two names
+ * from the same run that differed in one character (`Ada mtm0cjeq55043` / `Ada mtm0cjeq5504w`)
+ * scored 0.8 and each answered the other's search, so one journey's people surfaced in another
+ * journey's results. Random tails keep any two generated names below 0.24.
+ *
+ * 16 hex characters, so the handle suggested from the longest name here stays inside the 24
+ * characters `earth.normalize_handle` allows.
+ */
 export function uniqueName(label = 'Person'): string {
-  return `${label} ${nextSuffix()}`
+  return `${label} ${randomBytes(8).toString('hex')}`
 }
 
 /** Read-only seed fixtures (supabase/seed/README.md). Journeys must never mutate them. */

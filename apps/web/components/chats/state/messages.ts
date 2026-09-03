@@ -311,6 +311,37 @@ export function isViewerReaction(summary: MessageReactionSummaryDto): boolean {
   return summary.reactedByMe
 }
 
+function sameReactions(
+  held: readonly MessageReactionSummaryDto[],
+  incoming: readonly MessageReactionSummaryDto[],
+): boolean {
+  if (held.length !== incoming.length) return false
+  return held.every((summary) => {
+    const other = incoming.find((candidate) => candidate.reaction === summary.reaction)
+    return (
+      other !== undefined &&
+      other.count === summary.count &&
+      other.reactedByMe === summary.reactedByMe
+    )
+  })
+}
+
+/**
+ * Whether a freshly read server copy differs from the acknowledged one on screen in anything the
+ * thread shows — a reaction, an edit, a delete. The polling fallback only ever brings *newer*
+ * messages (`messages_since(after_id)`), so a client without a realtime channel finds these
+ * changes by re-reading the window and asking this (ARCHITECTURE §8).
+ */
+export function serverCopyChanged(held: ChatMessage, incoming: MessageDto): boolean {
+  if (held.status !== 'sent') return false
+  return (
+    held.text !== incoming.text ||
+    held.editedAt !== incoming.editedAt ||
+    held.deletedAt !== incoming.deletedAt ||
+    !sameReactions(held.reactions, incoming.reactions)
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Grouping (spec §94: faces, messages, legibility — one sender's run reads as one block)
 // ---------------------------------------------------------------------------

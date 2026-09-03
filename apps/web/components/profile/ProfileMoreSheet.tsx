@@ -6,6 +6,7 @@ import { useState } from 'react'
 
 import { webCopy } from '../../lib/copy'
 import { ReportSheet } from '../posts/ReportSheet'
+import { safetyCopy } from '../safety/copy'
 import { Button } from '../ui/Button'
 import { List, ListRow } from '../ui/ListRow'
 import { Sheet } from '../ui/Sheet'
@@ -65,6 +66,8 @@ export function ProfileMoreSheet(props: ProfileMoreSheetProps) {
         <div className="flex flex-col gap-4">
           <p className="text-body">{profileCopy.blockConfirm(name)}</p>
           <p className="text-secondary text-text-secondary">{profileCopy.blockBody}</p>
+          {/* Spec §56: a shared group survives a block, and the safety UX has to say so. */}
+          <p className="text-secondary text-text-secondary">{safetyCopy.blockGroups}</p>
           <div className="flex flex-col gap-2">
             <Button
               variant="destructive"

@@ -55,6 +55,7 @@ import {
   messagesReducer,
   newestSentMessageId,
   oldestSentMessageId,
+  serverCopyChanged,
 } from '../state/messages'
 import { createOutboxStorage } from '../state/outboxStorage'
 import {
@@ -68,6 +69,19 @@ import {
 import { CONVERSATIONS_QUERY_KEY } from './useConversationsList'
 
 export const READ_RECEIPTS_INTERVAL_MS = 30_000
+/**
+ * How often an open thread re-reads `conversation_get`. The conversation channel carries messages
+ * and reactions only (`subscribeConversation`), so nothing else tells a thread that someone
+ * started — or ended — a video in it: without this, SCREEN 10's contextual "3 live · Join" line
+ * (spec §54) only ever appears after a reload.
+ */
+export const CONVERSATION_DETAIL_POLL_INTERVAL_MS = 5_000
+/**
+ * How often the polling fallback re-reads the newest window so changes to messages already on
+ * screen (reactions, edits, deletes) arrive too. Slower than the message poll: these are rarer,
+ * and the read is a whole window rather than a tail.
+ */
+export const POLLING_REFRESH_INTERVAL_MS = 5_000
 /** How often a keystroke re-announces typing (presence expires it after `TYPING_TTL_MS`). */
 export const TYPING_ANNOUNCE_MS = 2_000
 
@@ -165,6 +179,8 @@ export function useConversation(conversationId: ConversationId): ConversationCon
     queryKey: ['conversation', conversationId],
     queryFn: () => earth.conversations.get(conversationId),
     enabled,
+    // The header's live line and the members behind the faces follow the room, not the thread.
+    refetchInterval: enabled && online ? CONVERSATION_DETAIL_POLL_INTERVAL_MS : false,
   })
   const conversation = detail.data
   const conversationRef = useRef(conversation)
@@ -286,6 +302,37 @@ export function useConversation(conversationId: ConversationId): ConversationCon
   useEffect(() => {
     if (online) void subscriptionRef.current?.refresh()
   }, [online])
+
+  /**
+   * Reactions, edits and deletes change messages that are already on screen, and the polling
+   * fallback only ever brings newer ones (`messages_since(after_id)`, ARCHITECTURE §8). So while
+   * the channel is down, re-read the newest window (`messages_since(null)`) and apply the copies
+   * that changed — the reducer upserts by id, reactions included. The realtime path delivers these
+   * as `message_reactions` events, so nothing runs there.
+   */
+  useEffect(() => {
+    if (!enabled || mode !== 'polling' || loadStatus !== 'ready' || !online) return
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const window = await earth.conversations.messages.since({ conversationId, afterId: null })
+        if (cancelled) return
+        for (const message of window) {
+          const held = messagesRef.current.find((candidate) => candidate.id === message.id)
+          if (held !== undefined && serverCopyChanged(held, message)) {
+            dispatch({ type: 'received', message, change: 'inserted' })
+          }
+        }
+      } catch {
+        // The next tick tries again; the poll's own diagnostics already report a failing fallback.
+      }
+    }
+    const timer = setInterval(() => void refresh(), POLLING_REFRESH_INTERVAL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [enabled, mode, loadStatus, online, earth, conversationId])
 
   // ------------------------------------------------------------------ outbox
   const onlineRef = useRef(online)

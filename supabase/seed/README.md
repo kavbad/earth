@@ -2,7 +2,8 @@
 
 Development-only data, applied by `pnpm db:reset` (and `pnpm db:seed`) as `supabase/seed/*.sql`
 in lexical order: `010_fixtures.sql` (fixture Humans and everything around them),
-`020_dev_settings.sql` (`app_settings.environment = 'development'`), `areas.sql` (extra areas and
+`020_dev_settings.sql` (`app_settings.environment = 'development'` and `web_origin` pointing at the
+local web app, so the links a development database mints open it), `areas.sql` (extra areas and
 places outside San Francisco). Seeds are never applied when `APP_ENV=production`, are never
 recorded in `public.earth_migrations`, and every file refuses to run when
 `app_settings.environment = 'production'`.

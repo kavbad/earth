@@ -764,12 +764,14 @@ describe('spec §115 integration flows', () => {
       [maya.humanId, 'friend'],
     ])
     expect(asSarah.myParticipant).toBeNull()
+    // 0998: Sarah is not in Weekend Crew, so discovery never tells her its name — the card is
+    // named for her by the people she can see, friend first (spec §60, SCREEN 13, §128).
     const sarahFeed = await feedPage(world, sarah.as, 'friends')
     expect(sarahFeed.cards.filter(isLive)).toHaveLength(1)
     expect(sarahFeed.cards.filter(isLive)[0]).toMatchObject({
       roomId: groupRoomId,
-      title: 'Weekend Crew is live',
-      contextTitle: 'Weekend Crew',
+      title: 'Maya + Xavier are live',
+      contextTitle: null,
       visibility: 'friends',
       participantNames: ['Maya', 'Xavier'],
       participantCount: 2,

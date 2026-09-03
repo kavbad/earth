@@ -34,15 +34,21 @@ Root `pnpm test` includes this package, so it starts the stack too. For unit tes
 3. `global-teardown.ts` stops the web app and runs `bash scripts/local-stack/down.sh`. The
    database is left behind on purpose, so a failure can still be inspected.
 
+Setup refuses to run when something already answers on the web port (a `pnpm dev:web`, or a
+server whose pid file went stale): that server would take the port and be walked over in place of
+the build, and a whole run could go green against yesterday's code. Stop it — `pnpm stack:down`,
+or kill whatever holds the port — or say `E2E_EXTERNAL_STACK=1` to test it on purpose.
+
+CI runs exactly this (`.github/workflows/ci.yml`, job `e2e`: fetch the stack binaries, install
+Chromium, smoke-test the stack once, then `pnpm e2e`), which is why a failed CI run uploads the
+stack logs next to the traces.
+
 ### Against a stack you already run
 
 ```bash
 pnpm stack:up:web                 # or pnpm stack:up + pnpm dev:web
 E2E_EXTERNAL_STACK=1 pnpm e2e     # start nothing, stop nothing, just wait for both to answer
 ```
-
-That is also how CI runs it (`.github/workflows/ci.yml`, job `e2e`), which is why a failed CI run
-uploads the stack logs next to the traces.
 
 ### Environment
 

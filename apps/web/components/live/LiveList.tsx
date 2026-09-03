@@ -24,7 +24,14 @@ import { EmptyState } from '../ui/EmptyState'
 import { Skeleton } from '../ui/Skeleton'
 import { LiveCard } from './LiveCard'
 
-export const LIVE_REFRESH_INTERVAL_MS = 30_000
+/**
+ * How often SCREEN 13 re-reads `GET /api/live`. A Live is named after the people publishing in it
+ * right now (spec §59, §60), so the list has to follow someone joining or leaving within seconds —
+ * spec §116 E2E 6 requires `Xavier is live` to become `Xavier + Kavon are live` without a reload.
+ * Live discovery has no realtime channel of its own (ARCHITECTURE §15: the local and degraded
+ * environments poll), so this cadence is the whole mechanism.
+ */
+export const LIVE_REFRESH_INTERVAL_MS = 10_000
 export const LIVE_QUERY_KEY = 'live' as const
 
 function LiveSkeleton() {

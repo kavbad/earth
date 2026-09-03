@@ -23,6 +23,7 @@ import {
 } from 'node:fs'
 
 import {
+  HEALTH_PATH,
   LOG_DIR,
   PID_DIR,
   REPO_ROOT,
@@ -125,6 +126,32 @@ export async function stopWeb(): Promise<void> {
   }
 }
 
+/** Anything answering on the web port — even a 503 — is a server this run did not build. */
+async function webPortAnswers(): Promise<boolean> {
+  try {
+    await fetch(`${baseURL()}${HEALTH_PATH}`, { signal: AbortSignal.timeout(2_000) })
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Rejects when the web server dies. Raced against `waitForWeb`, so a server that cannot take the
+ * port (another one already has it) fails the run instead of letting the journeys walk over
+ * whatever *is* answering — a stale build would otherwise pass as this one.
+ */
+function webExits(child: ChildProcess): Promise<never> {
+  return new Promise((_, reject) => {
+    child.on('exit', (code, signal) => {
+      const tail = existsSync(WEB_LOG_FILE)
+        ? `\n${readFileSync(WEB_LOG_FILE, 'utf8').split('\n').slice(-20).join('\n')}`
+        : ''
+      reject(new Error(`the web app exited with ${signal ?? code} before it was ready${tail}`))
+    })
+  })
+}
+
 function startWeb(): ChildProcess {
   const port = stackValue('EARTH_PORT_WEB', '3000')
   const out = openSync(WEB_LOG_FILE, 'a')
@@ -154,6 +181,14 @@ async function globalSetup(): Promise<void> {
   }
 
   await stopWeb()
+  // A web server this harness did not start (a `pnpm dev:web`, or one whose pid file went stale)
+  // would take the port and be tested in place of the build below.
+  if (await webPortAnswers()) {
+    throw new Error(
+      `something already answers at ${baseURL()}${HEALTH_PATH}. Stop it (pnpm stack:down, or kill ` +
+        'the process holding the port) or run with E2E_EXTERNAL_STACK=1 to test it on purpose.',
+    )
+  }
   writeFileSync(WEB_LOG_FILE, `# ${new Date().toISOString()} e2e web app (build + server)\n`)
 
   try {
@@ -179,8 +214,8 @@ async function globalSetup(): Promise<void> {
     })
 
     log(`starting apps/web on ${baseURL()}`)
-    startWeb()
-    await waitForWeb()
+    const web = startWeb()
+    await Promise.race([waitForWeb(), webExits(web)])
     log('ready')
   } catch (cause) {
     // globalTeardown does not run when setup fails: leave nothing behind.

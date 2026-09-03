@@ -12,6 +12,7 @@ import { useState } from 'react'
 
 import { conversationRoute } from '../../lib/routes'
 import { useEarth } from '../../lib/providers/RuntimeProvider'
+import { useSession } from '../../lib/providers/SessionProvider'
 import { useClaimGate } from '../shell/ClaimSheet'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -27,6 +28,7 @@ export interface ProfileActionsProps {
 
 export function ProfileActions({ profile }: ProfileActionsProps) {
   const earth = useEarth()
+  const session = useSession()
   const gate = useClaimGate()
   const router = useRouter()
   const toast = useToast()
@@ -35,6 +37,9 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
   const [messaging, setMessaging] = useState(false)
   const { relationship } = profile
   const friend = friendActionFor(relationship)
+  // Until the shell knows who is here (`me_get()`), no action is ready: a Human who taps in that
+  // window would be sent to the claim sheet they already came through (spec §43 is for Visitors).
+  const settling = session.status === 'loading'
 
   const message = async () => {
     if (!gate.requireHuman('profile')) return
@@ -69,6 +74,7 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
           <Button
             variant={friend === 'add' || friend === 'accept' ? 'primary' : 'secondary'}
             loading={actions.busy}
+            disabled={settling}
             aria-pressed={friend === 'friends'}
             onClick={() => {
               if (friend === 'add') void actions.addFriend()
@@ -80,14 +86,19 @@ export function ProfileActions({ profile }: ProfileActionsProps) {
           </Button>
           <Button
             variant="secondary"
-            disabled={actions.busy}
+            disabled={actions.busy || settling}
             aria-pressed={relationship.isFollowing}
             onClick={() => void actions.setFollow(!relationship.isFollowing)}
           >
             {relationship.isFollowing ? copy.profileActions.following : copy.profileActions.follow}
           </Button>
           {profile.canMessage ? (
-            <Button variant="secondary" loading={messaging} onClick={() => void message()}>
+            <Button
+              variant="secondary"
+              loading={messaging}
+              disabled={settling}
+              onClick={() => void message()}
+            >
               {copy.profileActions.message}
             </Button>
           ) : null}

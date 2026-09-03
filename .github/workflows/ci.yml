@@ -161,31 +161,24 @@ jobs:
         run: bash scripts/local-stack/fetch-binaries.sh
       - name: Install Playwright Chromium
         run: pnpm --filter @earth/e2e exec playwright install --with-deps chromium
-      - name: Start the local stack (recreates earth_local, GoTrue + earth migrations, seeds)
-        run: pnpm stack:up
       - name: Smoke-test the stack (anonymous sign-in JWT, PostgREST, email OTP through Mailpit)
-        run: EARTH_REQUIRE_STACK=1 pnpm exec vitest run scripts/local-stack/stack.test.ts
-      - name: Build the web app with the stack environment
+        # Its own stack, handed straight back: the journeys below start their own. Writes
+        # .local/stack.env, which the next step sources.
+        run: |
+          pnpm stack:up
+          EARTH_REQUIRE_STACK=1 pnpm exec vitest run scripts/local-stack/stack.test.ts
+          pnpm stack:down
+      - name: Playwright journeys (E2E 1-12)
+        # Exactly `pnpm e2e` as a developer runs it: e2e/global-setup.ts runs
+        # scripts/local-stack/up.sh, builds apps/web and starts it on EARTH_PORT_WEB (3000) with
+        # .local/stack.env + HUMAN_VERIFICATION_PROVIDER=mock APP_ENV=development, and
+        # global-teardown.ts stops both. E2E_EXTERNAL_STACK stays unset, so nothing here starts
+        # the stack or the web app itself. Sourcing the dotenv the step above wrote replaces this
+        # workflow's placeholder keys with the stack's real ones for the test process too.
         run: |
           set -a && source .local/stack.env && set +a
-          pnpm --filter earth-web build
-      - name: Start the web app (pid in .local/pids so `pnpm stack:down` stops it too)
-        run: |
-          set -a && source .local/stack.env && set +a
-          setsid pnpm --filter earth-web start --port "$EARTH_PORT_WEB" > .local/logs/e2e-web.log 2>&1 < /dev/null &
-          echo $! > .local/pids/web.pid
-          for _ in $(seq 1 60); do
-            curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health" && break
-            sleep 2
-          done
-          curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health"
-      - name: Playwright journeys
-        # The stack and the web app are already up: the harness must not start or stop them
-        # (e2e/global-setup.ts owns that only when E2E_EXTERNAL_STACK is unset).
-        run: |
-          set -a && source .local/stack.env && set +a
-          E2E_EXTERNAL_STACK=1 pnpm e2e
-      - name: Stop the stack
+          pnpm e2e
+      - name: Stop the stack (only reached when the run was interrupted before its own teardown)
         if: always()
         run: pnpm stack:down
       - name: Upload Playwright traces and stack logs

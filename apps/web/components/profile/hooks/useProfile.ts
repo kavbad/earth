@@ -11,6 +11,7 @@ import type { HumanId, ProfileDto, ReportReason } from '@earth/domain'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
+import { errorCode, isTransientFailure } from '../../../lib/errors'
 import { useAnalytics } from '../../../lib/providers/AnalyticsProvider'
 import { useEarth, useRuntime } from '../../../lib/providers/RuntimeProvider'
 import { useSession } from '../../../lib/providers/SessionProvider'
@@ -46,13 +47,18 @@ export function useProfile(handle: string, initial?: ProfileDto | null): Profile
     enabled,
     ...(initial === undefined || initial === null ? {} : { initialData: initial, staleTime: 0 }),
   })
+  // `/u/[handle]` seeds this query with an *anonymous* read of the public profile so a shared
+  // link previews (spec §43). When the viewer's own read then comes back with a settled answer —
+  // most of all `not_visible`, which is what a block on either side means (spec §21, §56) — that
+  // preview must not stand: the profile is not this viewer's to see.
+  const denied = query.isError && !isTransientFailure(errorCode(query.error))
   return {
-    profile: query.data,
+    profile: denied ? undefined : query.data,
     // `enabled` is only ever false while the shell settles, which is still a load in progress:
     // the screen shows its skeleton rather than a blank column (spec §107).
     loading: query.isPending,
-    failed: query.isError && query.data === undefined,
-    refreshFailed: query.isError && query.data !== undefined,
+    failed: denied || (query.isError && query.data === undefined),
+    refreshFailed: query.isError && query.data !== undefined && !denied,
     refresh: () => {
       void query.refetch()
     },
