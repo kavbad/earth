@@ -1,4 +1,5 @@
 import { type MessageDto, asConversationId, asHumanId, asMessageId } from '@earth/domain'
+import { parseRtcDiagnosticEvent } from '@earth/observability'
 import { describe, expect, it, vi } from 'vitest'
 
 import { REALTIME_TABLES, type RealtimeSubscriptionStatus } from './channel'
@@ -137,6 +138,18 @@ describe('reactionRowToChange', () => {
     // A row without the column (older payloads) is still accepted.
     expect(reactionRowToChange(base, 'removed', CONVERSATION_ID)).not.toBeNull()
   })
+
+  it('carries the conversation id from the row when present, else the expected one', () => {
+    const base = { message_id: M1, human_id: HUMAN_ID, reaction: '🔥' }
+    expect(
+      reactionRowToChange({ ...base, conversation_id: CONVERSATION_ID }, 'added'),
+    ).toMatchObject({ conversationId: CONVERSATION_ID })
+    expect(reactionRowToChange(base, 'removed', CONVERSATION_ID)).toMatchObject({
+      conversationId: CONVERSATION_ID,
+    })
+    // A malformed column is a malformed row.
+    expect(reactionRowToChange({ ...base, conversation_id: 'nope' }, 'added')).toBeNull()
+  })
 })
 
 describe('subscribeConversation — realtime path', () => {
@@ -198,7 +211,30 @@ describe('subscribeConversation — realtime path', () => {
     ])
     expect(received[1]?.[0].editedAt).toBe(ISO)
     expect(reactions.map((r) => r.change)).toEqual(['added', 'removed'])
+    // Every reaction event names the conversation, even when the payload lacks the column.
+    expect(reactions.map((r) => r.conversationId)).toEqual([CONVERSATION_ID, CONVERSATION_ID])
     expect(subscription.lastSeenMessageId()).toBe(M1)
+  })
+
+  it('reads the conversation id off DELETE payloads (replica identity full, 0280)', () => {
+    const { supabase, reactions } = setup()
+    const channel = supabase.latest()
+    channel.emitStatus('SUBSCRIBED')
+    channel.emitChange(REALTIME_TABLES.messageReactions, 'DELETE', {
+      message_id: M1,
+      human_id: HUMAN_ID,
+      reaction: '❤️',
+      conversation_id: CONVERSATION_ID,
+    })
+    expect(reactions).toEqual([
+      {
+        messageId: M1,
+        humanId: HUMAN_ID,
+        reaction: '❤️',
+        change: 'removed',
+        conversationId: CONVERSATION_ID,
+      },
+    ])
   })
 
   it('ignores rows from other conversations and catches up on unparsable rows', async () => {
@@ -281,6 +317,8 @@ describe('subscribeConversation — polling fallback', () => {
         code: 'join_timeout',
       },
     ])
+    // The emitted event is exactly what the diagnostics sink accepts (`@earth/observability`).
+    expect(parseRtcDiagnosticEvent(diagnostics.events[0])).toEqual(diagnostics.events[0])
 
     await clock.advanceAsync(2_000)
     expect(fetchSince).toHaveBeenCalledTimes(2)

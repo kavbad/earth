@@ -1,16 +1,16 @@
 /**
  * Small fakes shared by the tests: a recording diagnostics emitter and an in-memory outbox store.
  */
-import type { RealtimeDiagnosticEvent, RealtimeDiagnostics } from '../diagnostics'
+import type { RealtimeDiagnostics, RtcDiagnosticEvent, RtcDiagnosticKind } from '../diagnostics'
 import type { OutboxItem, OutboxStorage } from '../queue'
 
 export interface RecordingDiagnostics extends RealtimeDiagnostics {
-  readonly events: RealtimeDiagnosticEvent[]
-  kinds(): RealtimeDiagnosticEvent['kind'][]
+  readonly events: RtcDiagnosticEvent[]
+  kinds(): RtcDiagnosticKind[]
 }
 
 export function createRecordingDiagnostics(): RecordingDiagnostics {
-  const events: RealtimeDiagnosticEvent[] = []
+  const events: RtcDiagnosticEvent[] = []
   return {
     events,
     emit(event) {

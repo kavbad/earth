@@ -13,11 +13,15 @@
  * emits `realtime_recovered` when the channel joins again (with a final catch-up so the gap is
  * closed). Messages are deduplicated by id and delivered in the order the server returns them.
  *
- * `message_reactions` carries a denormalized `conversation_id` (DB_API §2) so its binding is
- * filtered by conversation like `messages`; rows that still name another conversation are dropped.
+ * `message_reactions` carries a denormalized `conversation_id` (set by trigger from the message,
+ * migration 0250; DB_API §2), so its binding uses the same `conversation_id=eq.<id>` filter as
+ * `messages`, and the table has `replica identity full` (0280) so a filtered DELETE still carries
+ * the column. Every `ReactionChangeEvent` names its `conversationId` — taken from the row and
+ * checked against the subscription; a row naming another conversation is dropped.
  */
 import {
   type ConversationId,
+  ConversationIdSchema,
   HumanIdSchema,
   type HumanId,
   type MessageDto,
@@ -55,6 +59,12 @@ export interface ReactionChangeEvent {
   readonly humanId: HumanId
   readonly reaction: string
   readonly change: ReactionChange
+  /**
+   * The conversation the reacted message belongs to. Always set on events delivered by
+   * `subscribeConversation` (from the row's `conversation_id`, else the subscription's); optional
+   * only so consumers that build events by hand (reducers, tests) need not supply it.
+   */
+  readonly conversationId?: ConversationId
 }
 
 export interface SubscribeConversationOptions {
@@ -129,7 +139,8 @@ export function messageRowToDto(row: Record<string, unknown>): MessageDto | null
 
 /**
  * Maps a `message_reactions` row to a change event; `null` when malformed or, when
- * `conversationId` is given and the row names one, from another conversation.
+ * `conversationId` is given and the row names one, from another conversation. The event's
+ * `conversationId` is the row's when present, else the expected one.
  */
 export function reactionRowToChange(
   row: Record<string, unknown>,
@@ -141,16 +152,21 @@ export function reactionRowToChange(
   const reaction = row['reaction']
   if (!messageId.success || !humanId.success) return null
   if (typeof reaction !== 'string' || reaction.length === 0) return null
+  let eventConversationId: ConversationId | undefined = conversationId
   const rowConversationId = row['conversation_id']
-  if (
-    conversationId !== undefined &&
-    rowConversationId !== undefined &&
-    rowConversationId !== null &&
-    rowConversationId !== conversationId
-  ) {
-    return null
+  if (rowConversationId !== undefined && rowConversationId !== null) {
+    const parsed = ConversationIdSchema.safeParse(rowConversationId)
+    if (!parsed.success) return null
+    if (conversationId !== undefined && parsed.data !== conversationId) return null
+    eventConversationId = parsed.data
   }
-  return { messageId: messageId.data, humanId: humanId.data, reaction, change }
+  return {
+    messageId: messageId.data,
+    humanId: humanId.data,
+    reaction,
+    change,
+    ...(eventConversationId === undefined ? {} : { conversationId: eventConversationId }),
+  }
 }
 
 // ---------------------------------------------------------------------------------------------

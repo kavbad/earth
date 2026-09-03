@@ -6,7 +6,8 @@
  * Everything here is dependency-injected: supabase-js and livekit-client are described
  * structurally (`RealtimeClientLike`, `RoomLike`), time comes from a `RealtimeClock`, and
  * diagnostics go to a `RealtimeDiagnostics` emitter (`createRtcDiagnostics` from
- * `@earth/observability` satisfies it). Fakes for tests live under `@earth/realtime/testing`.
+ * `@earth/observability` satisfies it; the event contract `RtcDiagnosticEvent` is imported from
+ * there, not mirrored). Fakes for tests live under `@earth/realtime/testing`.
  */
 export const PACKAGE_NAME = '@earth/realtime' as const
 

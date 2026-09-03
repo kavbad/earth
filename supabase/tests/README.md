@@ -110,6 +110,12 @@ instead; `src/gotrue.test.ts` runs GoTrue's real migration files in both orders 
 
 ## Test files
 
+Every `*.test.ts` under `src/` uses the harness above; each directory has a `fixtures.ts` that builds
+its actors (Humans, groups, rooms, areas) through the RPCs. Root files cover the foundation, the
+directories cover one tier each.
+
+Root (`src/`):
+
 - `enum-parity.test.ts` — the `public` enum types and `ENUM_REGISTRY` are the same list with
   identical ordered values, in both directions.
 - `shim.test.ts` — roles, `auth.uid()/role()/email()/jwt()` per caller, GoTrue-style uniqueness,
@@ -122,3 +128,52 @@ instead; `src/gotrue.test.ts` runs GoTrue's real migration files in both orders 
   on internal tables, extension placement and execute, owner-only rate-limit functions.
 - `harness.test.ts` — the harness itself (roles, claims, commit/rollback, rpc, expectError,
   cloning, isolation).
+
+Directories:
+
+- `admission/` — identity and social tier (01xx; DB_API §1–§2): the claim flow (spec §44–48), feature
+  flags and app settings (0006) plus identity RPCs, groups (spec §22–24, §47), conversation
+  membership RPCs (spec §25–26), the notifications primitive `earth.notify` (0190), the social graph
+  RPCs (spec §20–21, mirroring `packages/domain/src/social/rules.ts`) and the RLS matrix over every
+  admission table.
+- `analytics/` — analytics and metrics (08xx; DB_API §8): the event whitelist equals `EVENT_NAMES`,
+  `analytics_track` (identity from the credential, coordinates stripped, budgets),
+  `rtc_diagnostic_record`, `metrics_compute_daily` over a synthetic day, and the service-only RLS
+  matrix for `analytics_events`, `rtc_diagnostics`, `metrics_daily`.
+- `authz/` — launch-blocker authorization audits (spec §114): the execute-privilege matrix over every
+  `public` RPC, the authorization matrix over every `public` table (introspected, so an uncovered
+  table fails), schema/column/publication lockdown (0002, 0170, 0320, realtime), and permission-fixture
+  parity with `packages/permissions/fixtures/*.json` (DB_API §11).
+- `geo/` — areas, places, context and location (05xx; DB_API §5): `area_resolve` and area/place RPCs
+  (never storing coordinates), location sharing with precision degradation, blocks, expiry and the
+  `LOCATION_SHARING_ENABLED` flag, and the RLS matrix over the geo tables.
+- `map-search/` — `map_objects` (SCREEN 20: Lives pinned to Place or area centroid only, degraded
+  friend shares, moments, blocks, visitor World) and `search` (SCREEN 21: people ranking, blocked /
+  hidden / pending never appear, groups for members only, 60/min).
+- `messaging/` — conversations and messages (02xx; DB_API §2): message RPC invariants (idempotent
+  sends, keyset pages, blocks, unread state, tombstones, reactions, 60/min), conversation summaries
+  (SCREEN 08), message notifications (spec §86), system messages (`earth.system_message`, joins and
+  leaves on the invite and claim paths), grants + realtime publication and replica identity, and the
+  RLS matrix for `messages` / `message_reactions`.
+- `notifications/` — notification RPCs (06xx; DB_API §6): `notifications_list` priority ordering and
+  keyset pagination with the exact spec copy, read state, the push queue (`notifications_unsent`,
+  `notifications_mark_pushed`, `notifications_prune`, presence-aware skipping), blocked actors never
+  notifying, and the RLS matrix for `notifications` / `notification_cooldowns`.
+- `posts/` — posts and feed (04xx; DB_API §4): post RPCs (creation, area context, replies with
+  audience narrowing and reply policy, reactions, hides, soft delete, reply paging,
+  `earth.can_view_post`), `feed_candidates` / `public_feed` candidate pools per scope, and the RLS
+  matrix for the post tables.
+- `rooms/` — rooms, Guests and Live (03xx; DB_API §3): lifecycle (start, join, leave, moderator
+  transfer, grace-period end), visibility / consent / Live discovery (spec §58–60), Live
+  notifications and dedupe (spec §86–87), Guests and room invites (SCREEN 17–19), `activeRoom`
+  pointers on chats and groups (0350), and the RLS matrix over the room tables.
+- `safety/` — safety (07xx; DB_API §7): reports (every target type, severity, audit, 20/h), Guest
+  reports scoped to their own room, the reports RLS matrix, the rate-limit review (every mutating RPC
+  is limited; the 0730 inventory matches the sources) and block overrides across every surface
+  (spec §21, §56, §128).
+- `seed/` — the development fixtures of `supabase/seed` applied twice onto a fresh database: the
+  documented inventory, fixture Humans leaving every visitor surface in `production`, idempotency.
+- `verify/` — adversarial verification of the spec §128 invariant clusters: identity (Guest is not
+  Human, public identity is not Human identity, no silent second Human), rooms (Live is a Room
+  state, consent gating, admission, grants) and social (member ≠ friend, friend ≠ follow, blocks
+  override all discovery).

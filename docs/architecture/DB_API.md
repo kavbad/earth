@@ -53,9 +53,9 @@ created early and only their RPCs live in the later range:
 ### Helper functions
 
 - `earth.current_human_id()`, `earth.current_human()`, `earth.current_role_kind()` (ARCHITECTURE §4).
-- `earth.assert_human()` → returns active human id or raises `not_a_human` / `human_not_active`.
+- `earth.assert_human()` → returns the active Human id or raises `not_authenticated` (visitor), `not_a_human` (guest, claiming, service, or no Human row for the credential) or `human_not_active` (a Human whose `status` is not `active`) — 0160.
 - `earth.are_friends(a, b)`, `earth.is_following(a, b)`, `earth.shared_group_count(a, b)`, `earth.relation_to(viewer, other)` → `'self' | 'friend' | 'shared_group' | 'familiar' | 'other'`.
-- `earth.identity_json(human_id)` → `{humanId, displayName, handle, avatarUrl}` (avatar URL built from `avatars` bucket public path with `earth.public_media_url(media_id)`; base URL from `feature_flags`-adjacent table `app_settings(key, value)` with key `public_storage_base_url`).
+- `earth.identity_json(human_id)` → the full `PublicIdentityDto` `{humanId, displayName, handle, avatarUrl, bio, cityName, profileVisibility}` (0160) — a superset of the `{humanId, displayName, handle, avatarUrl}` first drafted here, so every RPC embedding an identity (`profile_get`, `me_get`, `post_json`, `blocks_list`, ...) satisfies the same schema. `avatarUrl` is built by `earth.public_media_url(media_id)` from the `avatars` bucket public path with the base URL from `app_settings(key, value)` key `public_storage_base_url`; `cityName` from `earth.identity_city_name(human_id)`. `earth.person_ref_json(human_id)` is the `{displayName, avatarUrl}` subset (`PersonRefDto`) for samples and participant lists.
 - `earth.flag(key)` boolean.
 
 ### RLS summary
@@ -106,6 +106,11 @@ created early and only their RPCs live in the later range:
 `message_reactions` — spec §28, plus a denormalized `conversation_id` (set by trigger from the message) so realtime subscriptions can filter by conversation; unique `(message_id, human_id, reaction)`.
 `message_reads` not needed; `conversation_members.last_read_message_id` per spec §55.
 
+### Helper functions
+
+- `earth.system_message(p_conversation_id uuid, p_text text, p_payload jsonb default '{}', p_actor_human_id uuid default null)` → `uuid` (0270): inserts a `type = 'system'` message whose sender is the acting Human — `p_actor_human_id`, else `payload.actorHumanId`, else the caller's Human (`invalid_input` when none) — and always writes `actorHumanId` into the payload. Unread counts, `conversations.last_message_at` and `groups.last_activity_at` follow from the insert trigger (0250); no notification is created. Errors: `conversation_not_found`; `invalid_input` for empty or > 4000-character text or a non-object payload. Owner/service only (never granted to API roles). The legacy `(p_conversation_id uuid, p_human_id uuid, p_text text)` overload from 0185 forwards to it; pass typed literals when both text and payload are literals, the two forms are otherwise ambiguous.
+- `earth.group_create_internal(human_id, label)` and `earth.group_invite_join_internal(human_id, token_hash)` (0185, 0275) are shared by `group_create` / `group_invite_join` and by `claim_complete`, so the group-anchored claim path produces the same membership, conversation membership, invite accounting and system messages as the Human path.
+
 ### RLS summary
 
 - `groups`: select if active member (any status ≠ left/removed) or the group appears in an invite preview via RPC (preview does not use table select). No client writes.
@@ -125,8 +130,8 @@ created early and only their RPCs live in the later range:
 | `group_invite_create(group_id, expires_in_seconds int, max_uses int)` | member (owners/moderators may set limits; members get default 30-day, unlimited) | Returns `GroupInviteCreateDto` with plaintext token once. Rate limited (spec §83). |
 | `group_invite_revoke(invite_id)` | owner/moderator | |
 | `group_invite_preview(token text)` | any | `GroupInvitePreviewDto`: group name, `memberCount`, up to 5 `sampleMembers` whose `profile_visibility='public'` (or friends of viewer when viewer is a Human), `alreadyMember`, `expired`. Never messages. Rate limited (visitors stricter). |
-| `group_invite_join(token text)` | human | Validates usability, inserts membership + conversation member, increments `use_count`, notification `group_invitation` to the joiner is **not** sent (they acted); a system message "<name> joined" is inserted; analytics-relevant: returns `{groupId, conversationId, isSecondGroup: boolean}` (true if the Human already had another active membership). |
-| `group_leave(group_id)` | member | Owner leaving transfers ownership to earliest moderator else earliest member; last member leaving archives the group (`status='archived'`). |
+| `group_invite_join(token text)` | human | Validates usability, inserts membership + conversation member, increments `use_count` (marking the invite `exhausted` when `max_uses` is reached), notification `group_invitation` to the joiner is **not** sent (they acted). The "<name> joined" system message (payload `{kind: 'member_joined', actorHumanId}`) is written by `earth.group_invite_join_internal` (0275), not by the RPC, so it also appears when `claim_complete` joins the group; it is skipped, and no use is counted, when the Human is already an active member (`alreadyMember: true`), and a member previously `removed` gets `join_not_allowed`. Returns `GroupJoinDto` `{groupId, conversationId, alreadyMember, isSecondGroup}` (`isSecondGroup` true if the Human already had another active membership). Rate limited 10/10min. |
+| `group_leave(group_id)` | member | Writes a "<name> left" system message (`{kind: 'member_left', actorHumanId}`, 0275) while the leaver is still a conversation member, then removes the conversation membership. Owner leaving transfers ownership to earliest moderator else earliest member; last member leaving archives the group (`status='archived'`). |
 | `group_member_remove(group_id, human_id)` | owner/moderator | Sets `removed`, removes conversation membership. |
 | `group_member_set_role(group_id, human_id, role)` | owner | Promote/demote moderator. |
 | `conversation_direct_get_or_create(other_human_id)` | human | Blocks → `blocked`. Returns `ConversationSummaryDto`. |
@@ -137,12 +142,12 @@ created early and only their RPCs live in the later range:
 | `messages_since(conversation_id, after_id uuid)` | member | Polling fallback; ascending, max 200. |
 | `message_send(conversation_id, client_id uuid, type message_type, text, payload jsonb, reply_to_message_id)` | member | Idempotent on `(conversation_id, sender, client_id)` (returns the existing `MessageDto`). Direct conversation with a block either way → `blocked`. Updates `conversations.last_message_at`, unread counts, `groups.last_activity_at`; creates `direct_message`/`group_message` notifications for members with `notification_level='all'` and `mute_state='none'` (payload has preview truncated to 120 chars). Rate limited 60/min. |
 | `message_edit(message_id, text)` / `message_delete(message_id)` | sender (moderators may delete in groups) | |
-| `message_reaction_toggle(message_id, reaction text)` | member | |
+| `message_reaction_toggle(message_id, reaction text)` | member | Toggles the caller's reaction (1–16 trimmed characters, else `invalid_input`) and returns the updated `MessageDto`. `message_not_found` for unknown, inaccessible or deleted messages. `blocked` in a direct conversation across a block **and**, in any conversation including a shared group, when the message's sender and the caller are blocked either way (spec §56: interactions with a blocked Human are suppressed even inside a shared group; the group's messages stay readable). Rate limited 120/min (0270). |
 | `conversation_mark_read(conversation_id, message_id)` | member | Sets `last_read_message_id`, zeroes unread. |
 | `conversation_set_prefs(conversation_id, mute_state, notification_level)` | member | |
 | `conversation_read_receipts(conversation_id)` | member | `[{humanId, lastReadMessageId}]` for "Seen by". |
 
-Realtime: `messages`, `message_reactions`, `conversation_members`, `conversations` in publication.
+Realtime (0280): `messages`, `message_reactions`, `conversation_members`, `conversations` are in the `supabase_realtime` publication. `messages` and `message_reactions` have `replica identity full`, so a filtered DELETE still carries the whole old row. Clients (`subscribeConversation` in `@earth/realtime`) bind both tables with `conversation_id=eq.<conversation_id>` — `message_reactions` carries that column exactly for this (see Tables) — and every reaction change event names its `conversationId`.
 
 ## 3. Rooms, Guests, Live (migrations 03xx)
 
@@ -153,12 +158,12 @@ Realtime: `messages`, `message_reactions`, `conversation_members`, `conversation
 `guest_sessions` — spec §34 plus `auth_user_id uuid` (anonymous auth user), `room_invite_id`.
 `room_invites` — spec §35 (+ `status`).
 `notification_cooldowns` — `recipient_human_id, room_id, last_sent_at, sends_in_window int default 1, notified_participant_ids uuid[]`, pk `(recipient_human_id, room_id)`. `sends_in_window` mirrors the `sendsInWindow` input of `shouldNotifyLive` in `packages/domain/src/notifications/dedupe.ts`; the SQL rule must produce the same decisions as that function (share the same scenarios in tests).
-`live_room_state` (view or materialized): active rooms with visibility ≥ friends, participant summaries, area ids — used by discovery.
+There is no `live_room_state` view (an earlier draft of this document named one; nothing was built). Live discovery reads `rooms` directly: `live_candidates` selects `status in ('starting', 'active')` rooms with `active_participant_count > 0`, applies the scope predicate and `earth.room_visible_to(room_id, viewer, area)` (0330); `feed_candidates` (0430) and `map_objects` (0590) reuse its items for Live cards and pins instead of a second visibility implementation.
 
 ### Helper functions
 
 - `earth.room_is_moderator(room_id, human_id)`, `earth.room_active_participant(room_id)` for caller (Human or Guest).
-- `earth.room_visible_to(room_id, viewer_human_id)` — applies visibility, blocks (blocked with any consenting camera/audio participant → not visible), group membership, friend graph union (spec §58), area for neighborhood/city, world.
+- `earth.room_visible_to(room_id, viewer_human_id, viewer_area_id uuid default null)` (0310, replaced in 0951) — live seats (`invited` / `waiting` / `active`) always see their room; a `removed` seat never does; blocked with any publishing participant → not visible (`earth.room_blocked_for`, spec §128); a former (`left`) seat keeps the room unless it is a live group room the viewer is no longer a member of; group members see their group's room. Beyond its own context only a live room is discoverable, never at `invited` / `group` visibility; visitors (`viewer_human_id` null) see `world` rooms only when `PUBLIC_LIVE_ENABLED`; a Human then passes as friend of a publisher (≥ `friends`), friend of a friend of a publisher (≥ `extended`, spec §58), for `world`, or for `neighborhood` / `city` by area match (`earth.room_area_matches`) against their `human_context` **or** `viewer_area_id` — the area the viewer is explicitly browsing, which `live_candidates(scope, area_id)` passes and which RLS and the single-room RPCs leave null.
 - `earth.room_evaluate_pending_visibility(room_id)` — applies `pending_visibility` when all active audio/camera Humans have consent ≥ pending; then creates Live notifications through `earth.notify_live(room_id)`.
 - `earth.notify_live(room_id)` — computes eligible recipients (union of friend graphs of consenting active Human participants, group members for group rooms, filtered by blocks and cooldowns) and inserts notifications with dedupe per spec §87.
 - `earth.room_end_internal(room_id, reason)` — sets status ended, `ended_at`, clears `groups.active_room_id` / `conversations.active_room_id`, marks participants `left`, expires guest sessions after grace.
@@ -216,14 +221,14 @@ RLS: `posts` select via `earth.can_view_post`; writes via RPC. `post_media` foll
 
 | RPC | Caller | Behavior |
 | --- | --- | --- |
-| `post_create(type post_type, text, audience audience, area_id, place_id, media uuid[] (media_objects), reply_policy, reshare_policy, parent_post_id)` | human | Validates text/media presence; replies: audience forced to `min(requested, root.audience)` and `reply_policy` of root honored (`reply_not_allowed`); neighborhood/city posts take `area_id` from `human_context` when null; never stores coordinates. Rate limited. Returns `PostDto`. |
+| `post_create(type post_type, text, audience audience, area_id, place_id, media uuid[] (media_objects), reply_policy, reshare_policy, parent_post_id, provenance media_provenance[] default null)` | human | Validates text/media presence; `media` must be the author's own `media_objects` in the `media` bucket with a supported content type, and `provenance[i]` labels `media[i]` (default `unknown`); `place_id` must be a public place or one the author created (else `invalid_input`); replies: audience forced to `min(requested, root.audience)` and `reply_policy` of root honored (`reply_not_allowed`); neighborhood/city posts take `area_id` from `human_context` when null; never stores coordinates. Rate limited. Returns `PostViewDto` (`earth.post_json`: `{post: PostDto, author: PublicIdentityDto, reactionCount, replyCount, myReaction, place, media}`), not a bare `PostDto`; the typed client's `posts.create` unwraps `.post`. |
 | `post_get(post_id)` | visible | `PostDto` with author, media, reactions, replies (first page). |
 | `post_delete(post_id)` | author | Soft delete. |
 | `post_reaction_set(post_id, reaction_type text null)` | human | Upsert/delete; notification none in V1 (likes appear lower; V1 skips push). |
 | `post_hide(post_id)` | human | |
-| `post_replies(post_id, cursor, limit)` | visible | |
+| `post_replies(post_id, cursor text default null, limit int default 20)` | visible | Direct replies (`parent_post_id = post_id`, `status = 'active'`, visible to the caller) oldest first, keyset on `(created_at, id)`. `cursor` is the previous page's `nextCursor`, i.e. the id of its last reply — anything that is not a reply of this post is `invalid_input`; `limit` is clamped to 1–100. Returns `{replies: PostViewDto[], nextCursor}`. |
 | `feed_candidates(scope audience, area_id uuid, snapshot_at timestamptz, limit int)` | any (visitor: world only) | Candidate pool per spec §64–69, already permission-filtered; returns `FeedCandidate[]` features (see `packages/domain/src/feed/candidates.ts`) plus rendering payloads (`PostDto` / live card fields). `limit` default 200. |
-| `public_feed(cursor, limit)` | visitor | Convenience wrapper over world candidates for SSR; ranking still in server tier. |
+| `public_feed(cursor timestamptz default null, limit int default 20)` | any (visitors, guests and claiming Humans need `PUBLIC_WORLD_ENABLED`; Humans need `WORLD_ENABLED`, else `feature_disabled`) | SSR convenience over the World pool: root `audience = 'world'` posts by active Humans (fixtures excluded when `app_settings.environment = 'production'`), permission-filtered (`earth.can_view_post`) with the caller's hides removed, newest first, keyset on `created_at` — `cursor` is the previous page's `nextCursor` (its oldest `createdAt`), **not** the ranked feed cursor of ARCHITECTURE §9. Returns the `feed_candidates` shape `{candidates, nextCursor, snapshotAt, scope: 'world', areaId: null, areaName: null}`; `limit` clamped to 1–100; ranking still happens in the server tier. |
 
 ## 5. Areas, places, location, map (migrations 05xx)
 
@@ -249,7 +254,7 @@ RLS: `posts` select via `earth.can_view_post`; writes via RPC. `post_media` foll
 
 ## 6. Notifications and presence (migrations 06xx)
 
-`notifications` — spec §40 (`type` = `notification_type` enum from domain). `earth.notify(recipient, type, actor, object_type, object_id, payload, priority)` skips blocked pairs and self. Realtime publication includes `notifications`.
+`notifications` — spec §40. `type` is the Postgres enum `earth.notification_type` (0190) whose values are exactly the domain's `NOTIFICATION_TYPES`; it lives in schema `earth`, not `public`, because `ENUM_REGISTRY` / `enum-parity.test.ts` mirror only the `public` enums and the domain carries notification types as a supplementary tuple. Clients read and filter the column with plain string literals (naming the type itself would need `USAGE` on `earth`). `earth.notify(recipient, type, actor, object_type, object_id, payload, priority)` skips blocked pairs and self. Realtime publication includes `notifications`.
 
 | RPC | Caller | Behavior |
 | --- | --- | --- |
