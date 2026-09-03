@@ -1,11 +1,8 @@
-import { APP_NAME } from '@earth/ui'
+import { redirect } from 'next/navigation'
 
-export default function HomePage() {
-  return (
-    <main className="flex min-h-screen flex-col">
-      <header className="flex h-14 items-center px-5">
-        <h1 className="text-lg font-semibold tracking-tight">{APP_NAME}</h1>
-      </header>
-    </main>
-  )
+import { ROUTES } from '../lib/routes'
+
+/** `/` is Home: the public World for Visitors, the person's radius for Humans (SCREEN 01/02). */
+export default function RootPage() {
+  redirect(ROUTES.home)
 }

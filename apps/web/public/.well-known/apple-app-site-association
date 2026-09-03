@@ -1,0 +1,30 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "APPLE_TEAM_ID.social.earth.app"
+        ],
+        "components": [
+          {
+            "/": "/g/*"
+          },
+          {
+            "/": "/live/*"
+          },
+          {
+            "/": "/@*"
+          },
+          {
+            "/": "/p/*"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "APPLE_TEAM_ID.social.earth.app"
+    ]
+  }
+}
