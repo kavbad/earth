@@ -1,0 +1,25 @@
+{
+  "name": "@earth/realtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Conversation/room/presence channel helpers with polling fallback, LiveKit connection helpers, RTC diagnostics.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/domain": "workspace:*",
+    "@supabase/supabase-js": "2.114.0",
+    "livekit-client": "2.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

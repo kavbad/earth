@@ -1,0 +1,26 @@
+{
+  "name": "@earth/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EarthClient: typed wrapper over supabase-js RPC/select/realtime/storage and fetch to the server tier.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/config": "workspace:*",
+    "@earth/domain": "workspace:*",
+    "@supabase/supabase-js": "2.114.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

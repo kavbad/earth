@@ -1,0 +1,18 @@
+{
+  "name": "@earth/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Playwright journeys (E2E 1-12) against the local stack.",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3"
+  }
+}

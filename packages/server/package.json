@@ -1,0 +1,34 @@
+{
+  "name": "@earth/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure server-tier handlers (token, webhooks, push, verification, feed, sweeps) with injected deps.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/analytics": "workspace:*",
+    "@earth/config": "workspace:*",
+    "@earth/domain": "workspace:*",
+    "@earth/observability": "workspace:*",
+    "@earth/permissions": "workspace:*",
+    "@sentry/node": "10.73.0",
+    "@supabase/supabase-js": "2.114.0",
+    "expo-server-sdk": "7.2.0",
+    "jose": "6.2.10",
+    "livekit-server-sdk": "2.18.0",
+    "posthog-node": "5.51.6",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

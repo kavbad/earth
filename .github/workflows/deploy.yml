@@ -1,0 +1,117 @@
+# Production deploy: hosted Supabase migrations, the Vercel web deploy and (on demand) an EAS
+# build. Runs on every push to main and manually via workflow_dispatch.
+#
+# Secrets referenced (configure them in the repository's "production" environment; none are
+# invented here — every name is the provider's own convention):
+#   SUPABASE_ACCESS_TOKEN  personal access token for the Supabase CLI
+#   SUPABASE_DB_PASSWORD   database password of the hosted project (supabase link / db push)
+#   SUPABASE_PROJECT_REF   project ref of the hosted project
+#   VERCEL_TOKEN           Vercel token (vercel pull / build / deploy)
+#   VERCEL_ORG_ID          Vercel team/org id the CLI expects when no .vercel/ folder is committed
+#   VERCEL_PROJECT_ID      Vercel project id of apps/web
+#   EXPO_TOKEN             Expo access token for `eas build`
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      database:
+        description: Push supabase/migrations to the hosted project (supabase db push)
+        type: boolean
+        default: true
+      web:
+        description: Deploy apps/web to Vercel (production)
+        type: boolean
+        default: true
+      mobile_build:
+        description: Run an EAS production build for apps/mobile
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# Every deploy target is reached with its own secret; the GitHub token only reads the checkout.
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+  EXPO_NO_TELEMETRY: '1'
+
+jobs:
+  database:
+    name: Supabase migrations
+    if: github.event_name == 'push' || inputs.database
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link the hosted project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Apply supabase/migrations (the shim in supabase/tests/sql is never pushed)
+        run: supabase db push
+
+  web:
+    name: Vercel deploy (apps/web)
+    # Migrations first so the app never runs ahead of the schema; skipped migrations are fine.
+    needs: [database]
+    if: >-
+      always()
+      && (needs.database.result == 'success' || needs.database.result == 'skipped')
+      && (github.event_name == 'push' || inputs.web)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull the production project settings and environment
+        run: pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build
+        run: pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy the prebuilt output
+        run: pnpm dlx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  mobile:
+    name: EAS production build (apps/mobile)
+    if: github.event_name == 'workflow_dispatch' && inputs.mobile_build
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: Queue the build (profile "production" in apps/mobile/eas.json)
+        working-directory: apps/mobile
+        run: eas build --non-interactive --profile production --platform all --no-wait

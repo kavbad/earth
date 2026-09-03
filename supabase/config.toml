@@ -1,0 +1,49 @@
+# Supabase project configuration for local tooling.
+# Hosted project settings (Auth providers, anonymous sign-ins, exposed schemas, storage buckets)
+# must match what is declared here; the local stack in scripts/local-stack mirrors these values.
+project_id = "earth"
+
+[api]
+enabled = true
+port = 54321
+# Only `public` is exposed. `earth` and `private` are internal (ARCHITECTURE.md §5).
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 200
+
+[db]
+port = 54322
+major_version = 16
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["earth://", "http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+# Guests are anonymous Supabase users (ARCHITECTURE.md §4).
+enable_anonymous_sign_ins = true
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+otp_length = 6
+otp_expiry = 600
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+
+[edge_runtime]
+# No Deno functions in V1 (docs/architecture/ADR-001-server-tier.md).
+enabled = false

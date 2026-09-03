@@ -1,0 +1,199 @@
+# Earth CI (ARCHITECTURE.md §15): lint, typecheck, format, unit tests, database tests against a
+# postgis service container, the Next.js build, the Expo export, and the Playwright journeys
+# against the local stack (scripts/local-stack).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here writes to the repository; the token only needs to read it.
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+  EXPO_NO_TELEMETRY: '1'
+  # Placeholder public/server environment for builds that never talk to a backend
+  # (@earth/config validates shape only; see .env.example).
+  NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+  NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+  NEXT_PUBLIC_LIVEKIT_URL: ws://localhost:7880
+  NEXT_PUBLIC_MAP_STYLE_URL: https://demotiles.maplibre.org/style.json
+  NEXT_PUBLIC_APP_ENV: development
+  NEXT_PUBLIC_WEB_ORIGIN: http://localhost:3000
+  EXPO_PUBLIC_SUPABASE_URL: http://localhost:54321
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+  EXPO_PUBLIC_API_BASE_URL: http://localhost:3000
+  EXPO_PUBLIC_LIVEKIT_URL: ws://localhost:7880
+  EXPO_PUBLIC_MAP_STYLE_URL: https://demotiles.maplibre.org/style.json
+  EXPO_PUBLIC_APP_ENV: development
+  EXPO_PUBLIC_WEB_ORIGIN: http://localhost:3000
+  APP_ENV: development
+  SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+  SUPABASE_JWT_SECRET: ci-placeholder-jwt-secret-with-at-least-32-chars
+  LIVEKIT_API_KEY: devkey
+  LIVEKIT_API_SECRET: secret
+  LIVEKIT_URL: ws://localhost:7880
+  HUMAN_VERIFICATION_PROVIDER: mock
+  INTERNAL_CRON_SECRET: ci-placeholder-cron-secret
+  ROOM_GRACE_SECONDS: '120'
+
+jobs:
+  check:
+    name: Lint, typecheck, format, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - name: Unit tests (workspace packages; db-tests, e2e and the Postgres-backed root scripts run in their own jobs)
+        run: pnpm turbo run test --filter=!@earth/db-tests --filter=!@earth/e2e
+
+  db:
+    name: Database tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      EARTH_TEST_ADMIN_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/earth_local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Root script tests (migration runner + local-stack helpers; need Postgres)
+        run: pnpm test:root
+      - name: Database tests (@earth/db-tests)
+        run: pnpm db:test
+
+  web-build:
+    name: Web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter earth-web build
+
+  mobile-export:
+    name: Mobile export
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter earth-mobile export:check
+
+  e2e:
+    name: E2E journeys (local stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [db]
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache local-stack binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            .local/bin
+            .local/gotrue
+          key: local-stack-${{ runner.os }}-${{ hashFiles('scripts/local-stack/fetch-binaries.sh') }}
+      - name: Fetch PostgREST, GoTrue, LiveKit and Mailpit
+        run: bash scripts/local-stack/fetch-binaries.sh
+      - name: Install Playwright Chromium
+        run: pnpm --filter @earth/e2e exec playwright install --with-deps chromium
+      - name: Start the local stack (recreates earth_local, GoTrue + earth migrations, seeds)
+        run: pnpm stack:up
+      - name: Smoke-test the stack (anonymous sign-in JWT, PostgREST, email OTP through Mailpit)
+        run: EARTH_REQUIRE_STACK=1 pnpm exec vitest run scripts/local-stack/stack.test.ts
+      - name: Build the web app with the stack environment
+        run: |
+          set -a && source .local/stack.env && set +a
+          pnpm --filter earth-web build
+      - name: Start the web app (pid in .local/pids so `pnpm stack:down` stops it too)
+        run: |
+          set -a && source .local/stack.env && set +a
+          setsid pnpm --filter earth-web start --port "$EARTH_PORT_WEB" > .local/logs/web.log 2>&1 < /dev/null &
+          echo $! > .local/pids/web.pid
+          for _ in $(seq 1 60); do
+            curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health" && break
+            sleep 2
+          done
+          curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health"
+      - name: Playwright journeys
+        run: |
+          set -a && source .local/stack.env && set +a
+          pnpm e2e
+      - name: Stop the stack
+        if: always()
+        run: pnpm stack:down
+      - name: Upload Playwright traces and stack logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+            .local/logs
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,25 @@
+{
+  "name": "@earth/observability",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ErrorMonitor interface, Sentry adapters and structured logger.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/domain": "workspace:*",
+    "@sentry/node": "10.73.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
