@@ -8,11 +8,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:clean": "tsx src/clean.ts"
   },
   "dependencies": {
     "dotenv": "17.4.2",
-    "pg": "8.23.0"
+    "pg": "8.23.0",
+    "@earth/domain": "workspace:*",
+    "@earth/permissions": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

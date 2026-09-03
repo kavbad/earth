@@ -25,6 +25,7 @@ import {
   createScratchDatabase,
   databaseUrl,
   dropDatabase,
+  runIdFromTemplate,
   scratchDatabaseName,
 } from './template'
 
@@ -77,8 +78,10 @@ export interface CreateTestDbOptions {
 export type RoleClient = pg.PoolClient
 
 export interface TestDb {
-  /** Scratch database name (`earth_test_scratch_...`). */
+  /** Scratch database name (`earth_ts_<run>_...`). */
   readonly name: string
+  /** Template this scratch database was cloned from (`earth_tt_<run>`). */
+  readonly template: string
   readonly url: string
   /** Superuser connection (no JWT, counts as the service). */
   readonly sql: pg.Client
@@ -165,7 +168,7 @@ const ERROR_CODE_RAISE_EXCEPTION = 'P0001'
 
 export async function createTestDb(options: CreateTestDbOptions = {}): Promise<TestDb> {
   const { adminUrl, template } = resolveContext(options)
-  const name = scratchDatabaseName()
+  const name = scratchDatabaseName(runIdFromTemplate(template) ?? undefined)
 
   const admin = await connectAdmin(adminUrl)
   try {
@@ -259,5 +262,5 @@ export async function createTestDb(options: CreateTestDbOptions = {}): Promise<T
     }
   }
 
-  return { name, url, sql, asRole, createAuthUser, rpc, expectError, drop }
+  return { name, template, url, sql, asRole, createAuthUser, rpc, expectError, drop }
 }

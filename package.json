@@ -28,7 +28,8 @@
     "stack:up:web": "bash scripts/local-stack/up.sh --with-web",
     "stack:down": "bash scripts/local-stack/down.sh",
     "stack:fetch": "bash scripts/local-stack/fetch-binaries.sh",
-    "stack:otp": "bash scripts/local-stack/otp.sh"
+    "stack:otp": "bash scripts/local-stack/otp.sh",
+    "db:test:clean": "pnpm --filter @earth/db-tests test:clean"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

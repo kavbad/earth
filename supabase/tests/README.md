@@ -21,12 +21,12 @@ Connection: `EARTH_TEST_ADMIN_URL` (a superuser URL to the maintenance database,
 
 What a run does:
 
-1. `src/vitest.globalSetup.ts` drops leftovers (`earth_test_scratch_*`), creates
-   `earth_test_template`, applies `sql/supabase_shim.sql` and every `supabase/migrations/*.sql`
+1. `src/vitest.globalSetup.ts` drops leftovers (`earth_ts_<run>_*`), creates
+   `earth_tt_<run>` (unique per run, so several runs can share one Postgres), applies `sql/supabase_shim.sql` and every `supabase/migrations/*.sql`
    with the same runner as `pnpm db:reset` (`scripts/db/migrate-lib.ts`, ledger in
    `public.earth_migrations`), then closes the template to connections.
 2. Every test file calls `createTestDb()` which clones the template
-   (`create database ... template earth_test_template`) into a uniquely named scratch database.
+   (`create database ... template earth_tt_<run>`) into a uniquely named scratch database.
    Files run in parallel in separate processes; scratch databases share nothing.
 3. Teardown drops the scratch databases and the template. A crashed run leaves databases behind;
    the next run removes them, or drop them by hand:

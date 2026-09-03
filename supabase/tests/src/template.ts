@@ -24,8 +24,34 @@ import {
 /** Superuser connection to the maintenance database; scratch databases are created next to it. */
 export const ADMIN_URL_ENV = 'EARTH_TEST_ADMIN_URL'
 export const DEFAULT_ADMIN_URL = 'postgres://postgres:postgres@127.0.0.1:5432/postgres'
-export const TEMPLATE_DATABASE = 'earth_test_template'
-export const SCRATCH_PREFIX = 'earth_test_scratch_'
+/** Base template name; each vitest run uses `runTemplateName()` so concurrent runs never collide. */
+export const TEMPLATE_DATABASE = 'earth_tt_base'
+export const TEMPLATE_PREFIX = 'earth_tt_'
+export const SCRATCH_PREFIX = 'earth_ts_'
+/** Every database name created by the harness starts with this (templates and scratch clones). */
+export const TEST_DATABASE_PREFIX = 'earth_t'
+
+const processRunId = `${Date.now().toString(36)}${process.pid.toString(36)}`
+
+/** Identifier shared by one vitest run: its template and every scratch clone carry it. */
+export function currentRunId(): string {
+  return process.env['EARTH_TEST_RUN_ID'] ?? processRunId
+}
+
+export function runTemplateName(runId = currentRunId()): string {
+  return `${TEMPLATE_PREFIX}${runId}`
+}
+
+/** The run id encoded in a template name, or null for a template not created by `runTemplateName`. */
+export function runIdFromTemplate(templateName: string): string | null {
+  return templateName.startsWith(TEMPLATE_PREFIX)
+    ? templateName.slice(TEMPLATE_PREFIX.length)
+    : null
+}
+
+export function scratchPrefixFor(runId: string): string {
+  return `${SCRATCH_PREFIX}${runId}_`
+}
 
 /** Keys handed from the global setup to test workers through vitest's provide/inject. */
 export const PROVIDED_ADMIN_URL = 'earthTestAdminUrl'
@@ -78,8 +104,9 @@ export async function dropDatabasesWithPrefix(admin: pg.Client, prefix: string):
 }
 
 /**
- * Drops leftovers from earlier runs, recreates the template, applies shim + migrations, then
- * closes the template to connections so clones never wait on a stray session.
+ * Recreates this run's template, applies shim + migrations, then closes the template to
+ * connections so clones never wait on a stray session. Other runs' databases are never touched
+ * (several test runs may share one Postgres); use `cleanupAllTestDatabases` for stale leftovers.
  */
 export async function buildTemplate(
   adminUrl: string,
@@ -88,10 +115,6 @@ export async function buildTemplate(
 ): Promise<MigrateDatabaseResult> {
   const admin = await connectAdmin(adminUrl)
   try {
-    const leftovers = await dropDatabasesWithPrefix(admin, SCRATCH_PREFIX)
-    if (leftovers.length > 0)
-      logger.info(`dropped ${leftovers.length} leftover scratch database(s)`)
-
     await resetDatabase(admin, templateName)
     await setDatabaseSearchPath(admin, templateName)
 
@@ -113,15 +136,26 @@ export async function buildTemplate(
   }
 }
 
-/** Drops every scratch database and the template. */
+/** Drops this run's scratch databases and its template; other runs are left alone. */
 export async function destroyTemplate(
   adminUrl: string,
   templateName = TEMPLATE_DATABASE,
 ): Promise<void> {
   const admin = await connectAdmin(adminUrl)
   try {
-    await dropDatabasesWithPrefix(admin, SCRATCH_PREFIX)
+    const runId = runIdFromTemplate(templateName)
+    await dropDatabasesWithPrefix(admin, runId === null ? SCRATCH_PREFIX : scratchPrefixFor(runId))
     await dropDatabase(admin, templateName)
+  } finally {
+    await admin.end()
+  }
+}
+
+/** Drops every harness database (all runs): for `pnpm db:test:clean` after crashed runs. */
+export async function cleanupAllTestDatabases(adminUrl: string): Promise<string[]> {
+  const admin = await connectAdmin(adminUrl)
+  try {
+    return await dropDatabasesWithPrefix(admin, TEST_DATABASE_PREFIX)
   } finally {
     await admin.end()
   }
@@ -129,13 +163,13 @@ export async function destroyTemplate(
 
 let scratchCounter = 0
 
-/** Unique (per process and per call) database name under the 63-byte identifier limit. */
-export function scratchDatabaseName(now = Date.now()): string {
+/** Unique (per run, process and call) database name under the 63-byte identifier limit. */
+export function scratchDatabaseName(runId = currentRunId()): string {
   scratchCounter += 1
   const random = Math.floor(Math.random() * 0xffff)
     .toString(16)
     .padStart(4, '0')
-  return `${SCRATCH_PREFIX}${now.toString(36)}_${process.pid}_${scratchCounter}_${random}`
+  return `${scratchPrefixFor(runId)}${process.pid.toString(36)}_${scratchCounter}_${random}`
 }
 
 export async function createScratchDatabase(

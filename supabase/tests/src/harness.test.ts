@@ -10,7 +10,7 @@ import {
   unwrapRpcResult,
   type TestDb,
 } from './harness'
-import { SCRATCH_PREFIX, TEMPLATE_DATABASE, scratchDatabaseName } from './template'
+import { SCRATCH_PREFIX, scratchDatabaseName } from './template'
 
 describe('pure helpers', () => {
   it('maps callers to database roles and claims', () => {
@@ -267,7 +267,7 @@ describe('createTestDb', () => {
       // The template stays pristine and closed to sessions, so clones never block on it.
       const template = await db.sql.query<{ datallowconn: boolean }>(
         'select datallowconn from pg_database where datname = $1',
-        [TEMPLATE_DATABASE],
+        [db.template],
       )
       expect(template.rows[0]?.datallowconn).toBe(false)
     } finally {

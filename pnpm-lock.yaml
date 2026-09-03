@@ -590,6 +590,12 @@ importers:
 
   supabase/tests:
     dependencies:
+      '@earth/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@earth/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       dotenv:
         specifier: 17.4.2
         version: 17.4.2

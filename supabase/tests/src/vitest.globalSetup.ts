@@ -11,30 +11,33 @@ import { REPO_ROOT } from '../../../scripts/db/migrate-lib'
 import {
   PROVIDED_ADMIN_URL,
   PROVIDED_TEMPLATE,
-  TEMPLATE_DATABASE,
   adminUrlFromEnv,
   buildTemplate,
   destroyTemplate,
+  runTemplateName,
 } from './template'
 
 let adminUrl: string | undefined
+const templateName = runTemplateName()
 
 export async function setup(project: TestProject): Promise<void> {
   loadDotenv({ path: path.join(REPO_ROOT, '.env'), quiet: true })
   adminUrl = adminUrlFromEnv()
   const started = Date.now()
-  const result = await buildTemplate(adminUrl, {
-    info: (message) => console.log(`[db-tests] ${message}`),
-  })
+  const result = await buildTemplate(
+    adminUrl,
+    { info: (message) => console.log(`[db-tests] ${message}`) },
+    templateName,
+  )
   console.log(
-    `[db-tests] template ${TEMPLATE_DATABASE} ready (shim ${result.shim}, ` +
+    `[db-tests] template ${templateName} ready (shim ${result.shim}, ` +
       `${result.migrations.applied.length} migrations) in ${Date.now() - started}ms`,
   )
   project.provide(PROVIDED_ADMIN_URL, adminUrl)
-  project.provide(PROVIDED_TEMPLATE, TEMPLATE_DATABASE)
+  project.provide(PROVIDED_TEMPLATE, templateName)
 }
 
 export async function teardown(): Promise<void> {
   if (adminUrl === undefined) return
-  await destroyTemplate(adminUrl)
+  await destroyTemplate(adminUrl, templateName)
 }
