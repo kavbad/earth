@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Conversation/room/presence channel helpers with polling fallback, LiveKit connection helpers, RTC diagnostics.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "lint": "eslint .",

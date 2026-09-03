@@ -5,7 +5,8 @@
   "type": "module",
   "description": "EarthClient: typed wrapper over supabase-js RPC/select/realtime/storage and fetch to the server tier.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "lint": "eslint .",

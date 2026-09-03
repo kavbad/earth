@@ -1,7 +1,12 @@
 /**
- * @earth/auth — Session helpers, claim-flow state machine and HumanVerificationProvider interface + adapters.
+ * @earth/auth — session helpers, the client-side claim-flow state machine, and the
+ * HumanVerificationProvider contract with its mock, manual-review and vendor adapters
+ * (ARCHITECTURE §2, §4, §6, §14; spec §15, PART IV, PART XII, §111).
  *
- * See docs/architecture/ARCHITECTURE.md §2/§3. Later changes add the real modules here;
- * keep this file as the single public entry point of the package.
+ * Single public entry point of the package.
  */
 export const PACKAGE_NAME = '@earth/auth' as const
+
+export * from './verification'
+export * from './session'
+export * from './claim'

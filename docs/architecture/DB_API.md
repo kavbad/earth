@@ -103,7 +103,7 @@ created early and only their RPCs live in the later range:
 `conversations` — spec §25 plus `active_room_id uuid`, `direct_key text unique` (sorted pair of human ids for direct conversations, `null` for group).
 `conversation_members` — spec §26 (`mute_state`: `none` | `muted`, `notification_level`: `all` | `mentions` | `none`), `unread_count int` maintained by trigger, `last_read_at`.
 `messages` — spec §27 plus `client_id uuid`, unique `(conversation_id, sender_human_id, client_id)`; `deleted_at` tombstone keeps `id`, `conversation_id`, `sender_human_id`, `reply_to_message_id`, `created_at`, sets `text=null`, `payload='{}'`.
-`message_reactions` — spec §28.
+`message_reactions` — spec §28, plus a denormalized `conversation_id` (set by trigger from the message) so realtime subscriptions can filter by conversation; unique `(message_id, human_id, reaction)`.
 `message_reads` not needed; `conversation_members.last_read_message_id` per spec §55.
 
 ### RLS summary
