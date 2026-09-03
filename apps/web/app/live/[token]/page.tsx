@@ -4,7 +4,7 @@
  * "Join as Guest" → name → in the room. Public and outside the member shell.
  */
 import { createEarthClient } from '@earth/api'
-import { type RoomInvitePreviewDto, EarthError } from '@earth/domain'
+import { type EarthErrorCode, type RoomInvitePreviewDto, EarthError } from '@earth/domain'
 import { APP_NAME } from '@earth/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -14,7 +14,9 @@ import { LiveOfflineNotice } from '../../../components/rooms/LiveOfflineNotice'
 import { roomCopy } from '../../../components/rooms/copy'
 import { previewTitle } from '../../../components/rooms/state/guestPreview'
 import { preconnectOrigin } from '../../../components/rooms/state/preconnect'
+import { LoadFailure } from '../../../components/shell/LoadFailure'
 import { webCopy } from '../../../lib/copy'
+import { isTransientFailure } from '../../../lib/errors'
 import { ROUTES } from '../../../lib/routes'
 import { loadWebPublicEnv } from '../../../lib/supabase/public-env'
 import { createSupabaseServerClient } from '../../../lib/supabase/server'
@@ -27,7 +29,7 @@ type PreviewResult =
       readonly preview: RoomInvitePreviewDto
       readonly livekitOrigin: string | null
     }
-  | { readonly ok: false; readonly code: string }
+  | { readonly ok: false; readonly code: EarthErrorCode }
 
 async function loadPreview(token: string): Promise<PreviewResult> {
   try {
@@ -58,13 +60,17 @@ export default async function GuestRoomPage({ params }: { params: Params }) {
         <link rel="preconnect" href={result.livekitOrigin} />
       ) : null}
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title tracking-tight">
+        <Link href={ROUTES.home} className="text-title">
           {APP_NAME}
         </Link>
       </div>
       <LiveOfflineNotice />
       {result.ok ? (
         <GuestRoom token={token} preview={result.preview} />
+      ) : isTransientFailure(result.code) ? (
+        // Spec §107/§110: the acquisition surface never tells a Guest the link is dead because
+        // one request failed — it says what happened and offers the room again.
+        <LoadFailure />
       ) : (
         <section className="fade-in flex flex-1 flex-col gap-4 py-8">
           <h1 className="text-title">{roomCopy.linkNotUsable}</h1>

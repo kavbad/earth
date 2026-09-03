@@ -172,7 +172,7 @@ jobs:
       - name: Start the web app (pid in .local/pids so `pnpm stack:down` stops it too)
         run: |
           set -a && source .local/stack.env && set +a
-          setsid pnpm --filter earth-web start --port "$EARTH_PORT_WEB" > .local/logs/web.log 2>&1 < /dev/null &
+          setsid pnpm --filter earth-web start --port "$EARTH_PORT_WEB" > .local/logs/e2e-web.log 2>&1 < /dev/null &
           echo $! > .local/pids/web.pid
           for _ in $(seq 1 60); do
             curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health" && break
@@ -180,9 +180,11 @@ jobs:
           done
           curl -sf "http://127.0.0.1:$EARTH_PORT_WEB/api/health"
       - name: Playwright journeys
+        # The stack and the web app are already up: the harness must not start or stop them
+        # (e2e/global-setup.ts owns that only when E2E_EXTERNAL_STACK is unset).
         run: |
           set -a && source .local/stack.env && set +a
-          pnpm e2e
+          E2E_EXTERNAL_STACK=1 pnpm e2e
       - name: Stop the stack
         if: always()
         run: pnpm stack:down

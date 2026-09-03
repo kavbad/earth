@@ -11,6 +11,7 @@ import {
   VISITOR_KEY,
   areaIdForScope,
   cityChoices,
+  feedIsLoading,
   feedOpenSource,
   feedQueryKey,
   feedUiReducer,
@@ -133,5 +134,22 @@ describe('city choices and Home helpers', () => {
     expect(shouldShowAddPeople({ isHuman: true, scope: 'world', friendCount: 0 })).toBe(false)
     expect(shouldShowAddPeople({ isHuman: false, scope: 'friends', friendCount: 0 })).toBe(false)
     expect(shouldShowAddPeople({ isHuman: true, scope: 'friends', friendCount: null })).toBe(false)
+  })
+})
+
+describe('feedIsLoading (spec §92, §107)', () => {
+  it('keeps the placeholder while the shell settles, so Home never claims the radius is empty', () => {
+    expect(feedIsLoading({ scopeOpen: true, shellReady: false, queryPending: true })).toBe(true)
+    // A query that has not been allowed to start reports `isPending`; so does a first fetch.
+    expect(feedIsLoading({ scopeOpen: true, shellReady: true, queryPending: true })).toBe(true)
+  })
+
+  it('stops once the first page has answered', () => {
+    expect(feedIsLoading({ scopeOpen: true, shellReady: true, queryPending: false })).toBe(false)
+  })
+
+  it('never loads a radius that is not open to this person', () => {
+    expect(feedIsLoading({ scopeOpen: false, shellReady: false, queryPending: true })).toBe(false)
+    expect(feedIsLoading({ scopeOpen: false, shellReady: true, queryPending: true })).toBe(false)
   })
 })

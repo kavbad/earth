@@ -19,7 +19,7 @@ import { type PostActionContext, usePostActions, useReaction } from './hooks/use
 import { postRoute } from './routes'
 
 const ACTION_CLASS =
-  'inline-flex min-h-touch-target items-center gap-1.5 rounded-small px-2 text-secondary text-text-secondary transition-colors duration-fast ease-standard hover:text-text-primary -ml-2 first:ml-0'
+  'inline-flex min-h-touch-target items-center gap-1 rounded-small px-2 text-secondary text-text-secondary transition-colors duration-fast ease-standard hover:text-text-primary -ml-2 first:ml-0'
 
 export interface PostActionsProps {
   readonly view: PostViewDto

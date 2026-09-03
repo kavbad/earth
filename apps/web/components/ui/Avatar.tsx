@@ -61,7 +61,7 @@ export function Avatar({
       {live ? (
         <span
           aria-hidden="true"
-          className="absolute right-0 bottom-0 size-2.5 rounded-avatar bg-live ring-2 ring-background"
+          className="absolute right-0 bottom-0 size-2 rounded-avatar bg-live ring-2 ring-background"
         />
       ) : null}
     </span>

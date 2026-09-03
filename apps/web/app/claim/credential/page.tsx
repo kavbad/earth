@@ -172,6 +172,7 @@ export default function ClaimCredentialPage() {
     <form onSubmit={sendCode} className="flex flex-col gap-4">
       <ClaimTitle>{title}</ClaimTitle>
       <SegmentedText
+        role="radiogroup"
         label={webCopy.signInMethod}
         options={METHOD_OPTIONS}
         value={method}

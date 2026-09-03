@@ -46,7 +46,7 @@ export function ScreenHeader({
           {leading !== undefined ? <div className="-ml-2 shrink-0">{leading}</div> : null}
           <div className="flex min-w-0 flex-1 flex-col">
             {title === undefined ? (
-              <h1 className="text-title tracking-tight">{APP_NAME}</h1>
+              <h1 className="text-title">{APP_NAME}</h1>
             ) : (
               <h1 className="truncate text-section">{title}</h1>
             )}

@@ -102,7 +102,7 @@ export const ReplyComposer = forwardRef<HTMLTextAreaElement, ReplyComposerProps>
               }}
               placeholder={postCopy.replyPlaceholder}
               enterKeyHint="send"
-              className="max-h-[136px] min-h-10 w-full resize-none rounded-medium bg-subtle-fill px-4 py-2 text-body text-text-primary placeholder:text-text-secondary"
+              className="max-h-[136px] min-h-touch-target w-full resize-none rounded-medium bg-subtle-fill px-4 py-2 text-body text-text-primary placeholder:text-text-secondary"
             />
           </label>
           <button

@@ -284,12 +284,7 @@ export function MessageBody(props: MessageBodyProps) {
   const { message, isMine, senderName } = props
   if (message.deletedAt !== null) {
     return (
-      <p
-        className={cx(
-          'text-secondary italic',
-          isMine ? 'text-background/80' : 'text-text-secondary',
-        )}
-      >
+      <p className={cx('text-secondary', isMine ? 'text-background/80' : 'text-text-secondary')}>
         {chatCopy.deletedMessage}
       </p>
     )

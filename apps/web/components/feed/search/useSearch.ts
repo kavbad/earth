@@ -7,7 +7,7 @@
  */
 import type { SearchResultsDto } from '@earth/domain'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useAnalytics } from '../../../lib/providers/AnalyticsProvider'
 import { useEarth, useRuntime } from '../../../lib/providers/RuntimeProvider'
@@ -37,6 +37,8 @@ export interface SearchController {
   readonly results: SearchResultsDto | undefined
   readonly searching: boolean
   readonly failed: boolean
+  /** Asks the same query again after a failed one (spec §110). */
+  retry(): void
 }
 
 export function useSearch(input: string): SearchController {
@@ -63,10 +65,16 @@ export function useSearch(input: string): SearchController {
     })
   }, [analytics, query, result.data])
 
+  const { refetch } = result
+  const retry = useCallback(() => {
+    void refetch()
+  }, [refetch])
+
   return {
     query,
     results: enabled ? result.data : undefined,
     searching: enabled && result.isPending,
     failed: enabled && result.isError && result.data === undefined,
+    retry,
   }
 }

@@ -16,12 +16,15 @@ import { useEarth } from '../../../lib/providers/RuntimeProvider'
 import { earthPlaceRoute } from '../../chats/routes'
 import { PostCard } from '../../posts/PostCard'
 import { profileRoute, SEARCH_QUERY_PARAM } from '../../profile/routes'
+import { LoadingState } from '../../shell/LoadingState'
 import { PageContainer } from '../../shell/PageContainer'
 import { ScreenHeader } from '../../shell/ScreenHeader'
 import { Avatar } from '../../ui/Avatar'
+import { Button } from '../../ui/Button'
 import { EmptyState } from '../../ui/EmptyState'
 import { Icon } from '../../ui/Icon'
 import { List, ListRow } from '../../ui/ListRow'
+import { SearchField } from '../../ui/SearchField'
 import { Spinner } from '../../ui/Spinner'
 import { useToast } from '../../ui/Toast'
 import { feedCopy } from '../copy'
@@ -144,22 +147,14 @@ export function SearchScreen() {
           </button>
         }
       >
-        <label className="relative block">
-          <span className="sr-only">{feedCopy.searchLabel}</span>
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary">
-            <Icon name="search" size="small" />
-          </span>
-          <input
-            type="search"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={feedCopy.searchPlaceholder}
-            autoComplete="off"
-            autoFocus
-            enterKeyHint="search"
-            className="min-h-touch-target w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-9 text-body text-text-primary placeholder:text-text-secondary"
-          />
-        </label>
+        <SearchField
+          label={feedCopy.searchLabel}
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder={feedCopy.searchPlaceholder}
+          autoFocus
+          enterKeyHint="search"
+        />
       </ScreenHeader>
       <PageContainer>
         {search.query === '' ? (
@@ -167,13 +162,23 @@ export function SearchScreen() {
             {feedCopy.searchHint}
           </p>
         ) : search.searching ? (
-          <div className="flex justify-center py-8">
-            <Spinner />
-          </div>
+          // Spec §107: a search started offline says so instead of spinning forever.
+          <LoadingState>
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
+          </LoadingState>
         ) : search.failed ? (
-          <p role="status" className="px-screen-margin py-4 text-secondary text-text-secondary">
-            {copy.couldntRefresh}
-          </p>
+          <LoadingState>
+            <div className="flex flex-col items-start gap-2 px-screen-margin py-4">
+              <p role="status" className="text-secondary text-text-secondary">
+                {copy.couldntRefresh}
+              </p>
+              <Button variant="quiet" onClick={search.retry}>
+                {webCopy.retry}
+              </Button>
+            </div>
+          </LoadingState>
         ) : results === undefined ? null : empty ? (
           <EmptyState title={feedCopy.noResults(search.query)} />
         ) : (

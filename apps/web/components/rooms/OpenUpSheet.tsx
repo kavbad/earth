@@ -90,7 +90,7 @@ function OptionRow<K extends string>({
         value={value}
         checked={checked}
         onChange={() => onSelect(value)}
-        className="mt-1.5 size-4 shrink-0 accent-(color:--earth-color-text-primary)"
+        className="mt-1 size-4 shrink-0 accent-(color:--earth-color-text-primary)"
       />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-body text-text-primary">

@@ -15,7 +15,7 @@ export function ClaimFrame({ children }: { readonly children: ReactNode }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)] pb-[calc(var(--earth-space-6)+env(safe-area-inset-bottom))]">
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title tracking-tight">
+        <Link href={ROUTES.home} className="text-title">
           {APP_NAME}
         </Link>
       </div>

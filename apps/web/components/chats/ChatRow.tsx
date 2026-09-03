@@ -86,7 +86,7 @@ function ChatRowView({ conversation, viewerId, now }: ChatRowProps) {
             {conversation.title}
           </span>
           {time.length > 0 ? (
-            <span className="shrink-0 text-meta font-normal text-text-secondary">{time}</span>
+            <span className="shrink-0 text-meta font-regular text-text-secondary">{time}</span>
           ) : null}
         </span>
         <span className="flex items-center gap-2">

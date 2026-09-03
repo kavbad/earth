@@ -31,7 +31,15 @@ function MediaItem({ item, authorName }: { item: PostMediaDto; authorName: strin
     )
   }
   if (item.mediaType === 'audio') {
-    return <audio src={item.url} controls preload="metadata" className="block w-full" />
+    return (
+      <audio
+        src={item.url}
+        controls
+        preload="metadata"
+        aria-label={postCopy.audioLabel(authorName)}
+        className="block w-full"
+      />
+    )
   }
   return (
     <img
@@ -57,7 +65,7 @@ export function PostMedia({ media, authorName, className }: PostMediaProps) {
     <div
       className={cx(
         'overflow-hidden rounded-medium',
-        single ? 'w-full' : 'grid grid-cols-2 gap-0.5',
+        single ? 'w-full' : 'grid grid-cols-2 gap-1',
         className,
       )}
     >

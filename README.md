@@ -98,6 +98,10 @@ pnpm stack:otp probe@earth.local  # print the latest 6-digit email code Mailpit 
 pnpm stack:down                   # stop every process (pids in .local/pids); the database stays
 ```
 
+`pnpm e2e` needs none of this by hand: the Playwright harness runs `up.sh`, builds and starts
+`apps/web`, then runs `down.sh` (`e2e/README.md`); `E2E_EXTERNAL_STACK=1 pnpm e2e` reuses a stack
+that is already up.
+
 `up.sh` writes `.local/stack.env` (dotenv) with everything the apps need — `NEXT_PUBLIC_*` and
 `EXPO_PUBLIC_*` pointing at the gateway (`http://localhost:54321`), the `anon` / `service_role`
 keys minted from the dev JWT secret (`scripts/local-stack/jwt.ts`), LiveKit dev keys, and

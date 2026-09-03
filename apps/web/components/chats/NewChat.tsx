@@ -18,6 +18,7 @@ import { useEarth } from '../../lib/providers/RuntimeProvider'
 import { useSession } from '../../lib/providers/SessionProvider'
 import { TAB_ROUTES } from '../../lib/routes'
 import { type KeyValueStorage, localStore, readJson, writeJson } from '../../lib/storage'
+import { LoadingState } from '../shell/LoadingState'
 import { PageContainer } from '../shell/PageContainer'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Avatar } from '../ui/Avatar'
@@ -25,6 +26,7 @@ import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Icon } from '../ui/Icon'
 import { List, ListRow } from '../ui/ListRow'
+import { SearchField } from '../ui/SearchField'
 import { Spinner } from '../ui/Spinner'
 import { ClaimToChat } from './ChatsList'
 import { chatCopy } from './copy'
@@ -90,6 +92,9 @@ export function NewChat() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<readonly SearchPersonDto[] | null>(null)
   const [searching, setSearching] = useState(false)
+  /** A search that failed says so (spec PART XX); it never becomes "Nobody by that name yet." */
+  const [searchFailed, setSearchFailed] = useState(false)
+  const [searchAttempt, setSearchAttempt] = useState(0)
   const [selected, setSelected] = useState<readonly Person[]>([])
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -125,6 +130,7 @@ export function NewChat() {
     setQuery(value)
     const empty = value.trim().length === 0
     setSearching(!empty)
+    setSearchFailed(false)
     if (empty) setResults(null)
   }
 
@@ -137,6 +143,7 @@ export function NewChat() {
         .query(q)
         .then((found) => {
           if (cancelled) return
+          setSearchFailed(false)
           setResults(found.people)
           analytics.track('search_performed', {
             queryLength: q.length,
@@ -144,7 +151,9 @@ export function NewChat() {
           })
         })
         .catch(() => {
-          if (!cancelled) setResults([])
+          if (cancelled) return
+          setSearchFailed(true)
+          setResults(null)
         })
         .finally(() => {
           if (!cancelled) setSearching(false)
@@ -154,7 +163,7 @@ export function NewChat() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, isHuman, earth, analytics])
+  }, [query, isHuman, earth, analytics, searchAttempt])
 
   const isSelected = (humanId: HumanId) => selected.some((person) => person.humanId === humanId)
   const toggle = (person: Person) => {
@@ -202,21 +211,13 @@ export function NewChat() {
         }
       >
         {isHuman ? (
-          <label className="relative block">
-            <span className="sr-only">{chatCopy.searchPeople}</span>
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary">
-              <Icon name="search" size="small" />
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder={chatCopy.searchPeople}
-              autoComplete="off"
-              autoFocus
-              className="min-h-10 w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-9 text-body text-text-primary placeholder:text-text-secondary"
-            />
-          </label>
+          <SearchField
+            label={chatCopy.searchPeople}
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder={chatCopy.searchPeople}
+            autoFocus
+          />
         ) : null}
       </ScreenHeader>
       <PageContainer className="flex flex-1 flex-col">
@@ -239,7 +240,7 @@ export function NewChat() {
                     type="button"
                     onClick={() => toggle(person)}
                     aria-label={chatCopy.removeFromSelection(person.displayName)}
-                    className="inline-flex min-h-8 items-center gap-1.5 rounded-avatar bg-subtle-fill py-1 pr-2 pl-1 text-secondary text-text-primary"
+                    className="inline-flex min-h-8 items-center gap-2 rounded-avatar bg-subtle-fill py-1 pr-2 pl-1 text-secondary text-text-primary"
                   >
                     <Avatar
                       name={person.displayName}
@@ -260,9 +261,29 @@ export function NewChat() {
               </p>
             ) : null}
             {searching ? (
-              <div className="flex justify-center py-6">
-                <Spinner />
-              </div>
+              <LoadingState>
+                <div className="flex justify-center py-6">
+                  <Spinner />
+                </div>
+              </LoadingState>
+            ) : searchFailed ? (
+              <LoadingState>
+                <div className="flex flex-col items-start gap-2 px-screen-margin py-4">
+                  <p role="status" className="text-secondary text-text-secondary">
+                    {copy.couldntRefresh}
+                  </p>
+                  <Button
+                    variant="quiet"
+                    onClick={() => {
+                      setSearchFailed(false)
+                      setSearching(true)
+                      setSearchAttempt((attempt) => attempt + 1)
+                    }}
+                  >
+                    {webCopy.retry}
+                  </Button>
+                </div>
+              </LoadingState>
             ) : results !== null && shown.length === 0 ? (
               <EmptyState title={chatCopy.noPeopleFound} />
             ) : (

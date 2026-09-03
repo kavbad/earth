@@ -3,5 +3,11 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["journeys", "playwright.config.ts"]
+  "include": [
+    "fixtures",
+    "journeys",
+    "global-setup.ts",
+    "global-teardown.ts",
+    "playwright.config.ts"
+  ]
 }

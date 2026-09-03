@@ -95,6 +95,7 @@ function ProfilePrivacy({
     <SettingsSection title={items.profile} hint={youCopy.profileVisibilityHint[visibility]}>
       <div className="flex flex-col gap-3 px-screen-margin">
         <SegmentedText
+          role="radiogroup"
           label={items.profile}
           options={PROFILE_VISIBILITY.map((option) => ({
             key: option,
@@ -136,6 +137,7 @@ function DefaultAudience({ humanId }: { humanId: string }) {
     <SettingsSection title={items.defaultPostAudience} hint={youCopy.defaultAudienceHint}>
       <div className="flex flex-col gap-2 px-screen-margin">
         <SegmentedText
+          role="radiogroup"
           label={copy.audience}
           options={AUDIENCE.map((option) => ({ key: option, label: copy.audiences[option] }))}
           value={audience}
@@ -169,6 +171,7 @@ function LiveDefaultsSection({ humanId }: { humanId: string }) {
         <div className="flex flex-col gap-1">
           <p className="text-secondary text-text-secondary">{youCopy.liveVisibility}</p>
           <SegmentedText
+            role="radiogroup"
             label={youCopy.liveVisibility}
             options={LIVE_VISIBILITY_CHOICES.map((option) => ({
               key: option,
@@ -182,6 +185,7 @@ function LiveDefaultsSection({ humanId }: { humanId: string }) {
         <div className="flex flex-col gap-1">
           <p className="text-secondary text-text-secondary">{copy.whoCanJoin}</p>
           <SegmentedText
+            role="radiogroup"
             label={copy.whoCanJoin}
             options={LIVE_JOIN_POLICY_CHOICES.map((option) => ({
               key: option,

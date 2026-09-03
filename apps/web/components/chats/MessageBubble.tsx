@@ -85,11 +85,7 @@ function MessageBubbleView({
 
   return (
     <div
-      className={cx(
-        'px-screen-margin',
-        startsGroup ? 'pt-3' : 'pt-0.5',
-        endsGroup ? 'pb-1' : 'pb-0',
-      )}
+      className={cx('px-screen-margin', startsGroup ? 'pt-3' : 'pt-1', endsGroup ? 'pb-1' : 'pb-0')}
     >
       {dayLabel !== null ? <DaySeparator label={dayLabel} /> : null}
       <div className={cx('group flex items-end gap-2', isMine ? 'flex-row-reverse' : 'flex-row')}>
@@ -110,7 +106,7 @@ function MessageBubbleView({
             {...longPress}
             className={cx(
               'relative rounded-medium transition-opacity duration-fast ease-standard',
-              wide ? 'p-1.5' : 'px-3 py-2',
+              wide ? 'p-1' : 'px-3 py-2',
               isMine ? 'bg-text-primary text-background' : 'bg-subtle-fill text-text-primary',
               message.status === 'pending' && 'opacity-70',
               message.status === 'failed' && 'opacity-60',
@@ -142,7 +138,7 @@ function MessageBubbleView({
             {message.editedAt !== null && message.deletedAt === null ? (
               <span
                 className={cx(
-                  'mt-0.5 block text-meta',
+                  'mt-1 block text-meta',
                   isMine ? 'text-background/70' : 'text-text-secondary',
                 )}
               >
@@ -155,7 +151,7 @@ function MessageBubbleView({
               onClick={() => onOpenActions(message)}
               className={cx(
                 'absolute top-0 flex size-8 items-center justify-center rounded-avatar bg-background text-text-secondary opacity-0 shadow-none transition-opacity duration-fast ease-standard hairline group-hover:opacity-100 focus-visible:opacity-100',
-                isMine ? '-left-9' : '-right-9',
+                isMine ? '-left-10' : '-right-10',
               )}
             >
               <Icon name="more" size="small" />
@@ -194,7 +190,7 @@ function MessageBubbleView({
               }}
               className="mt-1 flex items-center gap-1 text-meta text-danger"
             >
-              <span aria-hidden="true" className="size-1.5 rounded-avatar bg-danger" />
+              <span aria-hidden="true" className="size-2 rounded-avatar bg-danger" />
               {chatCopy.failedToSend} · {copy.tapToRetry}
             </button>
           ) : message.status === 'pending' ? (

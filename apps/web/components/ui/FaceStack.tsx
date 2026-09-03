@@ -45,7 +45,7 @@ export function FaceStack({
         />
       ))}
       {rest > 0 ? (
-        <span aria-hidden="true" className="ml-1.5 text-meta text-text-secondary">
+        <span aria-hidden="true" className="ml-1 text-meta text-text-secondary">
           +{rest}
         </span>
       ) : null}

@@ -73,7 +73,7 @@ export function PostCard({
         <p
           className={cx(
             'whitespace-pre-wrap break-words text-text-primary',
-            detail ? 'text-section font-normal' : 'text-body',
+            detail ? 'text-section font-regular' : 'text-body',
           )}
         >
           {text}

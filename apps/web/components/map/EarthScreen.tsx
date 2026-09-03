@@ -33,6 +33,7 @@ import { webCopy } from '../../lib/copy'
 import { errorCode } from '../../lib/errors'
 import { useAnalytics } from '../../lib/providers/AnalyticsProvider'
 import { useFlags } from '../../lib/providers/FlagsProvider'
+import { useOnline } from '../../lib/providers/OfflineProvider'
 import { useEarth, usePublicEnv, useRuntime } from '../../lib/providers/RuntimeProvider'
 import { useScope } from '../../lib/providers/ScopeProvider'
 import { useSession } from '../../lib/providers/SessionProvider'
@@ -177,6 +178,7 @@ interface EarthMapBodyProps extends EarthSheets {
 
 function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
   const { map, status } = useEarthMap()
+  const online = useOnline()
   const { runtime } = useRuntime()
   const earth = useEarth()
   const session = useSession()
@@ -514,7 +516,10 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-raised flex flex-col items-start gap-2 p-screen-margin">
-        {status === 'failed' ? <Notice>{mapCopy.mapFailed}</Notice> : null}
+        {status === 'failed' ? (
+          // Spec §107: a map that could not load because the device is offline says so.
+          <Notice>{online ? mapCopy.mapFailed : copy.waitingForConnection}</Notice>
+        ) : null}
         {publicWorldOff ? <Notice>{mapCopy.worldOff}</Notice> : null}
         {objects.isFetching && objects.data === undefined && !objects.isError ? <Spinner /> : null}
         {failure !== null && !needsLocation ? (

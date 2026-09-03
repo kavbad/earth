@@ -63,7 +63,7 @@ export function ParticipantTile({
           decorative
         />
       )}
-      <div className="absolute bottom-2 left-2 flex max-w-[calc(100%-var(--earth-space-4))] items-center gap-1 rounded-small bg-background/85 px-2 py-0.5 text-meta text-text-primary">
+      <div className="absolute bottom-2 left-2 flex max-w-[calc(100%-var(--earth-space-4))] items-center gap-1 rounded-small bg-background/85 px-2 py-1 text-meta text-text-primary">
         <span className="truncate">{label}</span>
         {participant.isGuest ? (
           <span className="shrink-0 text-text-secondary">{copy.guest}</span>

@@ -11,6 +11,7 @@ import { useEarth } from '../../lib/providers/RuntimeProvider'
 import { EmptyState } from '../ui/EmptyState'
 import { Icon } from '../ui/Icon'
 import { List, ListRow } from '../ui/ListRow'
+import { SearchField } from '../ui/SearchField'
 import { Sheet } from '../ui/Sheet'
 import { Spinner } from '../ui/Spinner'
 import { chatCopy } from './copy'
@@ -61,21 +62,13 @@ export function PlaceSheet({ open, onClose, onPick }: PlaceSheetProps) {
 
   return (
     <Sheet open={open} onClose={onClose} title={chatCopy.place} closeButton>
-      <label className="relative block">
-        <span className="sr-only">{chatCopy.searchPlaces}</span>
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary">
-          <Icon name="search" size="small" />
-        </span>
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={chatCopy.searchPlaces}
-          autoComplete="off"
-          autoFocus
-          className="min-h-touch-target w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-9 text-body text-text-primary placeholder:text-text-secondary"
-        />
-      </label>
+      <SearchField
+        label={chatCopy.searchPlaces}
+        value={query}
+        onChange={(event) => onQueryChange(event.target.value)}
+        placeholder={chatCopy.searchPlaces}
+        autoFocus
+      />
       <div className="-mx-screen-margin mt-2 min-h-[160px]">
         {searching ? (
           <div className="flex justify-center py-6">

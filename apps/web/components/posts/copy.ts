@@ -18,6 +18,7 @@ export const postCopy = {
   human: 'Human',
   photoAlt: (name: string): string => `Photo from ${name}`,
   videoLabel: (name: string): string => `Video from ${name}`,
+  audioLabel: (name: string): string => `Audio from ${name}`,
   replyingTo: (name: string): string => `Replying to ${name}`,
 
   // SCREEN 06 composer

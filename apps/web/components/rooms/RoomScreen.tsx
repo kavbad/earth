@@ -596,7 +596,9 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
       <MoreSheet
         open={sheet === 'more'}
         canModerate={moderator}
-        isGuest={false}
+        // Only a Human shares a room link or moderates it (SCREEN 18, §43): the controls already
+        // hide this sheet from Visitors and Guests, and the sheet refuses it a second time.
+        isGuest={!isHuman}
         guestsDisabled={room.guestsDisabled}
         shareUrl={shareUrl}
         busy={busy}

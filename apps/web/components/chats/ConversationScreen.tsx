@@ -346,30 +346,35 @@ function Thread({ controller }: { readonly controller: ConversationController })
       {connection.degraded ? (
         <div
           role="status"
-          className="bg-subtle-fill px-screen-margin py-1.5 text-center text-meta text-text-secondary"
+          className="bg-subtle-fill px-screen-margin py-2 text-center text-meta text-text-secondary"
         >
           {copy.waitingForConnection}
         </div>
       ) : null}
       <PageContainer className="flex min-h-0 flex-1 flex-col">
         {conversationStatus === 'error' ? (
-          <EmptyState
-            title={chatCopy.conversationUnavailable}
-            action={
-              <Button variant="secondary" onClick={controller.refreshConversation}>
-                {webCopy.retry}
-              </Button>
-            }
-          />
+          // Spec §107: offline this reads "Waiting for connection", not a verdict on the chat.
+          <LoadingState>
+            <EmptyState
+              title={chatCopy.conversationUnavailable}
+              action={
+                <Button variant="secondary" onClick={controller.refreshConversation}>
+                  {webCopy.retry}
+                </Button>
+              }
+            />
+          </LoadingState>
         ) : loadStatus === 'error' && messages.length === 0 ? (
-          <EmptyState
-            title={copy.couldntRefresh}
-            action={
-              <Button variant="secondary" onClick={controller.reload}>
-                {webCopy.retry}
-              </Button>
-            }
-          />
+          <LoadingState>
+            <EmptyState
+              title={copy.couldntRefresh}
+              action={
+                <Button variant="secondary" onClick={controller.reload}>
+                  {webCopy.retry}
+                </Button>
+              }
+            />
+          </LoadingState>
         ) : loadStatus === 'loading' || loadStatus === 'idle' ? (
           <LoadingState>
             <div className="flex flex-1 items-center justify-center py-16">

@@ -1,8 +1,11 @@
+'use client'
+
 import type { EarthErrorCode } from '@earth/domain'
 import { copy } from '@earth/ui'
 import Link from 'next/link'
 import type { Route } from 'next'
 
+import { useOnline } from '../../lib/providers/OfflineProvider'
 import { Button } from '../ui/Button'
 import { roomCopy } from './copy'
 
@@ -27,16 +30,32 @@ export interface RoomEndedProps {
   readonly onRetry?: () => void
 }
 
+/**
+ * What the closed room says. Spec §107: Live needs the network, and a room that could not be
+ * opened because the device cannot reach Earth says exactly that instead of implying the room
+ * itself is broken. The settled answers — ended, removed, not visible — do not depend on it.
+ */
+export function roomClosedLine(kind: RoomClosedKind, online: boolean): string {
+  switch (kind) {
+    case 'ended':
+      return roomCopy.roomEnded
+    case 'removed':
+      return roomCopy.removedFromRoom
+    case 'not_visible':
+      return roomCopy.roomNotVisible
+    case 'error':
+      return online ? roomCopy.couldntOpenRoom : copy.connectionUnavailable
+    default: {
+      const exhaustive: never = kind
+      throw new Error(`Unknown closed kind: ${String(exhaustive)}`)
+    }
+  }
+}
+
 /** The quiet end state: one line and a way back — never a giant error (spec §110 spirit). */
 export function RoomEnded({ kind, backHref, onRetry }: RoomEndedProps) {
-  const line =
-    kind === 'ended'
-      ? roomCopy.roomEnded
-      : kind === 'removed'
-        ? roomCopy.removedFromRoom
-        : kind === 'not_visible'
-          ? roomCopy.roomNotVisible
-          : roomCopy.couldntOpenRoom
+  const online = useOnline()
+  const line = roomClosedLine(kind, online)
   return (
     <div className="fade-in flex flex-1 flex-col items-start justify-center gap-4 px-screen-margin py-8">
       <p className="text-section">{line}</p>

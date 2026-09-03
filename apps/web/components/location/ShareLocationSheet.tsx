@@ -139,6 +139,7 @@ export function ShareLocationSheet({
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <SegmentedText
+              role="radiogroup"
               label={locationCopy.durationLabel}
               options={SHARE_DURATION_KINDS.map((option) => ({
                 key: option,
@@ -170,6 +171,7 @@ export function ShareLocationSheet({
           </div>
           <div className="flex flex-col gap-2">
             <SegmentedText
+              role="radiogroup"
               label={locationCopy.precisionLabel}
               options={LOCATION_PRECISION.map((option) => ({
                 key: option,

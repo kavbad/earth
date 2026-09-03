@@ -8,6 +8,7 @@ export const youCopy = {
   // SCREEN 24
   yourEarthLine: 'Your Moments around your home city.',
   posts: 'Posts',
+  videoAttachment: 'Video',
   noPostsYet: 'Nothing posted yet.',
   counts: (friends: number, followers: number, following: number): string =>
     `${friends} ${friends === 1 ? 'friend' : 'friends'} · ${followers} ${followers === 1 ? 'follower' : 'followers'} · ${following} following`,

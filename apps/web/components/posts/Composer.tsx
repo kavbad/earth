@@ -214,7 +214,7 @@ function ComposerForm({
               placeholder={replyTo === null ? postCopy.textPlaceholder : postCopy.replyPlaceholder}
               rows={5}
               autoFocus
-              className="min-h-40 w-full resize-none bg-transparent text-section font-normal text-text-primary placeholder:text-text-secondary"
+              className="min-h-40 w-full resize-none bg-transparent text-section font-regular text-text-primary placeholder:text-text-secondary"
             />
           </label>
 
@@ -231,6 +231,7 @@ function ComposerForm({
                       muted
                       playsInline
                       preload="metadata"
+                      aria-hidden="true"
                       className="size-full object-cover"
                     />
                   ) : (

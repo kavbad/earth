@@ -7,7 +7,7 @@
  * other radius and every action opens the claim sheet (spec §43).
  */
 import { FeatureFlag } from '@earth/config'
-import { copy } from '@earth/ui'
+import { copy, space } from '@earth/ui'
 import { useEffect, useMemo, useReducer, useRef } from 'react'
 
 import { useAnalytics } from '../../lib/providers/AnalyticsProvider'
@@ -40,6 +40,9 @@ import {
   shouldShowAddPeople,
   viewerKeyFor,
 } from './state/feed'
+
+/** The pull-to-refresh indicator's height — one 8 pt step, from the spacing scale (§91). */
+const PULL_INDICATOR_HEIGHT = space[10]
 
 export function HomeFeed() {
   const session = useSession()
@@ -126,7 +129,11 @@ export function HomeFeed() {
             role="status"
             className="flex items-center justify-center overflow-hidden transition-[height] duration-fast ease-standard"
             style={{
-              height: feed.refreshing ? 40 : pull.offset > 0 ? Math.min(pull.offset, 40) : 0,
+              height: feed.refreshing
+                ? PULL_INDICATOR_HEIGHT
+                : pull.offset > 0
+                  ? Math.min(pull.offset, PULL_INDICATOR_HEIGHT)
+                  : 0,
             }}
           >
             {feed.refreshing ? (
@@ -152,7 +159,7 @@ export function HomeFeed() {
                   <button
                     type="button"
                     onClick={refreshManually}
-                    className="min-h-8 rounded-small px-2 text-secondary text-text-primary"
+                    className="min-h-touch-target rounded-small px-2 text-secondary text-text-primary"
                   >
                     {feedCopy.refresh}
                   </button>

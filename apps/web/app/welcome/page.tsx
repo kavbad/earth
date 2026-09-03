@@ -67,7 +67,7 @@ export default function WelcomePage() {
         aria-hidden="true"
         className="fade-in size-3 rounded-avatar bg-earth-accent [animation-duration:var(--earth-duration-slow)]"
       />
-      <div className="fade-in flex flex-col items-center gap-4 [animation-delay:120ms]">
+      <div className="fade-in flex flex-col items-center gap-4 [animation-delay:var(--earth-duration-fast)]">
         <h1 className="text-display">{copy.youreOnEarth}</h1>
         {identity !== null ? (
           <div className="flex flex-col items-center gap-3">
@@ -81,7 +81,7 @@ export default function WelcomePage() {
           </div>
         ) : null}
       </div>
-      <div className="fade-in w-full [animation-delay:240ms]">
+      <div className="fade-in w-full [animation-delay:var(--earth-duration-slow)]">
         <Button variant="primary" fullWidth onClick={enter} loading={group.isLoading}>
           {label}
         </Button>

@@ -11,7 +11,14 @@ import { useCallback, useMemo } from 'react'
 
 import { useEarth, useRuntime } from '../../../lib/providers/RuntimeProvider'
 import { useSession } from '../../../lib/providers/SessionProvider'
-import { FEED_QUERY_KEY, type FeedView, feedQueryKey, feedView, viewerKeyFor } from '../state/feed'
+import {
+  FEED_QUERY_KEY,
+  type FeedView,
+  feedIsLoading,
+  feedQueryKey,
+  feedView,
+  viewerKeyFor,
+} from '../state/feed'
 
 export interface FeedController {
   readonly scope: Scope
@@ -43,7 +50,10 @@ export function useFeed(options: UseFeedOptions): FeedController {
   const { runtime } = useRuntime()
   const session = useSession()
   const viewerKey = viewerKeyFor(session.humanId)
-  const enabled = options.enabled && runtime !== null && session.status === 'ready'
+  // The runtime is built in the first client render and the session resolves just after it: until
+  // both have settled the query cannot run, and the screen must keep its placeholder.
+  const shellReady = runtime !== null && session.status === 'ready'
+  const enabled = options.enabled && shellReady
   const queryKey = feedQueryKey(options.scope, options.areaId, viewerKey)
 
   const query = useInfiniteQuery<
@@ -79,7 +89,11 @@ export function useFeed(options: UseFeedOptions): FeedController {
   return {
     scope: options.scope,
     view,
-    loading: enabled && query.isPending,
+    loading: feedIsLoading({
+      scopeOpen: options.enabled,
+      shellReady,
+      queryPending: query.isPending,
+    }),
     failed: query.isError && query.data === undefined,
     refreshFailed: query.isError && query.data !== undefined,
     refreshing: query.isRefetching && !query.isFetchingNextPage,

@@ -19,7 +19,7 @@ function TabLink({ tab, active, rail }: { tab: Tab; active: boolean; rail: boole
         'flex items-center justify-center gap-3 transition-colors duration-fast ease-standard',
         rail
           ? 'h-touch-target w-full justify-start rounded-medium px-3 hover:bg-subtle-fill'
-          : 'h-full flex-1 flex-col gap-0.5',
+          : 'h-full flex-1 flex-col gap-1',
         active ? 'text-text-primary' : 'text-text-secondary',
       )}
     >
@@ -38,7 +38,7 @@ export function BottomNav() {
       aria-label={webCopy.mainNavigation}
       className="fixed inset-x-0 bottom-0 z-sticky bg-background pb-[env(safe-area-inset-bottom)] hairline-t rail:hidden"
     >
-      <div className="mx-auto flex h-16 max-w-[680px]">
+      <div className="mx-auto flex h-16 max-w-content">
         {TABS.map((tab) => (
           <TabLink key={tab} tab={tab} active={current === tab} rail={false} />
         ))}
@@ -56,7 +56,7 @@ export function LeftRail() {
       aria-label={webCopy.mainNavigation}
       className="sticky top-0 hidden h-dvh w-[200px] shrink-0 flex-col gap-1 px-3 pt-4 rail:flex"
     >
-      <Link href={ROUTES.home} className="mb-4 px-3 text-title tracking-tight">
+      <Link href={ROUTES.home} className="mb-4 px-3 text-title">
         {APP_NAME}
       </Link>
       {TABS.map((tab) => (

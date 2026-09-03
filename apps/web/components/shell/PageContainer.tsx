@@ -9,7 +9,7 @@ export interface PageContainerProps {
   readonly className?: string | undefined
 }
 
-export const CONTENT_MAX_WIDTH_CLASS = 'max-w-[680px]' as const
+export const CONTENT_MAX_WIDTH_CLASS = 'max-w-content' as const
 
 export function PageContainer({ children, fullBleed = false, className }: PageContainerProps) {
   return (

@@ -82,14 +82,17 @@ export function PostDetail({ postId, initial }: PostDetailProps) {
       <PageContainer className="flex flex-1 flex-col">
         {detail === undefined ? (
           post.failed ? (
-            <EmptyState
-              title={postCopy.postUnavailable}
-              action={
-                <Button variant="quiet" onClick={post.refresh}>
-                  {webCopy.retry}
-                </Button>
-              }
-            />
+            // Spec §107: offline this reads "Waiting for connection", not "post unavailable".
+            <LoadingState>
+              <EmptyState
+                title={postCopy.postUnavailable}
+                action={
+                  <Button variant="quiet" onClick={post.refresh}>
+                    {webCopy.retry}
+                  </Button>
+                }
+              />
+            </LoadingState>
           ) : (
             <LoadingState>
               <DetailSkeleton />
@@ -113,7 +116,7 @@ export function PostDetail({ postId, initial }: PostDetailProps) {
               <h2 className="px-screen-margin pt-4 pb-1 text-section">
                 {copy.replies}
                 {detail.replyCount > 0 ? (
-                  <span className="ml-2 text-secondary font-normal text-text-secondary">
+                  <span className="ml-2 text-secondary font-regular text-text-secondary">
                     {detail.replyCount}
                   </span>
                 ) : null}

@@ -71,7 +71,7 @@ export function NotificationRow({ row, onSeen, onAccept, onOpen }: NotificationR
 
   const body = (
     <>
-      <span className="shrink-0 pt-0.5">{faces}</span>
+      <span className="shrink-0 pt-1">{faces}</span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span
           className={cx(
@@ -85,7 +85,7 @@ export function NotificationRow({ row, onSeen, onAccept, onOpen }: NotificationR
         {row.body !== '' ? (
           <span className="truncate text-secondary text-text-secondary">{row.body}</span>
         ) : null}
-        <span className="mt-0.5 inline-flex items-center gap-2 text-meta text-text-secondary">
+        <span className="mt-1 inline-flex items-center gap-2 text-meta text-text-secondary">
           {isLive ? <LiveMark /> : null}
           <span>{relativeTime(row.createdAt)}</span>
         </span>
@@ -101,7 +101,7 @@ export function NotificationRow({ row, onSeen, onAccept, onOpen }: NotificationR
       <div className="flex shrink-0 items-center self-center">
         <Button
           variant="primary"
-          className="min-h-10 px-4 text-secondary"
+          className="min-h-touch-target px-4 text-secondary"
           onClick={() => void onAccept(row, actorHumanId)}
         >
           {feedCopy.accept}

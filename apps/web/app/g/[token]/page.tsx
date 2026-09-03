@@ -4,14 +4,16 @@
  * the join-group claim flow; Humans join and open the conversation; members just open it.
  */
 import { createEarthClient } from '@earth/api'
-import { type GroupInvitePreviewDto, EarthError } from '@earth/domain'
+import { type EarthErrorCode, type GroupInvitePreviewDto, EarthError } from '@earth/domain'
 import { APP_NAME, copy, participantSummary } from '@earth/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { LoadFailure } from '../../../components/shell/LoadFailure'
 import { OfflineBanner } from '../../../components/shell/OfflineBanner'
 import { FaceStack } from '../../../components/ui/FaceStack'
 import { webCopy } from '../../../lib/copy'
+import { isTransientFailure } from '../../../lib/errors'
 import { ROUTES } from '../../../lib/routes'
 import { loadWebPublicEnv } from '../../../lib/supabase/public-env'
 import { createSupabaseServerClient } from '../../../lib/supabase/server'
@@ -21,7 +23,7 @@ export const dynamic = 'force-dynamic'
 
 type PreviewResult =
   | { readonly ok: true; readonly preview: GroupInvitePreviewDto }
-  | { readonly ok: false; readonly code: string }
+  | { readonly ok: false; readonly code: EarthErrorCode }
 
 async function loadPreview(token: string): Promise<PreviewResult> {
   try {
@@ -53,7 +55,7 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title tracking-tight">
+        <Link href={ROUTES.home} className="text-title">
           {APP_NAME}
         </Link>
       </div>
@@ -83,6 +85,9 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
             expired={result.preview.expired}
           />
         </section>
+      ) : isTransientFailure(result.code) ? (
+        // Spec §107/§110: a hiccup between here and Earth never claims the invite is gone.
+        <LoadFailure />
       ) : (
         <section className="fade-in flex flex-1 flex-col gap-4 py-8">
           <h1 className="text-title">{webCopy.inviteNotFound}</h1>

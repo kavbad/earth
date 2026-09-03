@@ -6,9 +6,11 @@ import type { ReactNode } from 'react'
 import { useOnline } from '../../lib/providers/OfflineProvider'
 
 /**
- * Spec §107: a first load that cannot start because the device is offline says
- * "Waiting for connection" instead of a skeleton that never resolves. Cached content is not
- * affected — screens only reach this while they have nothing to show yet.
+ * Spec §107: while the device cannot reach Earth, a screen with nothing to show says
+ * "Waiting for connection" — never a skeleton that will not resolve, and never a generic error
+ * that blames the content ("This conversation isn't available") for a missing network. Wrap the
+ * first-load placeholder and the failure that replaces it; cached content is not affected,
+ * because screens only reach this while they have nothing to show yet.
  */
 export function LoadingState({ children }: { readonly children: ReactNode }) {
   const online = useOnline()

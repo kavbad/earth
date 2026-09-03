@@ -4,6 +4,7 @@ import { GUEST_DISPLAY_NAME_MAX } from '@earth/domain'
 import { copy } from '@earth/ui'
 import type { FormEvent } from 'react'
 
+import { useOnline } from '../../lib/providers/OfflineProvider'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'
 import { CameraPreview } from './CameraPreview'
@@ -20,18 +21,24 @@ export interface GuestNameStepProps {
   readonly onSubmit: () => void
 }
 
+/**
+ * The line under "Your name" after a failed join. Spec §107: Live needs the network, and a device
+ * that cannot reach Earth is told exactly that instead of being asked to try again into nothing.
+ */
+export function guestJoinErrorLine(error: GuestFlowError | null, online: boolean): string | null {
+  if (error === 'name_missing') return roomCopy.guestNameMissing
+  if (error === null) return null
+  return online ? roomCopy.guestJoinFailed : copy.connectionUnavailable
+}
+
 /** SCREEN 17 second step: "Your name", an optional camera preview, "Join". Nothing else. */
 export function GuestNameStep(props: GuestNameStepProps) {
+  const online = useOnline()
   const submit = (event: FormEvent) => {
     event.preventDefault()
     props.onSubmit()
   }
-  const errorLine =
-    props.error === 'name_missing'
-      ? roomCopy.guestNameMissing
-      : props.error === 'join_failed'
-        ? roomCopy.guestJoinFailed
-        : null
+  const errorLine = guestJoinErrorLine(props.error, online)
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <TextField

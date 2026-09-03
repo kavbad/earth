@@ -48,7 +48,9 @@ export function useProfile(handle: string, initial?: ProfileDto | null): Profile
   })
   return {
     profile: query.data,
-    loading: enabled && query.isPending,
+    // `enabled` is only ever false while the shell settles, which is still a load in progress:
+    // the screen shows its skeleton rather than a blank column (spec §107).
+    loading: query.isPending,
     failed: query.isError && query.data === undefined,
     refreshFailed: query.isError && query.data !== undefined,
     refresh: () => {

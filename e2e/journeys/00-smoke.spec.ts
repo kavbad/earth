@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-import { HEALTH_PATH } from '../playwright.config'
+import { copy } from '../fixtures/copy'
+import { GATEWAY_HEALTH_PATH, HEALTH_PATH, gatewayURL } from '../fixtures/stack'
 
 test.describe('smoke', () => {
   test('web server answers /api/health with a ready server tier', async ({ request }) => {
@@ -15,8 +16,13 @@ test.describe('smoke', () => {
     })
   })
 
+  test('the local stack gateway answers for GoTrue', async ({ request }) => {
+    const response = await request.get(`${gatewayURL()}${GATEWAY_HEALTH_PATH}`)
+    expect(response.ok()).toBe(true)
+  })
+
   test('home page renders the wordmark', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'earth' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: copy.wordmark })).toBeVisible()
   })
 })

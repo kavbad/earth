@@ -91,14 +91,17 @@ export function ProfileScreen({ handle, initial }: ProfileScreenProps) {
       <PageContainer>
         {profile === undefined ? (
           failed ? (
-            <EmptyState
-              title={profileCopy.profileUnavailable}
-              action={
-                <Button variant="quiet" onClick={refresh}>
-                  {webCopy.retry}
-                </Button>
-              }
-            />
+            // Spec §107: offline this reads "Waiting for connection", not "profile unavailable".
+            <LoadingState>
+              <EmptyState
+                title={profileCopy.profileUnavailable}
+                action={
+                  <Button variant="quiet" onClick={refresh}>
+                    {webCopy.retry}
+                  </Button>
+                }
+              />
+            </LoadingState>
           ) : loading ? (
             <LoadingState>
               <ProfileSkeleton />

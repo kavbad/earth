@@ -118,7 +118,7 @@ export function Composer({
           role="status"
           className="flex items-center gap-2 px-screen-margin pt-2 text-meta text-text-secondary"
         >
-          <Spinner label={chatCopy.uploading} className="size-3.5" />
+          <Spinner label={chatCopy.uploading} className="size-4" />
           <span>{chatCopy.uploading}</span>
         </div>
       ) : null}
@@ -183,7 +183,7 @@ export function Composer({
               disabled={disabled}
               placeholder={copy.messagePlaceholder}
               enterKeyHint={touch ? 'enter' : 'send'}
-              className="max-h-[136px] min-h-10 w-full resize-none rounded-medium bg-subtle-fill px-4 py-2 text-body text-text-primary placeholder:text-text-secondary disabled:opacity-50"
+              className="max-h-[136px] min-h-touch-target w-full resize-none rounded-medium bg-subtle-fill px-4 py-2 text-body text-text-primary placeholder:text-text-secondary disabled:opacity-50"
             />
           </label>
           {hasText ? (

@@ -9,10 +9,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <span
       aria-hidden="true"
-      className={cx(
-        'block rounded-small bg-subtle-fill animate-[earth-skeleton_1.6s_ease-in-out_infinite]',
-        className,
-      )}
+      className={cx('skeleton-pulse block rounded-small bg-subtle-fill', className)}
     />
   )
 }

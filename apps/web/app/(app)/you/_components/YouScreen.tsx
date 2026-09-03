@@ -216,7 +216,7 @@ export function YouScreen() {
                             />
                           ) : (
                             <span key={media.id} className="text-meta text-text-secondary">
-                              {media.mediaType}
+                              {youCopy.videoAttachment}
                             </span>
                           ),
                         )}

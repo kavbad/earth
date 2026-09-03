@@ -91,6 +91,15 @@
   }
 }
 
+/*
+ * Placeholder pulse. An ambient loop rather than a transition, so it is deliberately slower than
+ * the 180-300 ms range of §95 - but it is still derived from the motion tokens, never a literal.
+ */
+@utility skeleton-pulse {
+  animation: earth-skeleton calc(var(--earth-duration-slow) * 5) var(--earth-easing-standard)
+    infinite;
+}
+
 @keyframes earth-skeleton {
   0%,
   100% {
@@ -101,9 +110,11 @@
   }
 }
 
-/* Layout breakpoint of the member shell: bottom navigation below, a slim left rail from here up. */
+/* Layout constants of the web shell: the rail breakpoint, and the reading width feeds, chats and
+ * headers share (`max-w-content`). The map and other full-bleed surfaces opt out. */
 @theme {
   --breakpoint-rail: 900px;
+  --container-content: 680px;
 }
 
 @utility hairline {

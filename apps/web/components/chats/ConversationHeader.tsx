@@ -96,7 +96,7 @@ export function ConversationHeader({
         {activeRoom !== null && liveCount > 0 ? (
           <Link
             href={roomRoute(activeRoom.roomId)}
-            className="flex min-h-10 items-center gap-2 pb-2 text-secondary text-text-primary"
+            className="flex min-h-touch-target items-center gap-2 pb-2 text-secondary text-text-primary"
           >
             <span aria-hidden="true" className="size-2 rounded-avatar bg-live" />
             <span>{copy.liveJoinLine(liveCount)}</span>

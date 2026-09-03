@@ -19,6 +19,7 @@ import { ScreenHeader } from '../shell/ScreenHeader'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Icon } from '../ui/Icon'
+import { SearchField } from '../ui/SearchField'
 import { List } from '../ui/ListRow'
 import { Skeleton } from '../ui/Skeleton'
 import { Spinner } from '../ui/Spinner'
@@ -110,20 +111,12 @@ export function ChatsList() {
         }
       >
         {isHuman ? (
-          <label className="relative block">
-            <span className="sr-only">{chatCopy.searchChats}</span>
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary">
-              <Icon name="search" size="small" />
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={copy.search}
-              autoComplete="off"
-              className="min-h-10 w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-9 text-body text-text-primary placeholder:text-text-secondary"
-            />
-          </label>
+          <SearchField
+            label={chatCopy.searchChats}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={copy.search}
+          />
         ) : null}
       </ScreenHeader>
       <PageContainer>

@@ -22,7 +22,7 @@ export function ComposeEntry({ scope }: { readonly scope: Scope }) {
       className="flex min-h-touch-target items-center gap-3 px-screen-margin py-3 transition-colors duration-fast ease-standard hover:bg-subtle-fill"
     >
       <Avatar name={session.identity.displayName} src={session.identity.avatarUrl} decorative />
-      <span className="flex min-h-10 flex-1 items-center rounded-medium bg-subtle-fill px-4 text-body text-text-secondary">
+      <span className="flex min-h-touch-target flex-1 items-center rounded-medium bg-subtle-fill px-4 text-body text-text-secondary">
         {feedCopy.composeEntry}
       </span>
     </Link>

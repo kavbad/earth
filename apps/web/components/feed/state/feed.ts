@@ -81,6 +81,22 @@ export function feedView(
   return { presence, cards, areaName: pages[0]?.areaName ?? null }
 }
 
+/**
+ * Whether the Home list shows its placeholder instead of a verdict about the radius (spec §92:
+ * an empty state only when it is meaningful; §107: never a dead end while nothing is known).
+ * The shell builds its runtime in the first client render and resolves the session just after,
+ * so a query that has not been allowed to start yet is still a load in progress.
+ */
+export function feedIsLoading(input: {
+  /** The radius is open to this person (not gated by a flag or the claim gate). */
+  readonly scopeOpen: boolean
+  /** The runtime exists and the session has resolved. */
+  readonly shellReady: boolean
+  readonly queryPending: boolean
+}): boolean {
+  return input.scopeOpen && (!input.shellReady || input.queryPending)
+}
+
 // ---------------------------------------------------------------------------
 // UI state that follows the person across radii
 // ---------------------------------------------------------------------------

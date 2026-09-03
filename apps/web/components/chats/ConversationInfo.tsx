@@ -249,11 +249,7 @@ function GroupNameEditor({
 }
 
 function SectionTitle({ children }: { readonly children: string }) {
-  return (
-    <h2 className="px-screen-margin pt-6 pb-2 text-meta text-text-secondary uppercase tracking-wide">
-      {children}
-    </h2>
-  )
+  return <h2 className="px-screen-margin pt-6 pb-2 text-meta text-text-secondary">{children}</h2>
 }
 
 interface InfoBodyProps {
@@ -612,7 +608,7 @@ function InfoBody({ conversation, group, groupLoading, refetchGroup, viewerId }:
             {chatCopy.mediaEmpty}
           </p>
         ) : (
-          <ul className="grid grid-cols-3 gap-0.5 px-screen-margin">
+          <ul className="grid grid-cols-3 gap-1 px-screen-margin">
             {mediaMessages.slice(0, 30).map(({ message, media }) => (
               <li
                 key={message.id}
