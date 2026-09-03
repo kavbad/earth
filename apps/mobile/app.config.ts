@@ -72,7 +72,14 @@ const config = ({ config: base }: ConfigContext): ExpoConfig => ({
           'Earth uses your location to show what is happening around you and to share it with people you choose.',
       },
     ],
-    'expo-notifications',
+    [
+      'expo-notifications',
+      {
+        // Android: a push lands on `messages` unless the server names `live` or `social`;
+        // the app creates all three channels before it registers a token (lib/push.ts).
+        defaultChannel: 'messages',
+      },
+    ],
     [
       'expo-image-picker',
       {

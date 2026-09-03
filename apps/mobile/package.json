@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "export:check": "expo export --platform ios --output-dir .expo-export-check"
+    "export:check": "expo export --platform ios --output-dir .expo-export-check",
+    "export:check:android": "expo export --platform android --output-dir .expo-export-check"
   },
   "dependencies": {
     "@earth/analytics": "workspace:*",

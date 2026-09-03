@@ -1,0 +1,128 @@
+/**
+ * Chat microcopy for moments the spec leaves unnamed (accessible names, sheet lines, empty
+ * states). Everything the spec quotes for SCREEN 08–12 and PART XX comes from `@earth/ui`'s
+ * `copy` (`copy.chats`, `copy.newChat`, `copy.messagePlaceholder`, `copy.composerActions`,
+ * `copy.groupInfo`, `copy.tapToRetry`, `copy.waitingForConnection`, ...) and is never restated
+ * here. The strings match the web client's `components/chats/copy.ts` character for character so
+ * both clients read the same.
+ */
+import { shellCopy } from '../../lib/copy'
+
+export const chatCopy = {
+  // Shell-level words, read from the shell so both surfaces say the same thing.
+  back: shellCopy.back,
+  close: shellCopy.close,
+  retry: shellCopy.retry,
+  somethingWrong: shellCopy.somethingWrong,
+  inviteMembers: shellCopy.inviteMembers,
+
+  // SCREEN 08
+  noChatsYet: 'No chats yet.',
+  searchChats: 'Search chats',
+  unread: (count: number): string => (count === 1 ? '1 unread' : `${count} unread`),
+  you: 'You',
+  live: 'live',
+
+  // SCREEN 09
+  searchPeople: 'Search people on Earth',
+  recent: 'Recent',
+  noPeopleFound: 'Nobody by that name yet.',
+  startChat: 'Start chat',
+  selected: 'Selected',
+  removeFromSelection: (name: string): string => `Remove ${name}`,
+
+  // SCREEN 10–11
+  openInfo: 'Conversation info',
+  loadOlder: 'Earlier messages',
+  send: 'Send',
+  attach: 'Add',
+  voiceMessage: 'Voice message',
+  stopRecording: 'Stop and send',
+  cancelRecording: 'Cancel',
+  recording: 'Recording',
+  startVideo: 'Start video',
+  joinVideo: 'Join video',
+  microphoneUnavailable: "Couldn't use the microphone.",
+  uploading: 'Uploading…',
+  uploadFailed: "That didn't upload.",
+  messageActions: 'Message actions',
+  react: 'React',
+  replyTo: (name: string): string => `Replying to ${name}`,
+  cancelReply: 'Cancel reply',
+  deleteMessage: 'Delete',
+  copyText: 'Copy text',
+  textCopied: 'Text copied',
+  deletedMessage: 'Message deleted',
+  edited: 'edited',
+  sending: 'Sending',
+  failedToSend: "Didn't send",
+  discard: 'Discard',
+  seenBy: (names: string): string => `Seen by ${names}`,
+  typing: (names: string): string => `${names} typing…`,
+  active: (names: string): string => `${names} active`,
+  imageAlt: (senderName: string): string => `Photo from ${senderName}`,
+  videoLabel: (senderName: string): string => `Video from ${senderName}`,
+  audioLabel: (senderName: string): string => `Voice message from ${senderName}`,
+  play: 'Play',
+  pause: 'Pause',
+  fileFallback: 'File',
+  download: 'Download',
+  openFile: 'Open',
+  poll: 'Poll',
+  votes: (count: number): string => (count === 1 ? '1 vote' : `${count} votes`),
+  pollQuestion: 'Question',
+  pollOption: (index: number): string => `Option ${index}`,
+  addOption: 'Add option',
+  removeOption: (index: number): string => `Remove option ${index}`,
+  createPoll: 'Create poll',
+  place: 'Place',
+  searchPlaces: 'Search places',
+  noPlacesFound: 'No places by that name.',
+  openOnEarth: 'Open on Earth',
+  hereBody: 'Sharing where you are happens on Earth, for a set time — never forever.',
+  couldntSendVisitor: 'Chats are for people on Earth.',
+  conversationUnavailable: "This conversation isn't available.",
+  noMessagesYet: 'Say hello.',
+  photosPermission: 'Earth needs access to your photos to send them.',
+
+  // SCREEN 12
+  info: 'Info',
+  groupName: 'Group name',
+  save: 'Save',
+  changePhoto: 'Change photo',
+  member: 'Member',
+  owner: 'Owner',
+  moderator: 'Moderator',
+  friend: 'Friend',
+  viewProfile: 'View profile',
+  demoteModerator: 'Remove as moderator',
+  newInviteLink: 'New link',
+  copyLink: 'Copy link',
+  linkCopied: 'Link copied',
+  revoke: 'Revoke',
+  invitesEmpty: 'No active links.',
+  inviteUses: (count: number, max: number | null): string =>
+    max === null ? `${count} used` : `${count} of ${max} used`,
+  expires: (when: string): string => `Expires ${when}`,
+  neverExpires: 'Never expires',
+  mediaEmpty: 'Photos and videos shared here will show up.',
+  searchNote: 'Searches messages loaded on this device.',
+  noMatches: 'No matches.',
+  leaveConfirm: (name: string): string => `Leave ${name}?`,
+  leaveBody: "You'll stop seeing messages. Someone can bring you back with a link.",
+  removeConfirm: (name: string): string => `Remove ${name}?`,
+  muted: 'Muted',
+  notMuted: 'On',
+  notificationLevels: {
+    all: 'All messages',
+    mentions: 'Mentions only',
+    none: 'None',
+  },
+  locationOff: 'Not sharing',
+  shareOnEarth: 'Share from Earth',
+  noPlan: 'No plan yet.',
+  today: 'Today',
+  yesterday: 'Yesterday',
+} as const
+
+export type ChatCopy = typeof chatCopy

@@ -1,26 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Redirect } from 'expo-router'
 
-import { APP_NAME } from '@earth/ui'
+import { ROUTES } from '@/lib/routes'
 
+/** `/` is Home: the public World for Visitors, the person's radius for Humans (SCREEN 01/02). */
 export default function IndexScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.wordmark}>{APP_NAME}</Text>
-    </View>
-  )
+  return <Redirect href={ROUTES.home} />
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordmark: {
-    fontSize: 24,
-    fontWeight: '600',
-    letterSpacing: -0.5,
-    color: '#111111',
-  },
-})
