@@ -24,7 +24,8 @@
     "jose": "6.2.10",
     "livekit-server-sdk": "2.18.0",
     "posthog-node": "5.51.6",
-    "zod": "4.5.4"
+    "zod": "4.5.4",
+    "@earth/auth": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

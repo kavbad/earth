@@ -16,7 +16,8 @@
   "dependencies": {
     "@earth/domain": "workspace:*",
     "@supabase/supabase-js": "2.114.0",
-    "livekit-client": "2.22.2"
+    "livekit-client": "2.22.2",
+    "@earth/observability": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

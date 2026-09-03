@@ -10,7 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "fixtures:generate": "tsx scripts/generate-fixtures.ts"
   },
   "dependencies": {
     "@earth/domain": "workspace:*",

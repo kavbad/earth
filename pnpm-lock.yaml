@@ -411,9 +411,15 @@ importers:
       '@earth/api':
         specifier: workspace:*
         version: link:../api
+      '@earth/config':
+        specifier: workspace:*
+        version: link:../config
       '@earth/domain':
         specifier: workspace:*
         version: link:../domain
+      '@earth/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@supabase/supabase-js':
         specifier: 2.114.0
         version: 2.114.0(@opentelemetry/api@1.9.1)
@@ -506,6 +512,9 @@ importers:
       '@earth/domain':
         specifier: workspace:*
         version: link:../domain
+      '@earth/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@supabase/supabase-js':
         specifier: 2.114.0
         version: 2.114.0(@opentelemetry/api@1.9.1)
@@ -528,6 +537,9 @@ importers:
       '@earth/analytics':
         specifier: workspace:*
         version: link:../analytics
+      '@earth/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@earth/config':
         specifier: workspace:*
         version: link:../config

@@ -1,0 +1,5398 @@
+{
+  "object": "post",
+  "description": "earth.can_view_post: audience × relation × block × area context × caller kind × status; replies gated by the root audience; hides never deny a direct fetch.",
+  "cases": [
+    {
+      "name": "visitor · friends post active",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · friends post removed",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · reply in friends thread",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · neighborhood post active",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · neighborhood post removed",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · reply in neighborhood thread",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · city post active",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · city post removed",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · reply in city thread",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · world post active",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "visitor · world post removed",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · reply in world thread",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "visitor · world post while PUBLIC_WORLD_ENABLED off",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false,
+      "flags": {
+        "publicWorldEnabled": false
+      }
+    },
+    {
+      "name": "guest · friends post active",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · friends post removed",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · reply in friends thread",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · neighborhood post active",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · neighborhood post removed",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · reply in neighborhood thread",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · city post active",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · city post removed",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · reply in city thread",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · world post active",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "guest · world post removed",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · reply in world thread",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "guest · world post while PUBLIC_WORLD_ENABLED off",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false,
+      "flags": {
+        "publicWorldEnabled": false
+      }
+    },
+    {
+      "name": "claiming · friends post active",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · friends post removed",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · reply in friends thread",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · neighborhood post active",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · neighborhood post removed",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · reply in neighborhood thread",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · city post active",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · city post removed",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · reply in city thread",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · world post active",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "claiming · world post removed",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · reply in world thread",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "claiming · world post while PUBLIC_WORLD_ENABLED off",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false,
+      "flags": {
+        "publicWorldEnabled": false
+      }
+    },
+    {
+      "name": "human self · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · elsewhere · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same city · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · friends post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · friends post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · neighborhood post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · neighborhood post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · city post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · city post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · world post active",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · same neighborhood · world post removed",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "removed",
+        "isReply": false
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · world post while PUBLIC_WORLD_ENABLED off",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true,
+      "flags": {
+        "publicWorldEnabled": false
+      }
+    },
+    {
+      "name": "human other · world post while PUBLIC_WORLD_ENABLED off",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false
+      },
+      "expect": true,
+      "flags": {
+        "publicWorldEnabled": false
+      }
+    },
+    {
+      "name": "human friend · elsewhere · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same city · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · same neighborhood · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same city · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same city · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · friends reply in friends thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "friends"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · same neighborhood · friends reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · neighborhood reply in neighborhood thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "neighborhood"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · friends reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · neighborhood reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · city reply in city thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "city"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · friends reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · neighborhood reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "neighborhood",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · city reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "city",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · same neighborhood · world reply in world thread",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": true,
+        "sameCity": true
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": true,
+        "rootAudience": "world"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · friends post hidden by viewer (direct fetch)",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false,
+        "hiddenByViewer": true
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · elsewhere · world post hidden by viewer (direct fetch)",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false,
+        "hiddenByViewer": true
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · elsewhere · friends post hidden by viewer (direct fetch)",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "friends",
+        "status": "active",
+        "isReply": false,
+        "hiddenByViewer": true
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · elsewhere · world post hidden by viewer (direct fetch)",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false,
+        "sameNeighborhood": false,
+        "sameCity": false
+      },
+      "object": {
+        "audience": "world",
+        "status": "active",
+        "isReply": false,
+        "hiddenByViewer": true
+      },
+      "expect": true
+    }
+  ]
+}
