@@ -18,6 +18,7 @@ import { useScope } from '../../lib/providers/ScopeProvider'
 import { useSession } from '../../lib/providers/SessionProvider'
 import { roomCopy } from '../rooms/copy'
 import { useClaimGate } from '../shell/ClaimSheet'
+import { LoadingState } from '../shell/LoadingState'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Skeleton } from '../ui/Skeleton'
@@ -89,7 +90,11 @@ export function LiveList() {
         </div>
       )
     }
-    return <LiveSkeleton />
+    return (
+      <LoadingState>
+        <LiveSkeleton />
+      </LoadingState>
+    )
   }
 
   return (

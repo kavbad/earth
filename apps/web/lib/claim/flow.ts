@@ -103,14 +103,17 @@ export function stepRank(step: ClaimStep): number {
 
 const IDENTITY_RANK = stepRank(ClaimSteps.identity)
 
-/** The step a claim page stands for; `/claim/join` is the transitional entry of spec §46. */
+/**
+ * The step a claim page stands for. `/claim/join` (the transitional entry of spec §46) is
+ * deliberately `null`: `JoinEntry` hands the token to the machine and navigates on its own, and a
+ * guard judging it against the not-yet-updated `gate` state would bounce the person to the gate.
+ */
 export function stepForPathname(pathname: string): ClaimStep | null {
   switch (pathname) {
     case ROUTES.claim:
       return ClaimSteps.gate
     case ROUTES.claimStart:
       return ClaimSteps.group_label
-    case ROUTES.claimJoin:
     case ROUTES.claimCredential:
       return ClaimSteps.credential
     case ROUTES.claimIdentity:

@@ -180,6 +180,30 @@ describe('gateway', () => {
     expect(echoed.method).toBe('GET')
   })
 
+  it('answers CORS preflights for proxied routes itself, echoing the requested headers', async () => {
+    // GoTrue rejects a preflight that asks for `apikey` (no allow-origin); browsers would then
+    // block every supabase-js auth call, so the gateway answers preflights like the hosted edge.
+    const preflight = await fetch(`${base()}/auth/v1/otp?redirect_to=x`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'apikey,authorization,content-type,x-client-info',
+      },
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('x-upstream')).toBeNull()
+    expect(preflight.headers.get('access-control-allow-origin')).toBe('*')
+    expect(preflight.headers.get('access-control-allow-headers')).toBe(
+      'apikey,authorization,content-type,x-client-info',
+    )
+    expect(preflight.headers.get('access-control-allow-methods')).toContain('POST')
+
+    const rest = await fetch(`${base()}/rest/v1/rpc/me_get`, { method: 'OPTIONS' })
+    expect(rest.status).toBe(204)
+    expect(rest.headers.get('access-control-allow-headers')).toBe('*')
+  })
+
   it('answers Storage with 501 and Realtime with 503, with CORS headers', async () => {
     const storage = await fetch(`${base()}/storage/v1/object/avatars/a.png`)
     expect(storage.status).toBe(501)

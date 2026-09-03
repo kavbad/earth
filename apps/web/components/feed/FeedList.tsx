@@ -13,6 +13,7 @@ import { useAnalytics } from '../../lib/providers/AnalyticsProvider'
 import { useSession } from '../../lib/providers/SessionProvider'
 import { LiveCard } from '../live/LiveCard'
 import { PostCard } from '../posts/PostCard'
+import { LoadingState } from '../shell/LoadingState'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Skeleton } from '../ui/Skeleton'
@@ -50,7 +51,13 @@ export function FeedList({ feed, scope, onHidden }: FeedListProps) {
   const sentinel = useInfiniteScroll(feed.loadMore)
   const { cards } = feed.view
 
-  if (feed.loading) return <FeedSkeleton />
+  if (feed.loading) {
+    return (
+      <LoadingState>
+        <FeedSkeleton />
+      </LoadingState>
+    )
+  }
   if (feed.failed) {
     return (
       <div className="flex flex-col items-start gap-2 px-screen-margin py-4">

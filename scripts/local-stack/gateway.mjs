@@ -156,6 +156,18 @@ export function createGateway(options) {
     const route = resolveRoute(url)
     switch (route.kind) {
       case ROUTE_KINDS.proxy:
+        // Browsers preflight every supabase-js request (`apikey`, `authorization`, ...). Hosted
+        // Supabase answers those at its Kong edge; GoTrue on its own rejects a preflight that asks
+        // for `apikey` (204 without allow-origin), so the gateway answers them itself.
+        if (method === 'OPTIONS') {
+          res.writeHead(204, {
+            ...CORS_HEADERS,
+            'access-control-allow-headers': req.headers['access-control-request-headers'] ?? '*',
+            'access-control-max-age': '86400',
+          })
+          res.end()
+          return
+        }
         proxy(req, res, options.upstreams[route.service], route.path)
         return
       case ROUTE_KINDS.unavailable:

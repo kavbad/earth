@@ -15,7 +15,8 @@ import {
   shouldProbe,
 } from '../offline/state'
 
-const OnlineContext = createContext<boolean>(true)
+/** Exported for tests that render a screen offline; screens read it through `useOnline()`. */
+export const OnlineContext = createContext<boolean>(true)
 
 async function probe(): Promise<boolean> {
   const controller = new AbortController()

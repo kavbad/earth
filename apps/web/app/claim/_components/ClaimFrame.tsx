@@ -4,6 +4,7 @@ import { APP_NAME } from '@earth/ui'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { OfflineBanner } from '../../../components/shell/OfflineBanner'
 import { Spinner } from '../../../components/ui/Spinner'
 import { ROUTES } from '../../../lib/routes'
 import { useClaimFlow } from './ClaimFlowProvider'
@@ -18,6 +19,7 @@ export function ClaimFrame({ children }: { readonly children: ReactNode }) {
           {APP_NAME}
         </Link>
       </div>
+      <OfflineBanner />
       {ready ? (
         <div className="fade-in flex flex-1 flex-col py-6">{children}</div>
       ) : (

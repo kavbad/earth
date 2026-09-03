@@ -8,7 +8,7 @@ import { APP_NAME } from '@earth/ui'
 import { copy } from '@earth/ui'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
@@ -34,9 +34,13 @@ export default function WelcomePage() {
     getCompletionServerSnapshot,
   )
 
+  // Set once "Enter …" is tapped: consuming the completion must not bounce the person Home
+  // while the navigation into their group is in flight.
+  const entering = useRef(false)
+
   // Nobody lands here by accident: without a fresh completion, Humans go Home, others to the gate.
   useEffect(() => {
-    if (completion !== null || session.status !== 'ready') return
+    if (entering.current || completion !== null || session.status !== 'ready') return
     router.replace(session.roleKind === 'human' ? ROUTES.home : ROUTES.claim)
   }, [completion, session.status, session.roleKind, router])
 
@@ -52,8 +56,9 @@ export default function WelcomePage() {
   const label = enterGroupLabel(group.data?.name ?? null, webCopy.enterYourGroup)
 
   const enter = () => {
-    consumeCompletion()
+    entering.current = true
     router.replace(destinationAfterClaim(completion))
+    consumeCompletion()
   }
 
   return (

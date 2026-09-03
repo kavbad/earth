@@ -63,6 +63,8 @@ function ControlButton({
  */
 export function RoomControls(props: RoomControlsProps) {
   const publishing = props.mode === 'participant' || props.mode === 'guest'
+  // A Guest never expands a room (SCREEN 18) and a Visitor never acts: the flag alone is not enough.
+  const canOpenUp = props.canOpenUp && props.mode !== 'guest' && props.mode !== 'visitor'
   return (
     <div className="flex items-center justify-between gap-1 px-screen-margin pt-2 pb-[calc(var(--earth-space-2)+env(safe-area-inset-bottom))] hairline-t">
       {publishing ? (
@@ -97,7 +99,7 @@ export function RoomControls(props: RoomControlsProps) {
           onClick={props.onParticipants}
         />
       ) : null}
-      {props.canOpenUp ? (
+      {canOpenUp ? (
         <button
           type="button"
           onClick={props.onOpenUp}

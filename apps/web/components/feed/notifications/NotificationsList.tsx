@@ -12,6 +12,7 @@ import { webCopy } from '../../../lib/copy'
 import { ROUTES, asRoute } from '../../../lib/routes'
 import { useSession } from '../../../lib/providers/SessionProvider'
 import { useClaimGate } from '../../shell/ClaimSheet'
+import { LoadingState } from '../../shell/LoadingState'
 import { PageContainer } from '../../shell/PageContainer'
 import { ScreenHeader } from '../../shell/ScreenHeader'
 import { Button } from '../../ui/Button'
@@ -67,7 +68,9 @@ export function NotificationsList() {
         }
       />
       <PageContainer>
-        {session.status === 'ready' && session.roleKind !== 'human' ? (
+        {session.status === 'loading' ? (
+          <RowsSkeleton />
+        ) : session.roleKind !== 'human' ? (
           <EmptyState
             title={feedCopy.notificationsFor}
             action={
@@ -77,7 +80,9 @@ export function NotificationsList() {
             }
           />
         ) : notifications.loading ? (
-          <RowsSkeleton />
+          <LoadingState>
+            <RowsSkeleton />
+          </LoadingState>
         ) : notifications.failed ? (
           <div className="flex flex-col items-start gap-2 px-screen-margin py-4">
             <p role="status" className="text-secondary text-text-secondary">

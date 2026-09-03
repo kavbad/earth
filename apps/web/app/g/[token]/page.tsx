@@ -9,6 +9,7 @@ import { APP_NAME, copy, participantSummary } from '@earth/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { OfflineBanner } from '../../../components/shell/OfflineBanner'
 import { FaceStack } from '../../../components/ui/FaceStack'
 import { webCopy } from '../../../lib/copy'
 import { ROUTES } from '../../../lib/routes'
@@ -56,6 +57,7 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
           {APP_NAME}
         </Link>
       </div>
+      <OfflineBanner />
       {result.ok ? (
         <section className="fade-in flex flex-1 flex-col gap-6 py-8">
           <div className="flex flex-col gap-4">

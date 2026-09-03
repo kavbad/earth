@@ -48,6 +48,9 @@ describe('RoomControls (SCREEN 14)', () => {
     expect(guest).toContain(`aria-label="${copy.roomControls.microphone}"`)
     expect(guest).toContain(`aria-label="${copy.roomControls.camera}"`)
     expect(guest).not.toContain(`>${copy.openUp}<`)
+    // Even a wrong flag never hands a Guest the Open up control (SCREEN 18).
+    const guestFlagged = renderToStaticMarkup(<RoomControls {...base} mode="guest" canOpenUp />)
+    expect(guestFlagged).not.toContain(`>${copy.openUp}<`)
     const visitor = renderToStaticMarkup(
       <RoomControls {...base} mode="visitor" canOpenUp={false} />,
     )

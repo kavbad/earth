@@ -45,6 +45,7 @@ import { RoomView } from './RoomView'
 import { type JoinMediaState, ViewerJoin } from './ViewerJoin'
 import { roomCopy } from './copy'
 import { useMediaConnection } from './hooks/useMediaConnection'
+import { useRetryWhenOnline } from './hooks/useRetryWhenOnline'
 import { useRoomPresence } from './hooks/useRoomPresence'
 import { useRoomState } from './hooks/useRoomState'
 import {
@@ -92,6 +93,7 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
   const toast = useToast()
   const router = useRouter()
   const media = useMediaConnection()
+  useRetryWhenOnline(media)
 
   const isHuman = session.roleKind === 'human'
   const [closed, setClosed] = useState<RoomClosedKind | null>(null)

@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from 'react'
 
 import { ConnectionOverlay } from './ConnectionOverlay'
+import { LiveOfflineNotice } from './LiveOfflineNotice'
 import { type RoomControlMode, RoomControls } from './RoomControls'
 import { RoomHeader } from './RoomHeader'
 import { RoomStage } from './RoomStage'
@@ -81,6 +82,7 @@ export function RoomView(props: RoomViewProps) {
         watchingCount={watching}
         trailing={props.headerTrailing}
       />
+      {media === null ? <LiveOfflineNotice /> : null}
       <div className="relative flex min-h-0 flex-1 flex-col px-2">
         <RoomStage
           participants={onStage}
@@ -91,6 +93,7 @@ export function RoomView(props: RoomViewProps) {
         {media !== null ? (
           <ConnectionOverlay
             status={media.status}
+            detail={media.detail}
             onRetry={props.onRetry}
             onLeave={props.onLeave}
           />

@@ -23,6 +23,7 @@ import {
   routeForStep,
   stateFromClaimDto,
   stateFromPending,
+  stepForPathname,
   writeCompletion,
   writePendingClaim,
 } from './flow'
@@ -65,6 +66,21 @@ describe('claimRedirectFor', () => {
     expect(claimRedirectFor(state, ROUTES.claim)).toBe(ROUTES.claimIdentity)
     expect(claimRedirectFor(state, ROUTES.claimCredential)).toBe(ROUTES.claimIdentity)
     expect(claimRedirectFor(state, ROUTES.claimIdentity)).toBeNull()
+  })
+
+  it('leaves the /claim/join entry to JoinEntry, even while the machine is still at the gate', () => {
+    // JoinEntry dispatches `chooseJoin` and navigates in the same commit; a guard judging the
+    // stale gate state against /claim/join would bounce the person back to the gate.
+    const state = stateFromPending(null, flags)
+    expect(stepForPathname(ROUTES.claimJoin)).toBeNull()
+    expect(claimRedirectFor(state, ROUTES.claimJoin)).toBeNull()
+    const chosen = claimReducer(state, {
+      type: 'chooseJoin',
+      inviteToken: 'weekend-crew-dev-token',
+    })
+    expect(chosen.step).toBe(ClaimSteps.credential)
+    expect(routeAfterAdvance(state, chosen)).toBe(ROUTES.claimCredential)
+    expect(claimRedirectFor(chosen, ROUTES.claimJoin)).toBeNull()
   })
 
   it('leaves non-claim pages alone and pins a finished claim to /welcome', () => {

@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react'
 import { webCopy } from '../../lib/copy'
 import { useAnalytics } from '../../lib/providers/AnalyticsProvider'
 import { ROUTES, asRoute } from '../../lib/routes'
+import { LoadingState } from '../shell/LoadingState'
 import { PageContainer } from '../shell/PageContainer'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Avatar } from '../ui/Avatar'
@@ -99,7 +100,9 @@ export function ProfileScreen({ handle, initial }: ProfileScreenProps) {
               }
             />
           ) : loading ? (
-            <ProfileSkeleton />
+            <LoadingState>
+              <ProfileSkeleton />
+            </LoadingState>
           ) : null
         ) : (
           <div className="fade-in flex flex-col">

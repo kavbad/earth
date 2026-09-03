@@ -9,8 +9,10 @@ import { APP_NAME } from '@earth/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-import { GuestRoom, previewTitle } from '../../../components/rooms/GuestRoom'
+import { GuestRoom } from '../../../components/rooms/GuestRoom'
+import { LiveOfflineNotice } from '../../../components/rooms/LiveOfflineNotice'
 import { roomCopy } from '../../../components/rooms/copy'
+import { previewTitle } from '../../../components/rooms/state/guestPreview'
 import { preconnectOrigin } from '../../../components/rooms/state/preconnect'
 import { webCopy } from '../../../lib/copy'
 import { ROUTES } from '../../../lib/routes'
@@ -60,6 +62,7 @@ export default async function GuestRoomPage({ params }: { params: Params }) {
           {APP_NAME}
         </Link>
       </div>
+      <LiveOfflineNotice />
       {result.ok ? (
         <GuestRoom token={token} preview={result.preview} />
       ) : (

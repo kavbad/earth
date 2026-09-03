@@ -68,7 +68,24 @@ export function Composer({ replyTo, presetAudience }: ComposerProps) {
   const parent = usePost(replyTo)
   const isReply = replyTo !== null
 
-  if (session.status === 'ready' && session.roleKind !== 'human') {
+  if (session.status === 'loading') {
+    return (
+      <>
+        <ScreenHeader
+          title={isReply ? copy.reply : postCopy.compose}
+          leading={<BackButton onClick={() => router.back()} />}
+        />
+        <PageContainer>
+          <div aria-hidden="true" className="flex flex-col gap-3 px-screen-margin py-4">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </PageContainer>
+      </>
+    )
+  }
+
+  if (session.roleKind !== 'human') {
     return (
       <>
         <ScreenHeader

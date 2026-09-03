@@ -125,7 +125,10 @@ export function useMediaConnection(): MediaConnection {
       sdkRoom.current = room
       setLivekitRoom(room)
       setIdentity(grant.identity)
-      const handle = connectLiveKit({
+      // `connectLiveKit` reports its first transition (`connecting`) synchronously, before the
+      // handle is assigned: `handle` must exist (as `null`) by then, never a `const` in its TDZ.
+      let handle: LiveKitConnection | null = null
+      handle = connectLiveKit({
         createRoom: () => room,
         url: grant.url,
         token: grant.token,
@@ -134,7 +137,9 @@ export function useMediaConnection(): MediaConnection {
         diagnostics,
         isOnline: () => onlineRef.current,
         onState(next: LiveKitConnectionState, info) {
-          if (connection.current !== handle && connection.current !== null) return
+          // A stale handle (torn down or replaced by a reconnect) must not touch the state.
+          if (connection.current !== null && handle !== null && connection.current !== handle)
+            return
           setStatus(next)
           setDetail(info)
         },

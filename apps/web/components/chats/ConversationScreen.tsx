@@ -16,6 +16,7 @@ import { useFlags } from '../../lib/providers/FlagsProvider'
 import { useEarth } from '../../lib/providers/RuntimeProvider'
 import { useSession } from '../../lib/providers/SessionProvider'
 import { useToast } from '../ui/Toast'
+import { LoadingState } from '../shell/LoadingState'
 import { PageContainer } from '../shell/PageContainer'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Button } from '../ui/Button'
@@ -370,9 +371,11 @@ function Thread({ controller }: { readonly controller: ConversationController })
             }
           />
         ) : loadStatus === 'loading' || loadStatus === 'idle' ? (
-          <div className="flex flex-1 items-center justify-center py-16">
-            <Spinner />
-          </div>
+          <LoadingState>
+            <div className="flex flex-1 items-center justify-center py-16">
+              <Spinner />
+            </div>
+          </LoadingState>
         ) : (
           <MessageList
             rows={threadRows}

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { webCopy } from '../../lib/copy'
 import { useSession } from '../../lib/providers/SessionProvider'
 import { useClaimGate } from '../shell/ClaimSheet'
+import { LoadingState } from '../shell/LoadingState'
 import { PageContainer } from '../shell/PageContainer'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Button } from '../ui/Button'
@@ -144,7 +145,9 @@ export function ChatsList() {
               </div>
             ) : null}
             {list.loading ? (
-              <ChatsSkeleton />
+              <LoadingState>
+                <ChatsSkeleton />
+              </LoadingState>
             ) : list.error && list.conversations.length === 0 ? (
               <EmptyState
                 title={copy.couldntRefresh}

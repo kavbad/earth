@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react'
 import { webCopy } from '../../lib/copy'
 import { useAnalytics } from '../../lib/providers/AnalyticsProvider'
 import { ROUTES, asRoute } from '../../lib/routes'
+import { LoadingState } from '../shell/LoadingState'
 import { PageContainer } from '../shell/PageContainer'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Button } from '../ui/Button'
@@ -90,7 +91,9 @@ export function PostDetail({ postId, initial }: PostDetailProps) {
               }
             />
           ) : (
-            <DetailSkeleton />
+            <LoadingState>
+              <DetailSkeleton />
+            </LoadingState>
           )
         ) : (
           <div className="fade-in flex flex-1 flex-col">

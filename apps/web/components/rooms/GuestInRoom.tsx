@@ -23,6 +23,7 @@ import { RoomView } from './RoomView'
 import { roomCopy } from './copy'
 import { guestRoomRoute } from './routes'
 import { useMediaConnection } from './hooks/useMediaConnection'
+import { useRetryWhenOnline } from './hooks/useRetryWhenOnline'
 import { useRoomPresence } from './hooks/useRoomPresence'
 import { useRoomState } from './hooks/useRoomState'
 
@@ -40,6 +41,7 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
   const analytics = useAnalytics()
   const toast = useToast()
   const media = useMediaConnection()
+  useRetryWhenOnline(media)
   const [sheet, setSheet] = useState<SheetKind>('none')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)

@@ -30,6 +30,8 @@ export interface MoreSheetProps {
 /** The "more" sheet: share link, Guests on/off and End room for moderators, report, leave. */
 export function MoreSheet(props: MoreSheetProps) {
   const [confirmingEnd, setConfirmingEnd] = useState(false)
+  // Guests cannot invite, moderate or end a room (SCREEN 18), whatever the caller passes.
+  const canModerate = props.canModerate && !props.isGuest
   const close = () => {
     setConfirmingEnd(false)
     props.onClose()
@@ -71,7 +73,7 @@ export function MoreSheet(props: MoreSheetProps) {
                 className="px-0"
               />
             ) : null}
-            {props.canModerate ? (
+            {canModerate ? (
               <ListRow
                 as="button"
                 title={props.guestsDisabled ? roomCopy.allowGuests : copy.safety.disableGuests}
@@ -80,7 +82,7 @@ export function MoreSheet(props: MoreSheetProps) {
                 className="px-0"
               />
             ) : null}
-            {props.canModerate ? (
+            {canModerate ? (
               <ListRow
                 as="button"
                 title={copy.safety.endRoom}

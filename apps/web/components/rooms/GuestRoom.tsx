@@ -12,7 +12,7 @@ import type { GuestOutcome, ViewerRoleKind } from '@earth/analytics'
 import { type AuthSessionLike, isAnonymousSession } from '@earth/auth'
 import { FeatureFlag } from '@earth/config'
 import { type RoomInvitePreviewDto } from '@earth/domain'
-import { copy, liveTitle } from '@earth/ui'
+import { copy } from '@earth/ui'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -45,6 +45,7 @@ import {
   guestJoinMediaState,
   normalizeGuestName,
 } from './state/guestFlow'
+import { previewTitle } from './state/guestPreview'
 import { rememberGuestSession } from './state/guestStorage'
 
 const GuestInRoom = dynamic(() => import('./GuestInRoom').then((m) => m.GuestInRoom), {
@@ -64,13 +65,6 @@ function prefetchRoomChunk(): void {
 export interface GuestRoomProps {
   readonly token: string
   readonly preview: RoomInvitePreviewDto
-}
-
-export function previewTitle(preview: RoomInvitePreviewDto): string {
-  if (preview.contextTitle !== null) return preview.contextTitle
-  const names = preview.participants.map((p) => p.displayName)
-  const title = liveTitle(names, preview.participants.length)
-  return title === '' ? roomCopy.liveTitle : title
 }
 
 function viewerState(roleKind: string): ViewerRoleKind {
