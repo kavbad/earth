@@ -177,6 +177,20 @@ describe.runIf(stackUp)('local stack (live)', () => {
   const base = stack.EARTH_SUPABASE_URL ?? ''
   let guestToken = ''
 
+  it('the API keys were minted from the configured secret', () => {
+    // process.env wins over .local/stack.env by design (a remote stack can be pointed at from the
+    // shell), so a stale SUPABASE_JWT_SECRET or SUPABASE_SERVICE_ROLE_KEY lying around this
+    // process silently replaces the running stack's real values. Name that here instead of letting
+    // it surface further down as an opaque signature mismatch.
+    const stale = 'does not match SUPABASE_JWT_SECRET: something in the environment is overriding'
+    for (const key of ['SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'] as const) {
+      expect(
+        () => verifyJwt(stack[key], stack.SUPABASE_JWT_SECRET),
+        `${key} ${stale} ${DEFAULT_STACK_ENV_FILE}`,
+      ).not.toThrow()
+    }
+  })
+
   it('gateway health names both upstreams', async () => {
     const response = await fetch(`${base}${PREFIXES.health}`)
     expect(response.status).toBe(200)

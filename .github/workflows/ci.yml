@@ -192,10 +192,13 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter @earth/e2e exec playwright install --with-deps chromium
       - name: Smoke-test the stack (anonymous sign-in JWT, PostgREST, email OTP through Mailpit)
-        # Its own stack, handed straight back: the journeys below start their own. Writes
-        # .local/stack.env, which the next step sources.
+        # Its own stack, handed straight back: the journeys below start their own. `stack:up` writes
+        # .local/stack.env, and sourcing it replaces this workflow's placeholder keys with the
+        # stack's real ones — the suite reads its configuration from the environment first, so
+        # without this it would check the running stack's tokens against a placeholder secret.
         run: |
           pnpm stack:up
+          set -a && source .local/stack.env && set +a
           EARTH_REQUIRE_STACK=1 pnpm exec vitest run scripts/local-stack/stack.test.ts
           pnpm stack:down
       - name: Playwright journeys (E2E 1-12)
