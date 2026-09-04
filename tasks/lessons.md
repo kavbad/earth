@@ -10,3 +10,5 @@ Rules distilled from corrections. Review at session start.
 - A file in Next's `public/` shadows a same-path route handler — committed placeholder `.well-known` files silently beat env-driven routes.
 - Concurrent test runs sharing one Postgres need a run id in every database name; a fixed template plus "drop leftovers at setup" destroys a sibling run.
 - Cross-journey isolation needs random name tails, not sequential ones: trigram search matched two journeys' fixtures that differed by one character.
+- A test must never hardcode a fact about the machine it happens to run on. `helpers.test.ts` asserted the Postgres socket peer was `127.0.0.1`, which is true locally and false in CI (the client crosses a Docker bridge, so the peer is the gateway, `172.18.0.1`). Read the environment fact from the environment (`host(inet_client_addr())`) and assert against that — the assertion gets stronger, not weaker.
+- When a CI job is red and its log is unreadable, fixing the readability is a real step, but say plainly that the failure itself is still unfixed rather than reporting the log fix as progress on the failure.

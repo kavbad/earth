@@ -8,14 +8,24 @@ const SHA256_EMPTY = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b78
 const BASE64URL_TOKEN = /^[A-Za-z0-9_-]{43}$/
 const RATE_LIMITED = 'rate_limited'
 const INVALID_INPUT = 'invalid_input'
-/** The tests connect over TCP loopback; a unix socket would yield null. */
-const LOOPBACK = /^(127\.0\.0\.1|::1)$/
 /** Same rule as earth.rate_limit_reduced_budget: half, rounded up. */
 const reducedBudget = (max: number): number => Math.ceil(max / 2)
 
 async function scalar<T>(db: TestDb, text: string, values: unknown[] = []): Promise<T> {
   const { rows } = await db.sql.query<{ v: T }>(`select (${text}) as v`, values)
   return rows[0]?.v as T
+}
+
+/**
+ * The socket peer as Postgres sees this connection: loopback when the server is on the same host,
+ * the bridge gateway (e.g. 172.18.0.1) when it is a container on a Docker network, and null over a
+ * unix socket. `earth.client_address()` falls back to it when no proxy header is usable, so the
+ * tests below compare against the peer they actually have rather than assuming loopback.
+ */
+async function socketPeer(db: TestDb): Promise<string> {
+  const peer = await scalar<string | null>(db, 'host(inet_client_addr())')
+  if (peer === null) throw new Error('these tests must connect to Postgres over TCP, not a socket')
+  return peer
 }
 
 async function setHeaders(client: RoleClient, headers: Record<string, string>): Promise<void> {
@@ -25,10 +35,12 @@ async function setHeaders(client: RoleClient, headers: Record<string, string>): 
 describe('earth helpers (0004)', () => {
   let db: TestDb
   let alice: string
+  let peer: string
 
   beforeAll(async () => {
     db = await createTestDb()
     alice = await db.createAuthUser()
+    peer = await socketPeer(db)
   })
 
   afterAll(async () => {
@@ -144,7 +156,7 @@ describe('earth helpers (0004)', () => {
         return rows[0]?.v
       })
     // No headers: the socket peer.
-    expect(await address(null)).toMatch(LOOPBACK)
+    expect(await address(null)).toBe(peer)
     expect(
       await address({
         'cf-connecting-ip': '203.0.113.9',
@@ -161,9 +173,7 @@ describe('earth helpers (0004)', () => {
     expect(
       await address({ 'cf-connecting-ip': 'not-an-address', 'x-real-ip': '198.51.100.7/32' }),
     ).toBe('198.51.100.7')
-    expect(await address({ 'cf-connecting-ip': '', 'x-forwarded-for': 'garbage' })).toMatch(
-      LOOPBACK,
-    )
+    expect(await address({ 'cf-connecting-ip': '', 'x-forwarded-for': 'garbage' })).toBe(peer)
   })
 
   it('is_anonymous_jwt() and is_service_role() classify the caller', async () => {
@@ -210,11 +220,13 @@ describe('rate limits (0005)', () => {
   let db: TestDb
   let alice: string
   let bob: string
+  let peer: string
 
   beforeAll(async () => {
     db = await createTestDb()
     alice = await db.createAuthUser()
     bob = await db.createAuthUser()
+    peer = await socketPeer(db)
     await db.sql.query(`
       create function public.probe_rate_limit(max_count integer, window_seconds integer) returns integer
       language sql security definer set search_path = public, earth, private, pg_temp
@@ -366,14 +378,14 @@ describe('rate limits (0005)', () => {
     await db.expectError(probe('visitor', 4, first), RATE_LIMITED)
     expect(await probe('visitor', 4, second)).toBe(reducedBudget(4) - 1)
 
-    // Without proxy headers the socket peer is the key (the loopback here).
+    // Without proxy headers the socket peer is the key.
     expect(await probe('visitor', 2)).toBe(0)
     await db.expectError(probe('visitor', 2), RATE_LIMITED)
 
     const keys = await probeKeys()
     expect(keys).toContain('probe:203.0.113.9')
     expect(keys).toContain('probe:198.51.100.7')
-    expect(keys.some((key) => LOOPBACK.test(key.slice('probe:'.length)))).toBe(true)
+    expect(keys).toContain(`probe:${peer}`)
   })
 
   it('a visitor is never trusted more than a Guest, who is never trusted more than a Human', async () => {
