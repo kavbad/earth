@@ -1,0 +1,27 @@
+{
+  "name": "@earth/db-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Database tests: authorization matrix, RPC invariants and integration flows against a scratch Postgres.",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:clean": "tsx src/clean.ts"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "pg": "8.23.0",
+    "@earth/domain": "workspace:*",
+    "@earth/permissions": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

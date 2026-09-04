@@ -1,0 +1,27 @@
+{
+  "name": "@earth/analytics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AnalyticsProvider interface, typed event contract, PostHog + noop + first-party adapters.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/domain": "workspace:*",
+    "posthog-js": "1.425.1",
+    "posthog-node": "5.51.6",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

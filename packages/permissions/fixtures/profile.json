@@ -1,0 +1,2475 @@
+{
+  "object": "profile",
+  "description": "earth.identity_visible_to / profile_get: profile_visibility × relation × block × human status × caller kind.",
+  "cases": [
+    {
+      "name": "visitor · public profile of pending human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · public profile of active human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "visitor · public profile of restricted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · public profile of suspended human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · public profile of deleted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · limited profile of pending human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · limited profile of active human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · limited profile of restricted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · limited profile of suspended human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · limited profile of deleted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · hidden profile of pending human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · hidden profile of active human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · hidden profile of restricted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · hidden profile of suspended human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "visitor · hidden profile of deleted human",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · public profile of pending human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · public profile of active human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "guest · public profile of restricted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · public profile of suspended human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · public profile of deleted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · limited profile of pending human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · limited profile of active human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · limited profile of restricted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · limited profile of suspended human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · limited profile of deleted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · hidden profile of pending human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · hidden profile of active human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · hidden profile of restricted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · hidden profile of suspended human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "guest · hidden profile of deleted human",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · public profile of pending human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · public profile of active human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "claiming · public profile of restricted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · public profile of suspended human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · public profile of deleted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · limited profile of pending human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · limited profile of active human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · limited profile of restricted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · limited profile of suspended human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · limited profile of deleted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · hidden profile of pending human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · hidden profile of active human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · hidden profile of restricted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · hidden profile of suspended human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming · hidden profile of deleted human",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "claiming self · own public profile while pending",
+      "viewer": {
+        "kind": "claiming",
+        "relationToAuthor": "self",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "claiming self · own limited profile while pending",
+      "viewer": {
+        "kind": "claiming",
+        "relationToAuthor": "self",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "claiming self · own hidden profile while pending",
+      "viewer": {
+        "kind": "claiming",
+        "relationToAuthor": "self",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": true
+    },
+    {
+      "name": "human self · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "self",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human friend · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human friend blocked · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human shared_group · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human shared_group blocked · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "shared_group",
+        "sharedGroups": 1,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human familiar · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human familiar blocked · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "familiar",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": true
+    },
+    {
+      "name": "human other · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": false
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · public profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · public profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · public profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · public profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · public profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "public",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · limited profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · limited profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · limited profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · limited profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · limited profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "limited",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · hidden profile of pending human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "pending"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · hidden profile of active human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "active"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · hidden profile of restricted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "restricted"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · hidden profile of suspended human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "suspended"
+      },
+      "expect": false
+    },
+    {
+      "name": "human other blocked · hidden profile of deleted human",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "sharedGroups": 0,
+        "blockedEitherWay": true
+      },
+      "object": {
+        "profileVisibility": "hidden",
+        "humanStatus": "deleted"
+      },
+      "expect": false
+    }
+  ]
+}
