@@ -93,21 +93,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Quiet the Postgres service log
-        # The runner prints the whole service-container log at the end of every job. The suite
-        # asserts hundreds of refusals on purpose, and each one logs an ERROR/CONTEXT/STATEMENT
-        # triplet, so that dump buried the vitest output and made a failing job undiagnosable.
-        env:
-          PGPASSWORD: postgres
-        run: |
-          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-          alter system set log_checkpoints = off;
-          alter system set log_min_messages = fatal;
-          alter system set log_min_error_statement = fatal;
-          alter system set log_statement = 'none';
-          alter system set log_connections = off;
-          alter system set log_disconnections = off;
-          SQL
-          psql -h 127.0.0.1 -U postgres -d postgres -c 'select pg_reload_conf()'
+        run: bash scripts/ci/quiet-postgres.sh
 
       - name: Root script tests (migration runner + local-stack helpers; need Postgres)
         run: pnpm test:root
@@ -180,6 +166,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Quiet the Postgres service log
+        run: bash scripts/ci/quiet-postgres.sh
       - name: Cache local-stack binaries
         uses: actions/cache@v4
         with:
