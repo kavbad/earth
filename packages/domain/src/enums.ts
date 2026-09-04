@@ -31,6 +31,16 @@ export const HUMAN_PASS_STATUS = [
 export type HumanPassStatus = (typeof HUMAN_PASS_STATUS)[number]
 export const HumanPassStatusSchema = z.enum(HUMAN_PASS_STATUS)
 
+/**
+ * `humans.age_bracket` — spec §84. The result of identity verification, never a self-declaration:
+ * the verification provider integration is the only writer (migration 1020) and no client can set
+ * it. `unknown` is the default and behaves as it always has; `earth.age_policy_allows` refuses a
+ * `minor` while `app_settings.minimum_age_policy` is `18_plus`.
+ */
+export const AGE_BRACKET = ['unknown', 'adult', 'minor'] as const
+export type AgeBracket = (typeof AGE_BRACKET)[number]
+export const AgeBracketSchema = z.enum(AGE_BRACKET)
+
 /** `relationships.type` — spec §20. */
 export const RELATIONSHIP_TYPE = ['follow', 'friend_pending', 'friend', 'familiar_private'] as const
 export type RelationshipType = (typeof RELATIONSHIP_TYPE)[number]
@@ -215,6 +225,7 @@ export const ProfileVisibilitySchema = z.enum(PROFILE_VISIBILITY)
 export const ENUM_REGISTRY = {
   human_status: HUMAN_STATUS,
   human_pass_status: HUMAN_PASS_STATUS,
+  age_bracket: AGE_BRACKET,
   relationship_type: RELATIONSHIP_TYPE,
   group_kind: GROUP_KIND,
   group_member_role: GROUP_MEMBER_ROLE,

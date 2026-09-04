@@ -1,5 +1,10 @@
-/** Everyone in the room (and, for moderators, everyone waiting), with the subtle "Guest" tag. */
-import type { RoomParticipantDto } from '@earth/domain'
+/**
+ * Everyone in the room (and, for moderators, everyone waiting), with the subtle "Guest" tag.
+ * Every row but your own carries Report (spec §81 "Every Human profile: ... Report" and "Every
+ * Guest: Remove, report, block session/device from room"); Remove and block-from-room stay with
+ * the moderator.
+ */
+import type { ReportTargetType, RoomParticipantDto } from '@earth/domain'
 import { copy, space } from '@earth/ui'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
@@ -19,7 +24,30 @@ export interface ParticipantsSheetProps {
   readonly busyId?: string | null
   readonly onRemove: (participant: RoomParticipantDto, blockFromRoom: boolean) => void
   readonly onAdmit: (participant: RoomParticipantDto) => void
+  /** Spec §81: everyone in the room may report anyone else in it, Human or Guest. */
+  readonly onReport: (participant: RoomParticipantDto) => void
   readonly onClose: () => void
+}
+
+/**
+ * What this participant's Report sends to `report_create` (spec §81, DB_API §7): a Human is
+ * reported by `humanId`, a Guest by the id of their guest session. `null` for a row that carries
+ * neither — the schema forbids it, so the action is simply not offered.
+ */
+export function reportTargetForParticipant(
+  participant: RoomParticipantDto,
+): { readonly type: Extract<ReportTargetType, 'human' | 'guest'>; readonly id: string } | null {
+  if (participant.isGuest) {
+    return participant.guestSessionId === null
+      ? null
+      : { type: 'guest', id: participant.guestSessionId }
+  }
+  return participant.humanId === null ? null : { type: 'human', id: participant.humanId }
+}
+
+/** Title of the report sheet when it was opened for one person rather than for the room. */
+export function reportPersonTitle(displayName: string): string {
+  return `${copy.safety.report} ${displayName}`
 }
 
 function roleLine(participant: RoomParticipantDto): string {
@@ -47,6 +75,7 @@ export function ParticipantsSheet({
   busyId = null,
   onRemove,
   onAdmit,
+  onReport,
   onClose,
 }: ParticipantsSheetProps) {
   const visible = participants.filter(
@@ -70,9 +99,9 @@ export function ParticipantsSheet({
               title={titleFor(participant, isMe)}
               subtitle={line === '' ? undefined : line}
               trailing={
-                canModerate && !isMe ? (
+                isMe ? undefined : (
                   <View style={styles.actions}>
-                    {participant.status === 'waiting' ? (
+                    {canModerate && participant.status === 'waiting' ? (
                       <Button
                         variant="secondary"
                         compact
@@ -81,23 +110,37 @@ export function ParticipantsSheet({
                         onPress={() => onAdmit(participant)}
                       />
                     ) : null}
-                    <Button
-                      variant="quiet"
-                      compact
-                      loading={busy}
-                      label={copy.safety.remove}
-                      onPress={() => onRemove(participant, false)}
-                    />
-                    <Button
-                      variant="destructive"
-                      compact
-                      disabled={busy}
-                      label={copy.safety.block}
-                      accessibilityLabel={`${roomCopy.blockFromRoom}: ${participant.displayName}`}
-                      onPress={() => onRemove(participant, true)}
-                    />
+                    {canModerate ? (
+                      <Button
+                        variant="quiet"
+                        compact
+                        loading={busy}
+                        label={copy.safety.remove}
+                        onPress={() => onRemove(participant, false)}
+                      />
+                    ) : null}
+                    {reportTargetForParticipant(participant) === null ? null : (
+                      <Button
+                        variant="quiet"
+                        compact
+                        disabled={busy}
+                        label={copy.safety.report}
+                        accessibilityLabel={`${copy.safety.report}: ${participant.displayName}`}
+                        onPress={() => onReport(participant)}
+                      />
+                    )}
+                    {canModerate ? (
+                      <Button
+                        variant="destructive"
+                        compact
+                        disabled={busy}
+                        label={copy.safety.block}
+                        accessibilityLabel={`${roomCopy.blockFromRoom}: ${participant.displayName}`}
+                        onPress={() => onRemove(participant, true)}
+                      />
+                    ) : null}
                   </View>
-                ) : undefined
+                )
               }
             />
           )

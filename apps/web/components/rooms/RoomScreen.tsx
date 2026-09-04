@@ -38,7 +38,7 @@ import { ConsentSheet } from './ConsentSheet'
 import { GroupChatDrawer } from './GroupChatDrawer'
 import { MoreSheet } from './MoreSheet'
 import { OpenUpSheet } from './OpenUpSheet'
-import { ParticipantsSheet } from './ParticipantsSheet'
+import { ParticipantsSheet, reportTargetForParticipant } from './ParticipantsSheet'
 import { ReportSheet } from './ReportSheet'
 import { type RoomClosedKind, RoomEnded, closedKindForError } from './RoomEnded'
 import { RoomView } from './RoomView'
@@ -62,6 +62,17 @@ export interface RoomScreenProps {
 }
 
 type SheetKind = 'none' | 'participants' | 'openUp' | 'more' | 'report' | 'chat'
+
+/** What the one report sheet is about: the room (SCREEN 14 More) or one participant (spec §81). */
+type ReportTarget =
+  | { readonly kind: 'room' }
+  | {
+      readonly kind: 'participant'
+      readonly target: NonNullable<ReturnType<typeof reportTargetForParticipant>>
+      readonly name: string
+    }
+
+const ROOM_REPORT_TARGET: ReportTarget = { kind: 'room' }
 
 interface ConsentPrompt {
   readonly trigger: ConsentTrigger
@@ -105,6 +116,7 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
   const [openUpError, setOpenUpError] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [reportDone, setReportDone] = useState(false)
+  const [reportTarget, setReportTarget] = useState<ReportTarget>(ROOM_REPORT_TARGET)
   const [busyParticipant, setBusyParticipant] = useState<string | null>(null)
 
   const joinedAt = useRef<number | null>(null)
@@ -437,12 +449,20 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
     }
   }, [earth, roomId, closeWith, toast])
 
+  // Spec §81: the room itself, or one person in it — the participants sheet sets the target.
   const report = useCallback(
     async (reason: ReportReason) => {
+      const target =
+        reportTarget.kind === 'room' ? { type: 'room' as const, id: roomId } : reportTarget.target
       setBusy(true)
       try {
-        await earth.safety.report({ targetType: 'room', targetId: roomId, reason, details: null })
-        analytics.track('content_reported', { targetType: 'room', reason })
+        await earth.safety.report({
+          targetType: target.type,
+          targetId: target.id,
+          reason,
+          details: null,
+        })
+        analytics.track('content_reported', { targetType: target.type, reason })
         setReportDone(true)
       } catch {
         toast.show(webCopy.somethingWrong)
@@ -450,8 +470,16 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
         setBusy(false)
       }
     },
-    [earth, roomId, analytics, toast],
+    [earth, roomId, reportTarget, analytics, toast],
   )
+
+  const reportParticipant = useCallback((participant: RoomParticipantDto) => {
+    const target = reportTargetForParticipant(participant)
+    if (target === null) return
+    setReportDone(false)
+    setReportTarget({ kind: 'participant', target, name: participant.displayName })
+    setSheet('report')
+  }, [])
 
   const removeParticipant = useCallback(
     async (participant: RoomParticipantDto, blockFromRoom: boolean) => {
@@ -580,6 +608,7 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
         busyId={busyParticipant}
         onRemove={(participant, block) => void removeParticipant(participant, block)}
         onAdmit={(participant) => void admit(participant)}
+        onReport={reportParticipant}
         onClose={() => setSheet('none')}
       />
       {moderator ? (
@@ -607,6 +636,7 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
         onEnd={() => void endRoom()}
         onReport={() => {
           setReportDone(false)
+          setReportTarget(ROOM_REPORT_TARGET)
           setSheet('report')
         }}
         onLeave={() => void leave()}
@@ -614,6 +644,11 @@ export function RoomScreen({ roomId }: RoomScreenProps) {
       />
       <ReportSheet
         open={sheet === 'report'}
+        title={
+          reportTarget.kind === 'room'
+            ? roomCopy.reportTitle
+            : roomCopy.reportPersonTitle(reportTarget.name)
+        }
         busy={busy}
         done={reportDone}
         onReport={(reason) => void report(reason)}

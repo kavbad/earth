@@ -25,6 +25,16 @@ describe('EARTH_ERROR_CODES', () => {
     expect(httpStatusForErrorCode('rate_limited')).toBe(429)
     expect(httpStatusForErrorCode('internal')).toBe(500)
   })
+
+  /** Spec §84: the claim-time age gate of migration 1020 needs a code of its own. */
+  it('carries the age gate refusal as a forbidden-class code', () => {
+    expect(EARTH_ERROR_CODES).toContain('age_not_allowed')
+    expect(isEarthErrorCode('age_not_allowed')).toBe(true)
+    expect(httpStatusForErrorCode('age_not_allowed')).toBe(403)
+    expect(parseEarthError({ message: 'age_not_allowed', code: 'P0001' }).code).toBe(
+      'age_not_allowed',
+    )
+  })
 })
 
 describe('EarthError', () => {

@@ -63,6 +63,7 @@ export const roomCopy = {
   endRoomConfirm: 'End the room for everyone?',
   endRoomYes: 'End room',
   reportTitle: 'Report this room',
+  reportPersonTitle: (name: string): string => `Report ${name}`,
   reportSent: 'Thanks. Someone will take a look.',
 
   // SCREEN 17–19 — Guest

@@ -10,6 +10,13 @@
 #   VERCEL_ORG_ID          Vercel team/org id the CLI expects when no .vercel/ folder is committed
 #   VERCEL_PROJECT_ID      Vercel project id of apps/web
 #   EXPO_TOKEN             Expo access token for `eas build`
+#
+# Repository/environment variables (not secrets):
+#   EAS_PROJECT_ID         the EAS project id `eas init` printed. apps/mobile/app.config.ts reads
+#                          it and refuses a production build without it. Everything else a build
+#                          needs (EXPO_PUBLIC_*, GOOGLE_SERVICES_JSON, the Google Maps Android
+#                          key) lives in the EAS environment linked to the profile in eas.json —
+#                          never in this workflow. See docs/DEPLOYMENT.md §5.
 name: Deploy
 
 on:
@@ -114,4 +121,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Queue the build (profile "production" in apps/mobile/eas.json)
         working-directory: apps/mobile
+        # EAS_PROJECT_ID is read by app.config.ts while the CLI resolves the config locally; the
+        # build itself takes it, and the rest of the EXPO_PUBLIC_* environment, from the EAS
+        # environment the "production" profile links.
+        env:
+          EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
         run: eas build --non-interactive --profile production --platform all --no-wait

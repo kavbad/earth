@@ -123,7 +123,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # No EAS_PROJECT_ID, no GOOGLE_SERVICES_JSON and no maps key here on purpose: the config
+      # must still resolve for a developer who has none of them (apps/mobile/app.config.ts).
       - run: pnpm --filter earth-mobile export:check
+      - run: pnpm --filter earth-mobile export:check:android
 
   e2e:
     name: E2E journeys (local stack)

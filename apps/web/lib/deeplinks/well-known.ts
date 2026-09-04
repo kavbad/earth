@@ -1,7 +1,9 @@
 /**
  * Universal / App Links association documents (spec §112): `/.well-known/apple-app-site-association`
- * and `/.well-known/assetlinks.json`. The committed files under `public/.well-known` carry
- * placeholders; `generate-well-known.ts` rewrites them from the environment at deploy time.
+ * and `/.well-known/assetlinks.json`. Both are served from the environment by the route handlers
+ * under `app/.well-known/` (`APPLE_TEAM_ID`, `IOS_BUNDLE_ID`, `ANDROID_PACKAGE_NAME`,
+ * `ANDROID_SHA256_CERT_FINGERPRINTS`); with none of them set the documents render with the
+ * placeholders below, which is the honest local default — no app can claim these links yet.
  * The path list is the deep link contract itself, derived from `DEEP_LINK_PATHS`.
  */
 import { DEEP_LINK_PATHS } from '@earth/domain'
@@ -104,4 +106,27 @@ export function hasPlaceholders(rendered: string): boolean {
     rendered.includes(APPLE_TEAM_ID_PLACEHOLDER) ||
     rendered.includes('ANDROID_SHA256_CERT_FINGERPRINT_')
   )
+}
+
+export type WellKnownDocumentName = keyof ReturnType<typeof renderWellKnownFiles>
+
+/** Apple reads the extensionless association file only when it is served as JSON (spec §112). */
+export const WELL_KNOWN_CONTENT_TYPE = 'application/json' as const
+/**
+ * Association documents change only with a deploy, but they must never be cached so long that a
+ * fingerprint rotation cannot be undone; Apple and Google both re-fetch on their own schedule.
+ */
+export const WELL_KNOWN_CACHE_CONTROL = 'public, max-age=300, must-revalidate' as const
+
+/** The response the `/.well-known/<name>` route handler returns, rendered from `env`. */
+export function wellKnownResponse(
+  name: WellKnownDocumentName,
+  env: Readonly<Record<string, string | undefined>>,
+): Response {
+  return new Response(renderWellKnownFiles(configFromEnv(env))[name], {
+    headers: {
+      'content-type': WELL_KNOWN_CONTENT_TYPE,
+      'cache-control': WELL_KNOWN_CACHE_CONTROL,
+    },
+  })
 }

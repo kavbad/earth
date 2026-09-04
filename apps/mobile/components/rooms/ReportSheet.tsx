@@ -11,6 +11,8 @@ import { roomCopy } from '@/features/rooms/copy'
 
 export interface ReportSheetProps {
   readonly open: boolean
+  /** "Report this room" unless the sheet was opened for one person (spec §81). */
+  readonly title?: string
   readonly busy?: boolean
   readonly done?: boolean
   readonly onReport: (reason: ReportReason) => void
@@ -19,13 +21,14 @@ export interface ReportSheetProps {
 
 export function ReportSheet({
   open,
+  title = roomCopy.reportTitle,
   busy = false,
   done = false,
   onReport,
   onClose,
 }: ReportSheetProps) {
   return (
-    <Sheet open={open} onClose={onClose} title={roomCopy.reportTitle} closeButton>
+    <Sheet open={open} onClose={onClose} title={title} closeButton>
       {done ? (
         <View style={styles.done}>
           <Text style={[text.body, text.primary]} accessibilityLiveRegion="polite">

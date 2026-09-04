@@ -14,7 +14,7 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 - [x] Migrations 0001–0099: extensions, schemas, enums, helper functions, grants baseline
 - [x] `apps/web` Next 16 shell builds; `apps/mobile` Expo 57 shell typechecks and `expo export` works
 - [x] CI workflow; `.env.example`; local-stack scripts
-- Gate: `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` from clean clone
+- [x] Gate: `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` from clean clone — all five green on the final gate (2026-09-04)
 
 ## Milestone 1 — Human + group admission
 - [x] Migrations 01xx: humans, public_identities, auth_identities, human_passes (private metadata), relationships, blocks, identity_reviews
@@ -38,7 +38,7 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 - [x] RPC: room_start/join/leave/end/set_media_state/remove_participant, room_invite_create/preview, guest_session_create, room_media_grant, room_participant_sync, rooms_sweep
 - [x] Server: token route, LiveKit webhook, sweep route
 - [x] Active Room screen (web + mobile), Guest room web (preview → name → join), Guest post-room
-- [x] Deep links (`/g`, `/live`, `/@`, `/p`), AASA + assetlinks, Expo linking — the two association files are committed with placeholders and filled from the environment at deploy time (`apps/web/lib/deeplinks/generate-well-known.ts`, docs/DEPLOYMENT.md §4)
+- [x] Deep links (`/g`, `/live`, `/@`, `/p`), AASA + assetlinks, Expo linking — both association files are served from the environment at request time by `apps/web/app/.well-known/*/route.ts` (docs/DEPLOYMENT.md §4)
 - [x] Gate: e2e 4, 7, 8
 
 ## Milestone 4 — Live
@@ -58,12 +58,12 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 - [x] Migrations 05xx: areas (PostGIS), places, location_shares, human_context; seed SF areas
 - [x] RPC: area_resolve, context_set_area, location_share_create/revoke, map_objects
 - [x] MapProvider (react-native-maps / maplibre), Earth screen (web + mobile), city switch
-- Gate: same UI switches radius; map shows Lives by area
+- [x] Gate: same UI switches radius (E2E 11 walks it end to end); map shows Lives by area — proven at the DB and component tier by `supabase/tests/src/map-search/map.test.ts` (`map_objects` returns each Live inside the bbox at every radius, none outside) and the marker-state tests on both clients. No journey walks a Live pin; see Known limitations.
 
 ## Milestone 7 — Safety / hardening
 - [x] Migrations 07xx: reports, rate limits, audit log; blocks wired through every policy
 - [x] RPC: block_create/remove, report_create, rate limits in all mutating RPCs, guest stricter
-- [x] Block/Report/Hide/Remove controls in every surface; Settings; recovery entry; accessibility labels — one gap left open: reporting a *specific Guest* from a room (see Review, SEC-002)
+- [x] Block/Report/Hide/Remove controls in every surface, a named Guest in a room included (Review, SEC-002); Settings; recovery entry; accessibility labels
 - [x] Authorization audit test (matrix over every table), privacy audit (no raw GPS persisted)
 - [x] Gate: e2e 10; full test suite green
 
@@ -74,187 +74,205 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 
 ## Review
 
-Earth V1 is built and verified. This section is the final record: what exists, what proves it,
-what the adversarial review (§128) found and what happened to each finding, what is known not to
-be covered, and what to do next. The dated status entries from earlier in the build are kept
-below it, unedited.
+Earth V1 is built, audited, fixed in three waves and green on the final gate. This section is the
+closing record: what exists per milestone, what proves it, every review finding across all three
+waves and what happened to it, what is still open and why, and what is known not to be covered.
+The dated status entries from earlier in the build are kept below it, unedited.
 
-### What was built
+### What was built, per milestone
 
-- **Database (69 migrations, `supabase/migrations/`)** — the source of truth for every rule.
-  Identity and the four states (Visitor / Guest / claiming Human / Human), groups and
-  group-anchored admission, conversations and idempotent messaging, rooms with consent-gated
-  visibility widening and moderator transfer, posts and feed candidates, PostGIS areas / places /
-  location shares, notifications with Live dedupe and cooldowns, reports / blocks / rate limits /
-  audit, analytics and daily metrics, search, storage buckets and object policies. Every table has
-  RLS and explicit grants; every mutation is a `security definer` RPC returning the DTO shape in
-  `packages/domain/src/dto`.
-- **Server tier (`packages/server`, mounted at `apps/web/app/api/[...earth]`)** — LiveKit token
-  minting and webhook reconciliation, Human verification (mock / manual review / vendor adapter),
-  feed ranking and the SCREEN 02 presence row, Live discovery, signed media access, push dispatch,
-  room sweeps, daily metrics, analytics ingest, RTC diagnostics, account deletion. Pure handlers
-  with injected dependencies; `apps/web/lib/server` is the only wiring.
-- **Web client (`apps/web`, Next 16)** — public World and visitor browsing, the claim flow, chats
-  (list, new, group, DM, info, offline outbox), the Active Room and Guest room web, Live Home and
-  Open up, Home feed at every radius, composer, post detail, profile, notifications, search, the
-  Earth map, location sharing, You + Settings, and the safety controls on every surface.
-- **Mobile client (`apps/mobile`, Expo 57 + expo-router)** — the same product surfaces as native
-  screens, with push registration and channels, deep links (`/g`, `/live`, `/@`, `/p`),
-  `react-native-maps`, LiveKit React Native, secure storage.
-- **Shared packages** — `domain` (enums, DTOs, feed ranking, naming, presence, cursors),
-  `permissions` (the TypeScript mirror of DB policy, sharing fixtures with the DB tests), `api`
-  (the typed EarthClient), `auth`, `realtime` (subscriptions + polling fallback), `analytics`,
-  `observability`, `ui`, `config`.
-- **Local stack (`scripts/local-stack`)** — Postgres, PostgREST, GoTrue, Storage, LiveKit and
-  Mailpit behind one Supabase-shaped gateway, with no Docker and no Supabase CLI.
-- **Docs** — `docs/DEPLOYMENT.md` (new: the full production procedure and what is not automated),
-  `docs/architecture/ARCHITECTURE.md` §17 (new: every deliberate deviation and its reason),
-  `docs/architecture/DB_API.md`, `README.md`, `e2e/README.md`.
+- **M0 Foundation** — pnpm/turbo monorepo, TS 5.9 strict, ESLint 9 flat + Prettier; `packages/`
+  `domain` (enums, DTO schemas, error codes, feed ranking, naming, presence, cursors), `config`,
+  `ui`, `analytics`, `observability`, `permissions` (the TypeScript mirror of DB policy), `api`
+  (typed EarthClient), `auth`, `realtime`; the `supabase/tests` harness (scratch DB per file, auth
+  shim, role impersonation); migrations 0001–0099; `scripts/local-stack` (Postgres, PostgREST,
+  GoTrue, Storage, LiveKit, Mailpit behind one Supabase-shaped gateway, no Docker, no Supabase
+  CLI); CI and deploy workflows; `.env.example`.
+- **M1 Human + group admission** — migrations 01xx/02xx (humans, public/auth identities, human
+  passes with private metadata, relationships, blocks, identity reviews, groups, invites,
+  conversations); `claim_start` → `claim_set_identity` → `human_pass_record_result` →
+  `claim_complete`, group create/invite/preview/join/leave, member remove and promote; the three
+  verification providers (mock, manual review, vendor adapter) and their server routes; Public
+  World, Claim, Start group, Join group, You're on Earth on web and mobile.
+- **M2 Messenger** — conversations and idempotent messaging, read state, reactions, media
+  messages, the offline outbox; chats list, new chat, group and direct threads, conversation info
+  on both clients.
+- **M3 Private video + Guest** — rooms, participants, guest sessions and guest links, LiveKit
+  token minting and webhook reconciliation, the Active Room and the Guest room web
+  (`/live/[token]`), guest conversion.
+- **M4 Live** — Live discovery, Open up, consent-gated visibility widening, moderator transfer,
+  dynamic room titles, `notify_live` with dedupe and cooldowns, Live Home on both clients.
+- **M5 Feed** — posts, post media, reactions, hides, feed candidates and ranking, the SCREEN 02
+  presence row, composer, post detail, profile, notifications, search.
+- **M6 Radius + Earth map** — PostGIS areas and places (SF seed), `area_resolve`,
+  `context_set_area`, location shares with `map_objects`; MapLibre on web and `react-native-maps`
+  on mobile, city switch, share duration, visible-shares list.
+- **M7 Safety / hardening** — reports, blocks, rate limits, audit log, age gating; block/report/
+  hide/remove on every surface including a named Guest in a room; Settings and recovery; the
+  authorization matrix over every table and the privacy audit (no raw GPS persisted).
+
+70 migrations in `supabase/migrations/`, every table with RLS and explicit grants, every mutation
+a `security definer` RPC returning the DTO shape in `packages/domain/src/dto`. The server tier
+(`packages/server`, mounted at `apps/web/app/api/[...earth]`) holds LiveKit tokens and webhooks,
+Human verification, feed ranking and presence, Live discovery, signed media access, push dispatch,
+room sweeps, daily metrics, analytics ingest, RTC diagnostics and account deletion, as pure
+handlers with injected dependencies. Docs: `README.md`, `docs/DEPLOYMENT.md`,
+`docs/architecture/ARCHITECTURE.md` (§17 records every deliberate deviation), `DB_API.md`,
+`e2e/README.md`.
 
 ### Tests, by tier
 
-Full local run, 2026-09-03, branch `claude/earth-v1-build-spec-n9wgrk`, Postgres 16 on
+Final run, 2026-09-04, branch `claude/earth-v1-build-spec-n9wgrk`, Postgres 16 on
 127.0.0.1:5432. `pnpm test` (turbo, 26 tasks) exit 0.
 
-| Tier / workspace                                   | Files | Tests                 |
-| -------------------------------------------------- | ----- | --------------------- |
-| `@earth/db-tests` (authorization matrix, RPC invariants, integration flows) | 71 | 4245 |
-| `@earth/permissions` (mirror + shared fixtures)     | 8     | 2336                  |
-| `earth-mobile` (state + screens through `test/render.tsx`) | 61 | 379            |
-| `earth-web` (state + components via `react-dom/server`) | 67 | 376               |
-| `@earth/observability`                              | 6     | 287                   |
-| `@earth/domain`                                     | 19    | 274                   |
-| `@earth/server`                                     | 20    | 207                   |
-| `@earth/api`                                        | 14    | 153                   |
-| `@earth/auth`                                       | 9     | 141                   |
-| `@earth/realtime`                                   | 10    | 108                   |
-| `@earth/ui`                                         | 6     | 82                    |
-| `@earth/analytics`                                  | 9     | 81                    |
-| `@earth/config`                                     | 6     | 64                    |
-| root (`pnpm test:root`: migrate runner, local-stack) | 9    | 103 passed, 7 skipped |
-| `@earth/e2e` (Playwright, 14 files)                 | 14    | 17                    |
+| Tier / workspace                                                            | Files | Tests                 |
+| --------------------------------------------------------------------------- | ----- | --------------------- |
+| `@earth/db-tests` (authorization matrix, RPC invariants, integration flows) | 73    | 4259                  |
+| `@earth/permissions` (mirror + shared fixtures)                             | 8     | 2336                  |
+| `earth-web` (state + components via `react-dom/server`)                     | 71    | 411                   |
+| `earth-mobile` (state + screens through `test/render.tsx`)                  | 64    | 401                   |
+| `@earth/observability`                                                      | 6     | 287                   |
+| `@earth/domain`                                                             | 19    | 276                   |
+| `@earth/server`                                                             | 20    | 207                   |
+| `@earth/api`                                                                | 14    | 153                   |
+| `@earth/auth`                                                               | 9     | 141                   |
+| `@earth/realtime`                                                           | 10    | 108                   |
+| `@earth/ui`                                                                 | 6     | 82                    |
+| `@earth/analytics`                                                          | 9     | 81                    |
+| `@earth/config`                                                             | 6     | 65                    |
+| root (`pnpm test:root`: migrate runner, local-stack)                        | 9     | 103 passed, 7 skipped |
+| `@earth/e2e` (Playwright journeys)                                          | 14    | 17                    |
 
-8853 tests in total (8836 unit/DB + 17 end to end), 7 skipped (the live `stack.test.ts` cases,
-which need `EARTH_REQUIRE_STACK=1` and a running stack).
+8927 tests in total (8910 unit/DB + 17 end to end). The 7 root skips are the live `stack.test.ts`
+cases, which need a running stack; run separately with the stack up they pass —
+`EARTH_REQUIRE_STACK=1 pnpm vitest run scripts/local-stack/stack.test.ts` exit 0, 9 passed.
 
-### Gate run (this session)
+### Final gate (2026-09-04)
 
-Every command from `/home/user/earth`, in order. Full logs kept per command; exit codes below.
+Every command from `/home/user/earth`, in order, exit code observed.
 
-| Gate | Result |
-| ---- | ------ |
-| `pnpm install --frozen-lockfile` | 0 |
-| `pnpm format:check` | 0 |
-| `pnpm lint` | 0 (15/15 tasks) |
-| `pnpm typecheck` | 0 (15/15 tasks) |
-| `pnpm test` | 0 (26/26 tasks; counts above) |
-| `pnpm --filter earth-web run build` | 0 |
-| `EXPO_NO_TELEMETRY=1 CI=1 pnpm --filter earth-mobile run export:check` | 0 (iOS bundle; `.expo-export-check` deleted afterwards) |
-| `pnpm db:reset` | 0 (shim + 69 migrations + 3 seeds onto a fresh `earth_local`) |
-| `bash scripts/local-stack/up.sh` → `pnpm e2e` → `bash scripts/local-stack/down.sh` | 0 / 0 / 0 — 17/17 journeys, no retries |
+| Gate                                                                    | Result                                                              |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                        | 0 — lockfile unchanged by the fix waves                              |
+| `pnpm format:check`                                                     | 0 — no file needed reformatting, `pnpm format` never run             |
+| `pnpm lint`                                                             | 0 (15/15 tasks)                                                      |
+| `pnpm typecheck`                                                        | 0 (15/15 tasks)                                                      |
+| `pnpm exec tsx scripts/db/migrate.ts --reset`                           | 0 — shim + 70 migrations + 3 seeds onto a fresh `earth_local`        |
+| `pnpm test`                                                             | 0 (26/26 tasks; counts above)                                        |
+| `pnpm --filter earth-web run build`                                     | 0 — 26 routes                                                        |
+| `EXPO_NO_TELEMETRY=1 CI=1 … export:check` (iOS) and `export:check:android` | 0 / 0 — one 14 MB Hermes bundle each; `.expo-export-check` deleted |
+| `pnpm build` (root, M0 gate)                                            | 0                                                                    |
+| `bash scripts/local-stack/down.sh` → `pnpm db:test:clean` → `pnpm e2e`  | 0 / 0 / 0 — **17/17 journeys, three consecutive runs, no retries**    |
+| stray-process check (`next-server`, `postgrest`, `gotrue`, `livekit-server`, `mailpit`, `gateway.mjs`) | none left, no listener on 3000/54321/8025/1025/7880 |
 
-Per spec, final `pnpm e2e` (2.6 min total, 2 workers): `00-smoke` health 40 ms, gateway 16 ms,
-wordmark 495 ms · `00b-harness` claim 3.0 s, sign-in 650 ms · E2E 1 Start Earth 4.0 s ·
-E2E 2 Join group 6.4 s · E2E 3 Group chat 36.9 s · E2E 4 Video 13.9 s · E2E 5 Friend Live 26.2 s ·
-E2E 6 Dynamic Live title 22.5 s · E2E 7 Guest 8.6 s (link tap → in the room well inside the
-spec §112 15 s target) · E2E 8 Guest conversion 13.1 s · E2E 9 Audience integrity 13.2 s ·
-E2E 10 Block 42.1 s · E2E 11 Radius 2.1 s · E2E 12 Live consent 15.3 s.
+Final `pnpm e2e` (2.4 min, 2 workers): `00-smoke` health 51 ms, gateway 16 ms, wordmark 595 ms ·
+`00b-harness` claim 3.1 s, sign-in 710 ms · E2E 1 Start Earth 4.3 s · E2E 2 Join group 6.7 s ·
+E2E 3 Group chat 38.1 s · E2E 4 Video 13.9 s · E2E 5 Friend Live 26.4 s · E2E 6 Dynamic Live title
+22.2 s · E2E 7 Guest 8.4 s (link tap → in the room, inside the spec §112 15 s target) ·
+E2E 8 Guest conversion 12.3 s · E2E 9 Audience integrity 13.1 s · E2E 10 Block 42.5 s ·
+E2E 11 Radius 1.9 s · E2E 12 Live consent 12.3 s.
 
-The first pass of this gate was **not** green, and the failure was a real one: `pnpm test` failed
-`E2E 5 — Friend Live` at `e2e/journeys/05-friend-live.spec.ts:242` with the room header reading
-`Crew <id>` instead of `Bo … + Ada …`. See INV128-01 below — a genuine privacy leak that migration
-0999 had only half closed. It is fixed (migration 1000) and the gate is green.
+The gate's **first** e2e pass was not clean, and the failure was a real product defect, not a
+flake: E2E 6 and E2E 9 each failed on the first attempt and passed on retry, both at
+`Add Friend → Requested`. See REL-01 — diagnosed, fixed, and the suite then ran clean three times
+in a row (four including the `pnpm test` pass).
 
-One flake was observed and is recorded rather than papered over: in the `pnpm test` pass,
-`E2E 6 — Dynamic Live title` failed its first attempt and passed on retry #1 — after
-`Add Friend` was clicked on a profile, the button never became `Requested` within 15 s and no
-error surfaced (`askToBeFriends`, `e2e/journeys/06-dynamic-title.spec.ts:76`; artifacts in
-`e2e/test-results/06-dynamic-title-…-chromium/`). The final `pnpm e2e` pass had no retries. It has
-not been diagnosed; it is listed under Next steps.
+### Audit findings — both waves
 
-### Audit findings (§128 adversarial review) — disposition
+**Wave 1 (§128 adversarial review). Blocking — all seven fixed.**
 
-**Blocking — all seven fixed.**
+| #         | Finding                                                                                                | Disposition                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| INV128-01 | `earth.room_json` rendered a private group's name as `contextTitle` to anyone who could discover the room | **Fixed** in two steps. `0999` gated the title on being in the room; that was not enough, because both room screens join a Live as a viewer first, so an outsider held a seat before reading anything. `1000_fix_room_json_context_title_for_seated_outsiders.sql` makes the predicate membership, not presence: a seat is not membership. Pinned by `supabase/tests/src/verify/audience.test.ts` and `e2e/journeys/05-friend-live.spec.ts:242`. |
+| INV128-02 | `notify_live` pushed `group_live` titled "<private group> is live" to non-members                       | **Fixed** — `0970` chooses the copy per recipient; non-members fall through to `friend_live` / `multi_live` with `contextTitle: null`.                                                                                                                                                                                                                                                                                                                                |
+| INV128-03 | A `temporary_context` location share kept reaching whoever was in the room after it was widened        | **Fixed** — `0971` revokes every live room-scoped share the moment `rooms.visibility` rises.                                                                                                                                                                                                                                                                                                                                                                          |
+| SEC-001   | The signed-media route every post media URL points at did not exist                                    | **Fixed** — `0972` (`earth.media_readable_by`, `public.media_access_grant`), `packages/server/src/media/signed.ts`, route `media.signed`.                                                                                                                                                                                                                                                                                                                             |
+| DEP-01    | `supabase/config.toml` declared `major_version = 16`, which the Supabase CLI rejects                    | **Fixed** — now 17, pinned by `scripts/local-stack/env.test.ts`.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| DEP-02    | `0002_schemas.sql` revoked on `public.earth_migrations` with no existence guard, aborting `db push`      | **Fixed** — the revoke is inside a `to_regclass` guard.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| DEP-03    | Two pairs of migrations shared a numeric prefix, which the hosted ledger cannot represent               | **Fixed** — renamed, plus `duplicateMigrationVersions` in `scripts/db/migrate-core.ts` so the runner fails on any future duplicate.                                                                                                                                                                                                                                                                                                                                   |
 
-| # | Finding | Disposition |
-| - | ------- | ----------- |
-| INV128-01 | `earth.room_json` rendered a private group's name as `contextTitle` to anyone who could discover the room | **Fixed** in two steps. `0999_fix_room_json_group_context_title.sql` gated the title on being in the room; that was not enough, because both room screens join a Live as a viewer first (`apps/web/components/rooms/RoomScreen.tsx:175`), so an outsider held a seat before reading anything and `v_in_room` was true. `1000_fix_room_json_context_title_for_seated_outsiders.sql` makes the predicate membership, not presence: a seat is not membership. Pinned by two cases in `supabase/tests/src/verify/audience.test.ts` and by `e2e/journeys/05-friend-live.spec.ts:242`. |
-| INV128-02 | `notify_live` pushed `group_live` titled "<private group> is live" to non-members | **Fixed** — `0970_fix_group_live_notification_membership.sql` chooses the copy per recipient; non-members fall through to `friend_live` / `multi_live` with `contextTitle: null`. Tests in `supabase/tests/src/rooms/notifications.test.ts` and `supabase/tests/src/integration/flows.test.ts`. |
-| INV128-03 | A `temporary_context` location share kept reaching whoever was in the room after it was widened | **Fixed** — `0971_fix_room_widening_revokes_location_shares.sql` revokes every live room-scoped share the moment `rooms.visibility` rises. Tests in `supabase/tests/src/geo/location.test.ts`. |
-| SEC-001 | The signed-media route every post media URL points at did not exist | **Fixed** — `0972_media_signed_access.sql` (`earth.media_readable_by`, `public.media_access_grant`), `packages/server/src/media/signed.ts`, route `media.signed` in `packages/server/src/router.ts:137`, tests in `packages/server/src/media/signed.test.ts` and `supabase/tests/src/integration/server-media.test.ts`. |
-| DEP-01 | `supabase/config.toml` declared `major_version = 16`, which the Supabase CLI rejects | **Fixed** — now 17, with the reason in the file; pinned by `scripts/local-stack/env.test.ts:322`. |
-| DEP-02 | `0002_schemas.sql` revoked on `public.earth_migrations` with no existence guard, aborting `supabase db push` | **Fixed** — the revoke is now inside a `to_regclass` guard. |
-| DEP-03 | Two pairs of migrations shared a numeric prefix (`0951`, `0961`), which the hosted ledger cannot represent | **Fixed** — renamed to `0952_fix_identity_claim.sql` and `0965_fix_messaging_blocked_direct_read_state.sql`, plus `duplicateMigrationVersions` in `scripts/db/migrate-core.ts:132` so the runner fails on any future duplicate (tests in `scripts/db/migrate.test.ts:100`). |
+**Wave 1. Major — six fixed, two partly fixed.**
 
-**Major — six fixed, two partly fixed, seven open.**
+| #      | Finding                                                          | Disposition                                                                                                                                                                        |
+| ------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SCR-01 | The SCREEN 02 presence row could never render                    | **Fixed** — `0973_feed_presence.sql`, `packages/domain/src/feed/presence.ts`, `packages/server/src/feed/presence.ts`, prepended by `apps/web/components/feed/HomeFeed.tsx`.          |
+| SCR-02 | SCREEN 23 (notifications) had no navigation affordance on the web | **Fixed** — `NotificationsButton.tsx` + `useUnreadCount.ts`, with `apps/web/lib/routes.audit.test.ts` asserting every route is reachable.                                            |
+| SCR-03 | SCREEN 21 (search) had no persistent entry point on the web      | **Fixed** — `SearchButton.tsx`, same route audit.                                                                                                                                   |
+| DEP-10 | The README had no end-to-end deploy instructions                 | **Fixed** — `docs/DEPLOYMENT.md` plus the README's Deploy section.                                                                                                                  |
+| DOD-01 | The §127 done-statements were proven at runtime on the web only  | **Partly fixed** — `apps/mobile/test/` and the `.test.tsx` files now mount the real mobile screens (64 files / 401 tests). Open: no device-level harness, so journeys stay web-only. |
+| DOD-02 | The Storage half of the messenger executed nowhere               | **Partly fixed** — `0997` creates the buckets and policies everywhere, `scripts/local-stack/storage.mjs` serves Storage under them, 15 tests walk it. Open: no journey sends a photo or voice message. |
 
-| # | Finding | Disposition |
-| - | ------- | ----------- |
-| DOD-01 | The §127 done-statements were proven at runtime on the web client only | **Partly fixed.** `apps/mobile/test/` (render harness + native doubles) and twelve new `.test.tsx` files now mount the real mobile screens — `earth-mobile` went from state-only to 379 tests over 61 files. Still open: no device-level end-to-end harness exists, so the journeys remain web-only. Recorded in ARCHITECTURE §17.11. |
-| DOD-02 | The Storage half of the messenger executed nowhere | **Partly fixed.** The `storage` schema now comes from the Supabase shim, `0997` really creates the three buckets and five policies everywhere, `scripts/local-stack/storage.mjs` serves Storage locally under those policies, and 15 tests walk it (`supabase/tests/src/storage/objects.test.ts`, `scripts/local-stack/storage.test.ts`). Still open: no Playwright journey sends a photo or a voice message, so the browser attach/record flows are covered by component tests only. |
-| SCR-01 | The SCREEN 02 presence row could never render | **Fixed** — `0973_feed_presence.sql` (`feed_presence()`), `packages/domain/src/feed/presence.ts`, `packages/server/src/feed/presence.ts`, prepended by `apps/web/components/feed/HomeFeed.tsx`; contract in ARCHITECTURE §9.5. |
-| SCR-02 | SCREEN 23 (notifications) had no navigation affordance on the web | **Fixed** — `apps/web/components/feed/NotificationsButton.tsx` + `hooks/useUnreadCount.ts`, with `apps/web/lib/routes.audit.test.ts` asserting every route is reachable. |
-| SCR-03 | SCREEN 21 (search) had no persistent entry point on the web | **Fixed** — `apps/web/components/feed/SearchButton.tsx`, same route audit. |
-| DEP-10 | The README had no end-to-end deploy instructions | **Fixed** — `docs/DEPLOYMENT.md` (this session) plus the README's Deploy section. |
-| SEC-002 | Spec §81 "Every Guest: Remove, report, block session/device from room" | **Partly fixed / open.** Remove and block-from-room work for every participant including Guests on both clients (`apps/web/components/rooms/ParticipantsSheet.tsx:87,95` and the mobile twin). Reporting a *specific Guest* is still unreachable: `reports` accepts `target_type = 'guest'` (`supabase/migrations/0700_reports.sql:26`) and both `SafetyMenu` components can build that target, but no room screen mounts them — the room's report control reports the room. |
-| SEC-003 | Spec §84 age-gating architecture | **Open.** There is no birthdate, age field or minor-handling policy anywhere in the schema or the clients. A launch must decide 18+ and enforce it outside this codebase, or add the gating first. |
-| DEP-04 | Association files committed with placeholders; the generator is wired into nothing | **Open.** `apps/web/lib/deeplinks/generate-well-known.ts` exists and works; no build or deploy step calls it. Procedure and the four variables are in `docs/DEPLOYMENT.md` §4 and `.env.example`. |
-| DEP-05 | The `production` EAS profile supplies only `EXPO_PUBLIC_APP_ENV` | **Open.** No EAS environment is linked, so a production build has no Supabase URL, anon key or LiveKit URL. `docs/DEPLOYMENT.md` §5.2 lists what to add. |
-| DEP-06 | `EAS_PROJECT_ID` is the all-zero placeholder | **Open** (`apps/mobile/app.config.ts:8`). |
-| DEP-07 | No Android FCM configuration | **Open.** No `android.googleServicesFile`, no `google-services.json`; Expo push on Android needs FCM v1 credentials. |
-| DEP-08 | No Google Maps API key for `react-native-maps` | **Open.** The Android map renders blank without one. |
-| DEP-09 | `NEXT_PUBLIC_SENTRY_DSN` is inlined but no browser Sentry client is initialised | **Open.** Only the server tier reports (`apps/web/lib/server/wiring.ts:94`). |
-| DEP-11 | `config.toml` only encodes localhost settings | **Partly fixed.** `major_version` is now correct and the file says what the hosted project must match; the hosted Auth settings themselves are still dashboard-only, and nothing asserts the hosted project matches. Documented as `docs/DEPLOYMENT.md` §11.6. |
+**Wave 2 (the deployment/safety fix wave). Seven closed.**
 
-**New, found by this gate run.**
+| #       | Finding                                                          | Disposition                                                                                                                                                                                                                                                                                     |
+| ------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SEC-002 | Spec §81: a *specific Guest* in a room could not be reported     | **Fixed** — the participants sheet builds the report target per row (`human` by `humanId`, `guest` by guest-session id) on both clients; `apps/{web,mobile}/components/rooms/ParticipantsSheet.test.tsx` and `supabase/tests/src/safety/participant-reports.test.ts`.                              |
+| SEC-003 | Spec §84 age-gating architecture was absent                      | **Fixed** — `1020_age_gate.sql`: `humans.age_bracket` (`unknown`/`adult`/`minor`, written only by the verification service role), `app_settings.minimum_age_policy` defaulting closed to `18_plus`, and `earth.age_policy_allows()` consulted by `claim_complete` (`age_not_allowed`, HTTP 403). Tests in `supabase/tests/src/safety/age-gate.test.ts`. |
+| DEP-04  | Association files were committed placeholders; the generator ran nowhere | **Fixed** — `apps/web/app/.well-known/{apple-app-site-association,assetlinks.json}/route.ts` serve them from the environment at request time; the placeholder files and the unused generator script are gone. Tests in `apps/web/lib/deeplinks/well-known.test.ts`.                        |
+| DEP-05  | The `production` EAS profile carried only `EXPO_PUBLIC_APP_ENV`  | **Fixed** — `eas.json` links the production EAS environment and `app.config.ts` refuses a production build whose public env is incomplete; `apps/mobile/app.config.test.ts`.                                                                                                                     |
+| DEP-06  | `EAS_PROJECT_ID` was the all-zero placeholder                    | **Fixed** — read from the environment, absent-or-placeholder fails a production config; the deploy workflow passes `vars.EAS_PROJECT_ID`.                                                                                                                                                        |
+| DEP-07  | No Android FCM configuration                                     | **Fixed** — `android.googleServicesFile` wired to `GOOGLE_SERVICES_JSON`, required for a production Android build.                                                                                                                                                                               |
+| DEP-08  | No Google Maps API key for `react-native-maps`                   | **Fixed** — `android.config.googleMaps.apiKey` from the environment, required for a production Android build.                                                                                                                                                                                   |
+| DEP-09  | `NEXT_PUBLIC_SENTRY_DSN` was inlined with no browser client      | **Fixed** — `apps/web/instrumentation-client.ts` initialises Sentry in the browser on the same release string as the server tier, and no-ops when the DSN is unset; `apps/web/instrumentation.test.ts`.                                                                                           |
+| DEP-12  | The Vercel cron declarations could not drive the routes they name | **Fixed** — `apps/web/lib/server/cron.ts` translates Vercel's `GET` + `Authorization: Bearer` into the router's `POST` + `x-earth-cron-secret`; `apps/web/app/api/[...earth]/cron.test.ts` reads the schedule out of `vercel.json` so a cron without a handler fails the suite.                   |
 
-| # | Finding | Disposition |
-| - | ------- | ----------- |
-| DEP-12 | The Vercel cron declarations cannot drive the routes they name | **Open.** `apps/web/vercel.json` schedules `/api/internal/push/dispatch`, `/api/internal/rooms/sweep` and `/api/internal/metrics/daily`, but Vercel Cron issues `GET` with `Authorization: Bearer $CRON_SECRET` while all three routes are `POST` + `x-earth-cron-secret` (`packages/server/src/router.ts:112`, `packages/server/src/cron.ts:11`). Left as configuration, not code: `docs/DEPLOYMENT.md` §3.4 and §11.1 give the two supported ways to schedule them. Until one is in place rooms never end on their own, guest sessions and location shares never expire, and no push is delivered. |
+**Wave 3 (this gate). One found, one fixed.**
+
+| #      | Finding                                                                    | Disposition                                                                                                                                                                                                                                                                                                                          |
+| ------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| REL-01 | A friend request could be recorded and then vanish from the screen (SCREEN 22) | **Fixed.** `useProfileActions` wrote the RPC answer with `queryClient.setQueryData`, but the `profile_get` the screen starts on arrival was often still in flight; react-query writes a late answer over a cache write, so `Requested` reverted to `Add Friend` with nothing left to refetch it. Confirmed against the database — the `friend_pending` row existed while the button still read `Add Friend`. `commitProfile` now cancels the read in flight before writing, on web (`apps/web/components/profile/hooks/useProfile.ts`) and mobile (`apps/mobile/features/feed/hooks/useProfile.ts`); regression tests in the sibling `useProfile.test.ts` files fail without the cancel and pass with it. |
+
+### Open, with the reason each is still open
+
+| #                | Still open                                                    | Reason                                                                                                              |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| DOD-01 remainder | No mobile end-to-end harness                                  | Maestro/Detox against `scripts/local-stack` is a tier that was never built; mobile is proven by screen tests + export. |
+| DOD-02 remainder | No journey sends a photo or a voice message                   | The browser attach/record flows are covered by component tests only; adding them needs new journey fixtures.           |
+| DEP-11 remainder | Hosted Auth settings are not asserted against `config.toml`   | Those settings live only in the Supabase dashboard; nothing in this repo can read them.                               |
+| —                | Nothing is deployed                                           | No provider account, secret or store listing exists to deploy against; every `docs/DEPLOYMENT.md` procedure is untested in production.  |
+| —                | Cron, EAS, FCM and Maps values are placeholders in `.env.example`                  | They are per-project credentials nobody can supply from here; the code now *fails closed* without them rather than shipping a broken build. |
+| —                | Other `setQueryData` sites (map shares, notifications, privacy settings) keep the pre-REL-01 shape | Each was left untouched: this gate reproduced the race only on the profile actions, and a blind sweep would change behaviour no test covers. |
 
 ### Known limitations
 
 - The local stack has **no Supabase Realtime**: the gateway answers `/realtime/v1/*` with 503 and
   refuses websocket upgrades, so every local and e2e run exercises `@earth/realtime`'s polling
-  fallback rather than `postgres_changes`. The production path is configured (§1.5 of
-  DEPLOYMENT.md) but is not exercised by any test here.
+  fallback rather than `postgres_changes`. The production path is configured (DEPLOYMENT.md §1.5)
+  but is not exercised by any test here.
 - The local stack's **Storage** is `scripts/local-stack/storage.mjs`, not Supabase Storage. It
   holds no rule of its own — every request is authorized by the same `0997` policies — but it is
   not the same implementation, and signed-URL semantics are re-implemented rather than shared.
 - The **Human verification vendor adapter is generic**: a fixed wire contract that any vendor is
-  mapped onto by configuration (`packages/auth/src/verification/vendor.ts`). No real vendor has
-  been integrated or tested against; a vendor whose shape differs needs a translating proxy.
+  mapped onto by configuration. No real vendor has been integrated or tested against.
+- Age gating is **architecture, not enforcement of a measured age**: `age_bracket` ships `unknown`
+  for everyone and only a verification provider can ever set it, so today the gate admits everyone
+  exactly as before. A launch that must exclude minors needs the provider to report age.
 - The **mobile client is verified by typecheck, unit/screen tests and a Metro export only**. No
   build ran on a device or simulator, no EAS build was produced, push was never delivered to a
   handset, and `react-native-maps` was never rendered.
 - The §127 done-statements are proven end to end **on the web client only** (17 Playwright tests,
   one Chromium project against `apps/web`).
-- The Milestone 6 gate is half-proven: E2E 11 walks the radius switch and E2E 10 walks the map's
-  friend markers, but no journey asserts "the map shows Lives by area".
+- The Milestone 6 gate is proven at the DB and component tier, not end to end: E2E 11 walks the
+  radius switch and E2E 10 walks the map's friend markers, while "the map shows Lives by area" is
+  proven by `supabase/tests/src/map-search/map.test.ts` (`map_objects` returns each Live inside the
+  bbox at every radius and none outside) and the marker-state tests on both clients. No journey
+  walks a Live pin.
 - Nothing has been deployed. Every provider account, secret and store submission in
   `docs/DEPLOYMENT.md` is untested against a real project.
 
 ### Next steps
 
-1. Close DEP-12 (schedule the three internal routes for real) — without it Live rooms never end
-   and no notification reaches a phone. It is the single highest-value item.
-2. Close the mobile release gaps together, in one pass: `EAS_PROJECT_ID`, the production EAS
-   environment, FCM credentials, the Google Maps key, then an actual `eas build` and a device run
-   (DEP-05 – DEP-08).
-3. Run `generate-well-known.ts` from the deploy pipeline and fail the build when
-   `hasPlaceholders()` is true (DEP-04).
-4. Decide the §84 age policy and encode it before any public launch (SEC-003).
-5. Mount `SafetyMenu` for a Guest in both room screens so a Guest can be reported, not only
-   removed (SEC-002 remainder).
-6. Initialise a browser Sentry client, or drop `NEXT_PUBLIC_SENTRY_DSN` from the public env so it
-   stops implying coverage that does not exist (DEP-09).
-7. Diagnose the `E2E 6` `Add Friend → Requested` flake; if it is a product race in
-   `useProfileActions`, it is a §127 "no obvious prototype-grade reliability defects" issue, not a
-   test issue.
-8. Extend the journeys where coverage is thin: a photo and a voice message end to end (DOD-02
+1. Deploy: create the Supabase, Vercel, LiveKit, Expo and store accounts and walk
+   `docs/DEPLOYMENT.md` end to end. Everything below is downstream of doing this once.
+2. Produce a real `eas build` and run it on a device: push delivered to a handset, the Android map
+   rendering with the Maps key, deep links resolving against the served association files.
+3. Give the verification provider an age signal so SEC-003's gate has something to act on.
+4. Extend the journeys where coverage is thin: a photo and a voice message end to end (DOD-02
    remainder), and the map's Live pins (the Milestone 6 gate).
-9. Stand up a mobile end-to-end harness (Maestro or Detox against `scripts/local-stack`) so the
+5. Stand up a mobile end-to-end harness (Maestro or Detox against `scripts/local-stack`) so the
    §127 statements are proven on both clients (DOD-01 remainder).
+6. Consider applying REL-01's cancel-before-write guard to the other `setQueryData` call sites,
+   each with a test that fails without it.
 
 ### Earlier status entries (unedited)
 

@@ -256,13 +256,21 @@ SENTRY_DSN=<optional>
 ROOM_GRACE_SECONDS=120
 ```
 
-Deploy-time only, for the association files (§4):
+Universal / App Links, read by the `/.well-known` route handlers on every request (§4). They are
+plain environment variables, not secrets, and changing one is an environment change plus a
+redeploy — never a rebuild:
 
 ```
 APPLE_TEAM_ID=<10-char team id>
 IOS_BUNDLE_ID=social.earth.app
 ANDROID_PACKAGE_NAME=social.earth.app
 ANDROID_SHA256_CERT_FINGERPRINTS=<colon-separated sha256>[,<second>]
+```
+
+Vercel Cron (§3.4) — set this or the schedules cannot authenticate:
+
+```
+CRON_SECRET=<random; Vercel sends it as `Authorization: Bearer` on every scheduled request>
 ```
 
 `NEXT_PUBLIC_APP_ENV` and `APP_ENV` must agree — the server refuses a deployment that is
@@ -285,11 +293,22 @@ database (`/g/<token>`, `/live/<token>`, `/@handle`, `/p/<id>`, `/api/media/…`
 | `/api/internal/rooms/sweep`   | `* * * * *`   | `rooms_sweep()`: grace-period room ends, guest expiry, location-share expiry |
 | `/api/internal/metrics/daily` | `10 2 * * *`  | `metrics_compute_daily(date)`                                   |
 
-**These three routes are `POST` and authenticate with the header `x-earth-cron-secret`**
-(`packages/server/src/router.ts:112`, `packages/server/src/cron.ts:11`), while Vercel Cron issues
-`GET` with its own `Authorization: Bearer $CRON_SECRET`. The declaration alone therefore does not
-drive them — see §11, item 1, for the two supported ways to schedule them. Whatever calls them
-must send:
+The route table declares these three as `POST` + `x-earth-cron-secret`
+(`packages/server/src/router.ts:112`, `packages/server/src/cron.ts:11`) while Vercel Cron issues a
+`GET` with its own `Authorization: Bearer $CRON_SECRET` and no custom headers. The two are
+reconciled inside the app by `apps/web/lib/server/cron.ts`, which — for `/api/internal/*` only —
+accepts a bearer equal to `CRON_SECRET`, forwards `INTERNAL_CRON_SECRET` as
+`x-earth-cron-secret`, and treats the credentialed `GET` as the `POST` the route defines.
+`apps/web/app/api/[...earth]/cron.test.ts` drives every path in `vercel.json` exactly the way
+Vercel does and is the proof this holds.
+
+**You must set `CRON_SECRET` in the Vercel project (§3.2).** Vercel only sends the
+`Authorization` header when that variable exists; without it a scheduled request arrives as a bare
+`GET` and is answered `405` (`Allow: POST`) — the schedules run and nothing happens. A wrong
+bearer is `403`; both are visible in the function logs.
+
+Anything else that drives them (a GitHub Actions `schedule`, `pg_cron` + `pg_net`, an external
+scheduler) sends the native form instead:
 
 ```bash
 curl -fsS -X POST https://earth.social/api/internal/rooms/sweep \
@@ -313,24 +332,34 @@ A `503` here lists the environment variables that failed validation.
 ## 4. Universal links (`/.well-known`)
 
 Spec §112 requires `https://earth.social/g/…`, `/live/…`, `/@handle` and `/p/<id>` to open the
-app. The two association documents live in `apps/web/public/.well-known/` and are **committed with
-placeholders** (`APPLE_TEAM_ID`, `ANDROID_SHA256_CERT_FINGERPRINT_00:00:…`). Rewrite them from
-the environment before the production build:
+app. Both association documents are **served from the environment** by route handlers, so there is
+no file to edit and no generator to remember:
+
+| path                                        | handler                                                        | reads                                                   |
+| ------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------- |
+| `/.well-known/apple-app-site-association`    | `apps/web/app/.well-known/apple-app-site-association/route.ts`  | `APPLE_TEAM_ID`, `IOS_BUNDLE_ID`                        |
+| `/.well-known/assetlinks.json`               | `apps/web/app/.well-known/assetlinks.json/route.ts`             | `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_CERT_FINGERPRINTS` |
+
+Set the four variables in the Vercel project (§3.2) and redeploy; both routes are dynamic, so the
+values are read per request. The document shapes and the claimed path list come from
+`apps/web/lib/deeplinks/well-known.ts` (`UNIVERSAL_LINK_PATHS` is derived from `DEEP_LINK_PATHS`,
+so the association files cannot drift from the deep links the apps handle). Next serves the
+extensionless Apple file as `application/json` (`apps/web/next.config.ts:32`), and the handler sets
+the same content type itself.
+
+With none of the variables set the documents render with placeholders (`APPLE_TEAM_ID`,
+`ANDROID_SHA256_CERT_FINGERPRINT_00:00:…`) — the honest local default: no app can claim these
+links yet, so universal links fall back to the web page. `hasPlaceholders()` in the same module is
+the check a release gate should run against the deployed URLs:
 
 ```bash
-APPLE_TEAM_ID=ABCDE12345 \
-IOS_BUNDLE_ID=social.earth.app \
-ANDROID_PACKAGE_NAME=social.earth.app \
-ANDROID_SHA256_CERT_FINGERPRINTS="AA:BB:…" \
-pnpm exec tsx apps/web/lib/deeplinks/generate-well-known.ts
+APPLE_TEAM_ID=ABCDE12345 IOS_BUNDLE_ID=social.earth.app pnpm --filter earth-web dev
+curl -fsS http://localhost:3000/.well-known/apple-app-site-association | jq .applinks.details[0].appIDs
+# [ "ABCDE12345.social.earth.app" ]
 ```
 
-The generator writes both files and prints `(placeholders)` for any it could not fill
-(`apps/web/lib/deeplinks/generate-well-known.ts`; the shapes and the path list come from
-`apps/web/lib/deeplinks/well-known.ts`, whose `hasPlaceholders()` is the check a release gate
-should run). Next serves the extensionless Apple file as `application/json`
-(`apps/web/next.config.ts:32`). **This step is not wired into any build or deploy script** — see
-§11, item 2.
+`ANDROID_SHA256_CERT_FINGERPRINTS` takes a comma-separated list, so a signing-key rotation can
+publish the old and new fingerprints at once.
 
 Verify after deploy:
 
@@ -345,10 +374,19 @@ curl -fsS https://earth.social/.well-known/assetlinks.json | jq '.[0].target.sha
 
 ### 5.1 Project identity
 
-`apps/mobile/app.config.ts:8` carries `EAS_PROJECT_ID = '00000000-0000-0000-0000-000000000000'`,
-a placeholder. Replace it with the real project id (`eas init` prints it) before the first build;
-`extra.eas.projectId` is the only project identity the app config has, and EAS builds and push
-receipts key on it.
+`extra.eas.projectId` is the only project identity the app config has — EAS builds and push
+receipts key on it — and `apps/mobile/app.config.ts` reads it from **`EAS_PROJECT_ID`**:
+
+- unset outside a production build: the all-zero placeholder, so `expo start`, `expo export`,
+  `expo config` and `pnpm --filter earth-mobile export:check` work with no EAS account at all;
+- unset in a production build (`EAS_BUILD_PROFILE=production`, or `EXPO_PUBLIC_APP_ENV=production`):
+  resolving the config **fails** with `EAS_PROJECT_ID is required for a production build…`. There is
+  no safe guess — the wrong id uploads to someone else's project.
+
+Run `eas init` once (it prints the id), then set `EAS_PROJECT_ID` in two places: the EAS
+environment of each profile (`eas env:create --name EAS_PROJECT_ID --value <id>`), and wherever
+`eas build` is invoked — for CI that is the repository/environment variable `EAS_PROJECT_ID`
+consumed by `.github/workflows/deploy.yml`.
 
 Fixed identity, already set: name `Earth`, slug `earth`, scheme `earth`, bundle id / package
 `social.earth.app`, iOS `associatedDomains: ['applinks:earth.social']`, Android `intentFilters`
@@ -359,30 +397,45 @@ with `autoVerify` for `/g/`, `/live/`, `/p/`, `/@`, background modes `audio` + `
 ### 5.2 Profiles
 
 `apps/mobile/eas.json` has three build profiles — `development` (dev client, internal),
-`preview` (internal), `production` (`autoIncrement`, channel `production`) — and a
-`submit.production` block to fill in with your App Store Connect / Play Console identifiers.
-Each profile sets only `EXPO_PUBLIC_APP_ENV`; **every other `EXPO_PUBLIC_*` variable must be
-supplied**, either by linking an EAS environment to the profile
-(`"environment": "production"` plus variables created with `eas env:create`) or by adding them to
-the profile's `env` block:
+`preview` (internal), `production` (`autoIncrement`) — and a `submit.production` block to fill in
+with your App Store Connect / Play Console identifiers. Each profile pins its channel, pins
+`EXPO_PUBLIC_APP_ENV` in `env`, and **links the EAS environment of the same name**
+(`"environment": "development" | "preview" | "production"`). That link is where every other value
+comes from: no key, id or URL is written into `eas.json`.
 
-```
-EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_API_BASE_URL,
-EXPO_PUBLIC_LIVEKIT_URL, EXPO_PUBLIC_MAP_STYLE_URL, EXPO_PUBLIC_WEB_ORIGIN,
-EXPO_PUBLIC_POSTHOG_KEY, EXPO_PUBLIC_POSTHOG_HOST, EXPO_PUBLIC_SENTRY_DSN
+Create the variables once per environment (values mirror the `NEXT_PUBLIC_*` block of §3.2 — same
+Supabase project, same LiveKit, same origin):
+
+```bash
+cd apps/mobile
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL      --value https://<ref>.supabase.co
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key>
+eas env:create --environment production --name EXPO_PUBLIC_API_BASE_URL      --value https://earth.social
+eas env:create --environment production --name EXPO_PUBLIC_LIVEKIT_URL       --value wss://<project>.livekit.cloud
+eas env:create --environment production --name EXPO_PUBLIC_MAP_STYLE_URL     --value <MapLibre style JSON URL>
+eas env:create --environment production --name EXPO_PUBLIC_WEB_ORIGIN        --value https://earth.social
+eas env:create --environment production --name EXPO_PUBLIC_POSTHOG_KEY       --value <optional>
+eas env:create --environment production --name EXPO_PUBLIC_POSTHOG_HOST      --value https://us.i.posthog.com
+eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN        --value <optional>
+eas env:create --environment production --name EAS_PROJECT_ID                --value <project id>
+eas env:create --environment production --name EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY --value <maps key>   # §5.4
+eas env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json  # §5.3
 ```
 
-They mirror the `NEXT_PUBLIC_*` values of §3.2 (same project, same LiveKit, same origin). A
-build without them ships a client that cannot reach Supabase.
+`EXPO_PUBLIC_APP_ENV` stays in `eas.json` so the profile, the channel and the app environment can
+never disagree. A build missing any of the rest ships a client that cannot reach Supabase;
+`app.config.ts` warns with the exact names it did not find while resolving a production build
+(`apps/mobile/app.config.test.ts` holds that list to `@earth/config`'s schema).
 
 ### 5.3 Credentials
 
 ```bash
 cd apps/mobile
 eas login
-eas init                 # writes the project id — put it in app.config.ts
-eas credentials          # iOS: distribution cert + provisioning profile, APNs key
+eas init                 # prints the project id — set it as EAS_PROJECT_ID (§5.1)
+eas credentials          # iOS: distribution cert + provisioning profile, APNs push key
                          # Android: upload keystore (its SHA-256 goes into assetlinks.json, §4)
+                         #          and FCM v1 service account (§5.3)
 eas build --profile production --platform all
 eas submit --profile production --platform all
 ```
@@ -392,15 +445,38 @@ eas submit --profile production --platform all
 - **Android App Links**: the `sha256_cert_fingerprints` in `/.well-known/assetlinks.json` must be
   the fingerprint of the key that actually signs the uploaded artifact — with Play App Signing
   that is the **app signing key** Google shows in the Play Console, not your upload key.
-- **Push credentials**: iOS needs an APNs key uploaded to Expo (`eas credentials` → push key);
-  Android needs FCM v1 credentials — a Firebase project, `google-services.json` referenced from
-  `android.googleServicesFile`, and the service-account JSON uploaded to Expo. Neither the Firebase
-  file nor that config key exists in this repository yet (§11, item 4). The server side is done:
-  `push_tokens` rows and `POST /api/internal/push/dispatch` with `EXPO_ACCESS_TOKEN`.
+- **Push credentials** (spec §12). The server side is done — `push_tokens` rows and
+  `POST /api/internal/push/dispatch` with `EXPO_ACCESS_TOKEN` — but neither platform delivers
+  without its own credential:
+  - **iOS (APNs) is EAS-credential-managed**: `eas credentials` → *Push Notifications Key*, and
+    EAS generates or uploads the `.p8` APNs key and keeps it. Nothing about it belongs in this
+    repository, and there is no config key for it.
+  - **Android requires a Firebase `google-services.json`** (FCM v1). Create a Firebase project,
+    add an Android app with package `social.earth.app`, download `google-services.json`, upload
+    the FCM v1 **service-account JSON** to Expo (`eas credentials` → Android → FCM V1), and make
+    the file itself reachable at build time as **`GOOGLE_SERVICES_JSON`**:
+    `eas env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`.
+    `app.config.ts` sets `android.googleServicesFile` from that path when it is present and omits
+    it otherwise, so local builds still resolve. **The file is a credential and is never
+    committed** — `.env.example` documents the variable, not a value.
 
-CI: `.github/workflows/deploy.yml` job `mobile` runs
-`eas build --non-interactive --profile production --platform all --no-wait` with `EXPO_TOKEN`,
-only when the workflow is dispatched with `mobile_build`.
+### 5.4 Maps on Android
+
+`react-native-maps` uses `PROVIDER_DEFAULT`: Apple Maps on iOS (no key, nothing to configure) and
+**Google Maps on Android**, which renders a blank grid without an API key. Enable *Maps SDK for
+Android* in a Google Cloud project, create an API key restricted to the package
+`social.earth.app` plus the release signing fingerprint (§5.3), and set
+**`EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY`** in the EAS environment. `app.config.ts` puts it in
+`android.config.googleMaps.apiKey`; Expo strips that block out of the public manifest, so the key
+reaches the Android manifest and nothing else.
+
+### 5.5 CI
+
+`.github/workflows/deploy.yml` job `mobile` runs
+`eas build --non-interactive --profile production --platform all --no-wait` with `EXPO_TOKEN` and
+the `EAS_PROJECT_ID` variable, only when the workflow is dispatched with `mobile_build`. CI's
+`mobile-export` job deliberately runs `expo export` for iOS **and** Android with none of these
+variables set: the config must keep resolving for a developer who has no EAS account.
 
 ---
 
@@ -453,9 +529,16 @@ sees more than a status.
   and forwards error-level logs to it; unset selects the no-op monitor. Set
   `VERCEL_GIT_COMMIT_SHA` (Vercel does this automatically) to get releases.
 - Mobile: `EXPO_PUBLIC_SENTRY_DSN` with `@sentry/react-native`.
-- **Browser: `NEXT_PUBLIC_SENTRY_DSN` is validated and inlined but nothing initialises a browser
-  Sentry client yet** (§11, item 5). Leaving it empty is honest; setting it does not enable
-  anything today.
+- Browser: `NEXT_PUBLIC_SENTRY_DSN`. `apps/web/instrumentation-client.ts` runs before hydration
+  and calls `Sentry.init` only when that DSN is set — unset means no client, no requests, nothing
+  sent. `apps/web/instrumentation.ts` adds the server half: `register()` initialises the Node SDK
+  at boot when `SENTRY_DSN` is set (the Edge runtime is skipped) and `onRequestError` reports the
+  errors Next catches while rendering.
+- One release name across all three: `buildRelease` of `@earth/observability` produces
+  `earth-web@<version>[+<commit>]`. The server takes the commit from `VERCEL_GIT_COMMIT_SHA` and
+  the browser from `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` — Vercel sets both automatically, and
+  `apps/web/instrumentation.test.ts` asserts the two strings match.
+- `sendDefaultPii` is `false` everywhere: no IPs, cookies or request bodies (spec §14).
 
 ---
 
@@ -489,28 +572,29 @@ Playwright journeys (`e2e/`) prove all of this against the local stack, not agai
 
 Everything here is a deliberate gap, not an oversight. A launch has to close each one by hand.
 
-1. **The cron schedules do not fire the routes as declared.** `apps/web/vercel.json` lists the
-   three internal routes, but Vercel Cron sends `GET` with `Authorization: Bearer $CRON_SECRET`
-   while the routes are `POST` + `x-earth-cron-secret` (`packages/server/src/router.ts:112`,
-   `packages/server/src/cron.ts:11`). Until that is reconciled, schedule them from something that
-   can POST with a custom header — a GitHub Actions `schedule` job, Supabase `pg_cron` +
-   `pg_net`, or any external scheduler — or add `GET` aliases that accept Vercel's bearer token.
-   Without one of these: rooms never end on their own, guest sessions and location shares never
-   expire, and no push is ever delivered.
-2. **`/.well-known` association files are committed with placeholders** and the generator that
-   fills them (`apps/web/lib/deeplinks/generate-well-known.ts`) is referenced by no build or
-   deploy step. Run it (§4) and commit or deploy the result; otherwise universal links silently
-   fall back to the web page.
-3. **`EAS_PROJECT_ID` is the all-zero placeholder** (`apps/mobile/app.config.ts:8`) and the
-   `production` EAS profile supplies only `EXPO_PUBLIC_APP_ENV` — no EAS environment is linked,
-   so a production build has no Supabase URL, no anon key, no LiveKit URL (§5.1, §5.2).
-4. **Android push and Android maps have no configuration in the repo.** There is no
-   `android.googleServicesFile` / `google-services.json` (FCM v1 is required for Expo push on
-   Android, spec §12) and no Google Maps API key for `react-native-maps`, whose default provider
-   on Android is Google Maps — the map will render blank on Android until a key is added.
-5. **No browser Sentry client.** `NEXT_PUBLIC_SENTRY_DSN` is read into the public env
-   (`apps/web/lib/supabase/public-env.ts:35`) but no `Sentry.init` runs in the browser; only the
-   server tier reports.
+1. **`CRON_SECRET` must exist in Vercel or the schedules are inert.** The app reconciles Vercel
+   Cron's `GET` + bearer with the `POST` + `x-earth-cron-secret` contract (§3.4), but Vercel only
+   sends the bearer when that variable is set; without it every scheduled request is answered
+   `405` and nothing runs — rooms never end on their own, guest sessions and location shares never
+   expire, no push is delivered. Set it (§3.2) and check the function logs after the first minute.
+2. **The association values are configuration, and nobody sets them for you.** The `/.well-known`
+   routes serve whatever `APPLE_TEAM_ID`, `IOS_BUNDLE_ID`, `ANDROID_PACKAGE_NAME` and
+   `ANDROID_SHA256_CERT_FINGERPRINTS` say (§4); with them unset both documents render
+   placeholders and universal links silently fall back to the web page. The Android fingerprint is
+   only knowable after the first Play upload (Play App Signing), so this is a two-step launch.
+3. **The EAS environments do not exist until you create them.** `eas.json` links a
+   `development` / `preview` / `production` environment per profile and `app.config.ts` refuses a
+   production build without `EAS_PROJECT_ID`, but the variables themselves are created by hand
+   (§5.1, §5.2). Nothing in this repository can create or verify them.
+4. **Every mobile credential is obtained and uploaded by hand** (§5.3, §5.4): the APNs key
+   (EAS-managed), the Firebase project plus `google-services.json` and the FCM v1 service account
+   for Android push, and the Google Maps Android key. No credential file is committed, and no
+   check here can tell whether the fingerprint in `assetlinks.json` matches the key that actually
+   signs the artifact.
+5. **Sentry stays off until a DSN is set.** `NEXT_PUBLIC_SENTRY_DSN` (browser),
+   `SENTRY_DSN` (server tier) and `EXPO_PUBLIC_SENTRY_DSN` (mobile) each gate their own client
+   (§8); unset is a supported, silent configuration. Sourcemap upload for the browser bundle is
+   not configured either — events name the release, not the original line.
 6. **`supabase/config.toml` describes local values.** `site_url` is `http://localhost:3000` and
    the ports are the CLI's. Production Auth settings (§1.3) and the production site URL are set in
    the Supabase dashboard; nothing in this repository asserts that the hosted project matches.

@@ -25,6 +25,7 @@ import {
 const ARCHITECTURE_ENUM_NAMES = [
   'human_status',
   'human_pass_status',
+  'age_bracket',
   'relationship_type',
   'group_kind',
   'group_member_role',
@@ -115,6 +116,7 @@ describe('ENUM_REGISTRY', () => {
     ['notification_priority', ['critical_social', 'high', 'normal', 'low']],
     ['media_provenance', ['earth_capture', 'uploaded', 'edited', 'unknown']],
     ['profile_visibility', ['public', 'limited', 'hidden']],
+    ['age_bracket', ['unknown', 'adult', 'minor']],
   ] as const)('%s matches the spec values in order', (name, expected) => {
     expect(ENUM_REGISTRY[name]).toEqual(expected)
   })

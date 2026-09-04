@@ -78,6 +78,8 @@ describe('feature flags and app settings (0006)', () => {
     )
     expect(Object.fromEntries(settings.rows.map((r) => [r.key, r.value]))).toEqual({
       environment: 'development',
+      // Spec §84 launch policy, seeded by 1020.
+      minimum_age_policy: '18_plus',
       public_storage_base_url: '',
       room_grace_seconds: '120',
       web_origin: 'https://earth.social',
@@ -102,7 +104,7 @@ describe('feature flags and app settings (0006)', () => {
       const flags = await db.asRole(as, (c) => c.query('select key from public.feature_flags'))
       expect(flags.rowCount).toBe(11)
       const settings = await db.asRole(as, (c) => c.query('select key from public.app_settings'))
-      expect(settings.rowCount).toBe(4)
+      expect(settings.rowCount).toBe(5)
       await expectDenied(
         db.asRole(as, (c) =>
           c.query("insert into public.feature_flags (key, enabled) values ('X_FLAG', true)"),

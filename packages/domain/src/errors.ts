@@ -13,6 +13,8 @@ export const EARTH_ERROR_CODES = [
   'verification_required',
   'verification_pending',
   'duplicate_human',
+  /** Spec §84: the Human is marked a minor while the minimum age policy is 18+. */
+  'age_not_allowed',
   'handle_taken',
   'handle_invalid',
   'group_not_found',
@@ -101,6 +103,7 @@ export const EARTH_ERROR_HTTP_STATUS: Readonly<Record<EarthErrorCode, number>> =
   verification_required: 403,
   verification_pending: 409,
   duplicate_human: 409,
+  age_not_allowed: 403,
   handle_taken: 409,
   handle_invalid: 400,
   group_not_found: 404,

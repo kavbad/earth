@@ -8,7 +8,7 @@
  */
 import type { SourceSurface } from '@earth/analytics'
 import type { HumanId, ProfileDto, ReportReason } from '@earth/domain'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
 import { errorCode, isTransientFailure } from '../../../lib/errors'
@@ -65,6 +65,22 @@ export function useProfile(handle: string, initial?: ProfileDto | null): Profile
   }
 }
 
+/**
+ * Fold a relationship answer back into the cached profile (SCREEN 22). A `profile_get` that was
+ * already in flight when the RPC landed carries the relationship as it stood *before* the action,
+ * and react-query writes a late answer over a `setQueryData` — which put `Add Friend` back on a
+ * profile whose request had been recorded, with nothing left to refetch it. The read in flight is
+ * cancelled first so the newer answer stands (spec §20–§21).
+ */
+export async function commitProfile(
+  queryClient: QueryClient,
+  key: readonly unknown[],
+  next: ProfileDto,
+): Promise<void> {
+  await queryClient.cancelQueries({ queryKey: key })
+  queryClient.setQueryData(key, next)
+}
+
 export interface ProfileActions {
   addFriend(): Promise<void>
   acceptFriend(): Promise<void>
@@ -93,7 +109,7 @@ export function useProfileActions(profile: ProfileDto, source: SourceSurface): P
       setBusy(true)
       try {
         const next = await work()
-        if (next !== null) queryClient.setQueryData(key, next)
+        if (next !== null) await commitProfile(queryClient, key, next)
         return true
       } catch {
         toast.show(profileCopy.couldntChange)

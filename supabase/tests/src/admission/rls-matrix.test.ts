@@ -706,7 +706,8 @@ describe('RLS matrix over every admission table', () => {
     },
     {
       table: 'app_settings',
-      select: all(4),
+      // 0006 seeds four; 1020 adds minimum_age_policy (spec §84).
+      select: all(5),
       insert: {
         sql: () => `insert into public.app_settings (key, value) values ('new_key', 'x')`,
         expect: all('denied'),

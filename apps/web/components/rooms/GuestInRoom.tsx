@@ -6,7 +6,12 @@
  * moderation. Loaded on the client only (LiveKit is browser-only).
  */
 import type { GuestOutcome } from '@earth/analytics'
-import { type ReportReason, type RoomDto, type RoomId } from '@earth/domain'
+import {
+  type ReportReason,
+  type RoomDto,
+  type RoomId,
+  type RoomParticipantDto,
+} from '@earth/domain'
 import type { RoomStateDelta } from '@earth/realtime'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -16,7 +21,7 @@ import { useEarth } from '../../lib/providers/RuntimeProvider'
 import { Spinner } from '../ui/Spinner'
 import { useToast } from '../ui/Toast'
 import { MoreSheet } from './MoreSheet'
-import { ParticipantsSheet } from './ParticipantsSheet'
+import { ParticipantsSheet, reportTargetForParticipant } from './ParticipantsSheet'
 import { ReportSheet } from './ReportSheet'
 import { RoomEnded } from './RoomEnded'
 import { RoomView } from './RoomView'
@@ -36,6 +41,17 @@ export interface GuestInRoomProps {
 
 type SheetKind = 'none' | 'participants' | 'more' | 'report'
 
+/** The room, or one person in it: a Guest reports both (spec §81, DB_API §7). */
+type ReportTarget =
+  | { readonly kind: 'room' }
+  | {
+      readonly kind: 'participant'
+      readonly target: NonNullable<ReturnType<typeof reportTargetForParticipant>>
+      readonly name: string
+    }
+
+const ROOM_REPORT_TARGET: ReportTarget = { kind: 'room' }
+
 export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomProps) {
   const earth = useEarth()
   const analytics = useAnalytics()
@@ -46,6 +62,7 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [reportDone, setReportDone] = useState(false)
+  const [reportTarget, setReportTarget] = useState<ReportTarget>(ROOM_REPORT_TARGET)
   const connected = useRef(false)
   const left = useRef(false)
   const onLeftRef = useRef(onLeft)
@@ -138,10 +155,17 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
 
   const report = useCallback(
     async (reason: ReportReason) => {
+      const target =
+        reportTarget.kind === 'room' ? { type: 'room' as const, id: roomId } : reportTarget.target
       setBusy(true)
       try {
-        await earth.safety.report({ targetType: 'room', targetId: roomId, reason, details: null })
-        analytics.track('content_reported', { targetType: 'room', reason })
+        await earth.safety.report({
+          targetType: target.type,
+          targetId: target.id,
+          reason,
+          details: null,
+        })
+        analytics.track('content_reported', { targetType: target.type, reason })
         setReportDone(true)
       } catch {
         toast.show(webCopy.somethingWrong)
@@ -149,8 +173,16 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
         setBusy(false)
       }
     },
-    [earth, roomId, analytics, toast],
+    [earth, roomId, reportTarget, analytics, toast],
   )
+
+  const reportParticipant = useCallback((participant: RoomParticipantDto) => {
+    const target = reportTargetForParticipant(participant)
+    if (target === null) return
+    setReportDone(false)
+    setReportTarget({ kind: 'participant', target, name: participant.displayName })
+    setSheet('report')
+  }, [])
 
   if (room === null) {
     if (roomState.error !== null && roomState.error !== 'room_ended') {
@@ -193,6 +225,7 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
         canModerate={false}
         onRemove={() => undefined}
         onAdmit={() => undefined}
+        onReport={reportParticipant}
         onClose={() => setSheet('none')}
       />
       <MoreSheet
@@ -207,6 +240,7 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
         onEnd={() => undefined}
         onReport={() => {
           setReportDone(false)
+          setReportTarget(ROOM_REPORT_TARGET)
           setSheet('report')
         }}
         onLeave={() => void leave()}
@@ -214,6 +248,11 @@ export function GuestInRoom({ token, roomId, wantsCamera, onLeft }: GuestInRoomP
       />
       <ReportSheet
         open={sheet === 'report'}
+        title={
+          reportTarget.kind === 'room'
+            ? roomCopy.reportTitle
+            : roomCopy.reportPersonTitle(reportTarget.name)
+        }
         busy={busy}
         done={reportDone}
         onReport={(reason) => void report(reason)}

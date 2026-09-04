@@ -22,13 +22,17 @@ import {
   SERVER_ENV_KEYS,
   SERVER_SECRET_KEYS,
 } from './env'
-import { parseDotenv, readRepoFile, TOOLING_ENV_KEYS } from './testing'
+import { DEPLOY_ENV_KEYS, parseDotenv, readRepoFile, TOOLING_ENV_KEYS } from './testing'
 
 const ENV_EXAMPLE = '.env.example'
 const text = readRepoFile(ENV_EXAMPLE)
 const example = parseDotenv(text)
 const exampleKeys = Object.keys(example)
 const description = describeEnv()
+
+function isDeployKey(key: string): boolean {
+  return (DEPLOY_ENV_KEYS as readonly string[]).includes(key)
+}
 
 function catchEnvError(fn: () => unknown): EnvError {
   try {
@@ -45,7 +49,7 @@ describe('.env.example', () => {
     'documents every public variable under %s, in schema order',
     (prefix) => {
       const expected = PUBLIC_ENV_KEYS.map((key) => publicEnvVariableName(key, prefix))
-      const actual = exampleKeys.filter((key) => key.startsWith(prefix))
+      const actual = exampleKeys.filter((key) => key.startsWith(prefix) && !isDeployKey(key))
       expect(actual).toEqual(expected)
     },
   )
@@ -54,10 +58,25 @@ describe('.env.example', () => {
     const actual = exampleKeys.filter(
       (key) => !PUBLIC_ENV_PREFIXES.some((prefix) => key.startsWith(prefix)),
     )
-    expect(actual.filter((key) => !(TOOLING_ENV_KEYS as readonly string[]).includes(key))).toEqual([
-      ...SERVER_ENV_KEYS,
-    ])
+    expect(
+      actual.filter(
+        (key) => !(TOOLING_ENV_KEYS as readonly string[]).includes(key) && !isDeployKey(key),
+      ),
+    ).toEqual([...SERVER_ENV_KEYS])
     for (const key of TOOLING_ENV_KEYS) expect(exampleKeys).toContain(key)
+  })
+
+  it('documents every deploy-time variable, and none of them is a schema key', () => {
+    const schemaKeys = new Set<string>([
+      ...SERVER_ENV_KEYS,
+      ...PUBLIC_ENV_PREFIXES.flatMap((prefix) =>
+        PUBLIC_ENV_KEYS.map((key) => publicEnvVariableName(key, prefix)),
+      ),
+    ])
+    for (const key of DEPLOY_ENV_KEYS) {
+      expect(exampleKeys, key).toContain(key)
+      expect(schemaKeys.has(key), `${key} is a deploy input, not a validated variable`).toBe(false)
+    }
   })
 
   it('has a comment above each web public and server variable', () => {
@@ -65,6 +84,7 @@ describe('.env.example', () => {
     const documented = [
       ...PUBLIC_ENV_KEYS.map((key) => publicEnvVariableName(key, PublicEnvPrefixes.web)),
       ...SERVER_ENV_KEYS,
+      ...DEPLOY_ENV_KEYS,
     ]
     for (const key of documented) {
       const index = lines.findIndex((line) => line.startsWith(`${key}=`))

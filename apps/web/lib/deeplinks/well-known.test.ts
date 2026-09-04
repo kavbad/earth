@@ -1,21 +1,25 @@
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { describe, expect, it } from 'vitest'
-
+import { GET as appleRoute } from '../../app/.well-known/apple-app-site-association/route'
+import { GET as androidRoute } from '../../app/.well-known/assetlinks.json/route'
 import {
   PLACEHOLDER_CONFIG,
   UNIVERSAL_LINK_PATHS,
+  WELL_KNOWN_CONTENT_TYPE,
   appleAppSiteAssociation,
   assetLinks,
   configFromEnv,
   hasPlaceholders,
   renderWellKnownFiles,
+  wellKnownResponse,
 } from './well-known'
 
-const here = dirname(fileURLToPath(import.meta.url))
-const publicDir = join(here, '..', '..', 'public', '.well-known')
+const CONFIGURED = {
+  APPLE_TEAM_ID: 'ABCDE12345',
+  IOS_BUNDLE_ID: 'social.earth.ios',
+  ANDROID_PACKAGE_NAME: 'social.earth.droid',
+  ANDROID_SHA256_CERT_FINGERPRINTS: 'AA:BB:CC, DD:EE:FF',
+} as const
 
 describe('universal link paths', () => {
   it('cover exactly the spec §112 links', () => {
@@ -81,13 +85,70 @@ describe('documents', () => {
     })
     expect(hasPlaceholders(real['apple-app-site-association'])).toBe(false)
   })
+})
 
-  it('match the committed public files (placeholders until deploy; Prettier may re-wrap them)', () => {
-    const files = renderWellKnownFiles(PLACEHOLDER_CONFIG)
-    const read = (name: string): unknown => JSON.parse(readFileSync(join(publicDir, name), 'utf8'))
-    expect(read('apple-app-site-association')).toEqual(
-      JSON.parse(files['apple-app-site-association']),
-    )
-    expect(read('assetlinks.json')).toEqual(JSON.parse(files['assetlinks.json']))
+describe('wellKnownResponse', () => {
+  it('serves both documents as application/json', async () => {
+    for (const name of ['apple-app-site-association', 'assetlinks.json'] as const) {
+      const response = wellKnownResponse(name, CONFIGURED)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toBe(WELL_KNOWN_CONTENT_TYPE)
+      await expect(
+        response.text().then((text) => JSON.parse(text) as unknown),
+      ).resolves.toBeTruthy()
+    }
+  })
+})
+
+describe('/.well-known route handlers', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('serve the configured ids, not the placeholders', async () => {
+    for (const [name, value] of Object.entries(CONFIGURED)) vi.stubEnv(name, value)
+
+    const apple = appleRoute()
+    expect(apple.headers.get('content-type')).toBe(WELL_KNOWN_CONTENT_TYPE)
+    const appleBody = await apple.text()
+    expect(hasPlaceholders(appleBody)).toBe(false)
+    expect(JSON.parse(appleBody)).toEqual({
+      applinks: {
+        details: [
+          {
+            appIDs: ['ABCDE12345.social.earth.ios'],
+            components: UNIVERSAL_LINK_PATHS.map((path) => ({ '/': path })),
+          },
+        ],
+      },
+      webcredentials: { apps: ['ABCDE12345.social.earth.ios'] },
+    })
+
+    const android = androidRoute()
+    expect(android.headers.get('content-type')).toBe(WELL_KNOWN_CONTENT_TYPE)
+    const androidBody = await android.text()
+    expect(hasPlaceholders(androidBody)).toBe(false)
+    expect(JSON.parse(androidBody)).toEqual([
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace: 'android_app',
+          package_name: 'social.earth.droid',
+          sha256_cert_fingerprints: ['AA:BB:CC', 'DD:EE:FF'],
+        },
+      },
+    ])
+  })
+
+  it('fall back to the placeholders when nothing is configured (local default)', async () => {
+    for (const name of Object.keys(CONFIGURED)) vi.stubEnv(name, '')
+
+    const apple = await appleRoute().text()
+    const android = await androidRoute().text()
+    expect(hasPlaceholders(apple)).toBe(true)
+    expect(hasPlaceholders(android)).toBe(true)
+    const placeholders = renderWellKnownFiles(PLACEHOLDER_CONFIG)
+    expect(JSON.parse(apple)).toEqual(JSON.parse(placeholders['apple-app-site-association']))
+    expect(JSON.parse(android)).toEqual(JSON.parse(placeholders['assetlinks.json']))
   })
 })

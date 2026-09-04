@@ -100,11 +100,36 @@ Supabase Auth issues credentials. A credential is **never** a Human.
 
 Pending Humans are invisible everywhere (no public identity reads, no search, no membership).
 
+### Age gating (spec §84)
+
+Earth launches 18+, so the *architecture* for a minimum age exists from day one while the product
+scope stays 18+. Three pieces, added by `1020_age_gate.sql`:
+
+- `public.humans.age_bracket` (`public.age_bracket`: `unknown` | `adult` | `minor`, default
+  `unknown`). It is a **result of identity verification**, not a self-declaration or a profile
+  field: the verification provider integration running as `service_role` is the only writer, no
+  client role holds INSERT or UPDATE on `public.humans` (0170 grants SELECT only, behind
+  `humans_select_own`, and 1020 revokes the column privilege explicitly), and no DTO or RPC returns
+  it. Age is never public identity (§78 applies to it as it does to every other verification
+  detail).
+- `app_settings.minimum_age_policy` — `18_plus` at launch. The only other value the gate recognises
+  is `all_ages`; V1 never sets it, and if minors are ever permitted the stricter §84 requirements
+  become launch blockers first. Anything unrecognised, including a missing row, reads as `18_plus`:
+  the gate fails closed, because "do not accidentally admit minors into adult defaults" is the
+  whole point.
+- `earth.age_policy_allows(human_id)` — the single answer to "may this Human hold a place under the
+  current policy?". `public.claim_complete` consults it as the last gate before activation and
+  refuses a marked minor with `age_not_allowed` (`packages/domain/src/errors.ts`); `unknown` and
+  `adult` pass, so nothing about today's claim changes. EXECUTE on it is revoked from `anon` and
+  `authenticated` — `claim_complete` is `security definer` and needs no client grant, and a client
+  that could call it could probe whether a given Human is a minor. Deactivating already-active Humans is a
+  policy operation with its own review path, not something a migration does.
+
 ## 5. Database conventions
 
 - Schemas: `public` (exposed tables + RPC), `earth` (internal helpers, revoked from `anon`/`authenticated`), `private` (Human Pass `metadata_private`, rate limits, audit, push tokens' raw values are fine in public with RLS).
 - Every table: `enable row level security`; explicit `grant` statements; default `revoke all on all tables in schema public from anon, authenticated` then grant per table. Never rely on default privileges.
-- Enums are Postgres enum types named exactly after the spec (`human_status`, `human_pass_status`, `relationship_type`, `group_kind`, `group_member_role`, `group_member_status`, `conversation_type`, `message_type`, `post_type`, `audience`, `reply_policy`, `reshare_policy`, `room_context_type`, `room_visibility`, `room_join_policy`, `room_status`, `area_precision`, `participant_role`, `media_state`, `participant_status`, `area_type`, `location_audience_type`, `location_precision`, `notification_priority`, `report_reason`, `report_status`, `media_provenance`, `profile_visibility`). `packages/domain/src/enums.ts` mirrors them as `as const` arrays + zod enums; DB tests assert the two lists are identical.
+- Enums are Postgres enum types named exactly after the spec (`human_status`, `human_pass_status`, `age_bracket`, `relationship_type`, `group_kind`, `group_member_role`, `group_member_status`, `conversation_type`, `message_type`, `post_type`, `audience`, `reply_policy`, `reshare_policy`, `room_context_type`, `room_visibility`, `room_join_policy`, `room_status`, `area_precision`, `participant_role`, `media_state`, `participant_status`, `area_type`, `location_audience_type`, `location_precision`, `notification_priority`, `report_reason`, `report_status`, `media_provenance`, `profile_visibility`). `packages/domain/src/enums.ts` mirrors them as `as const` arrays + zod enums; DB tests assert the two lists are identical.
 - IDs are `uuid default gen_random_uuid()`. Timestamps are `timestamptz`.
 - Tokens (`group_invites.token_hash`, `room_invites.token_hash`, `guest_sessions.session_secret_hash`) are `sha256` hex of a random 32-byte base64url token; the plaintext is returned exactly once by the creating RPC.
 - RPC naming: `public.<noun>_<verb>` (for example `group_create`, `group_invite_join`, `message_send`, `room_start`, `room_set_visibility`, `feed_candidates`, `guest_session_create`). All RPCs are `security definer`, `set search_path = public, earth, private, pg_temp`, validate the caller with `earth.current_role_kind()`, apply rate limits with `earth.rate_limit(action, key, limit, window)`, and return `jsonb` shaped exactly like the DTO in `packages/domain/src/dto/*.ts`. Errors are raised with `raise exception using errcode = 'P0001', message = '<machine_code>'` where `<machine_code>` is a stable snake_case code listed in `packages/domain/src/errors.ts` (for example `not_a_member`, `blocked`, `rate_limited`, `consent_required`, `duplicate_human`).
@@ -244,7 +269,8 @@ and the reason. Nothing here weakens a spec §128 invariant.
 
 1. **Migration numbering runs past `0999` (§5).** §5 assigns ranges `0001–0999`. The build added a
    forward-only fix series inside `0900–0999` (`0950`–`0973`, `0996`–`0999`) and then
-   `1000_fix_room_json_context_title_for_seated_outsiders.sql`. Reason: a defect in an earlier
+   `1000_fix_room_json_context_title_for_seated_outsiders.sql`; the audit-fix series continues in
+   `1000–1099` (`1020_age_gate.sql`). Reason: a defect in an earlier
    migration is fixed by a later one, never by editing the original (§5, §16), and the runner
    applies files in lexical order — `0999` was taken, so the next fix must sort after it
    (`"0999…" < "1000…"`, `scripts/db/migrate-core.ts:144`). The rule that still holds absolutely is

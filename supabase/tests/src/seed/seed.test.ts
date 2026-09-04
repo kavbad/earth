@@ -889,6 +889,8 @@ describe('development seed fixtures (spec §117; DB_API §10)', () => {
       )
       expect(settings.rows).toEqual([
         { key: 'environment', value: 'development' },
+        // Spec §84 launch policy, seeded by 1020 and untouched by the dev seed.
+        { key: 'minimum_age_policy', value: '18_plus' },
         { key: 'public_storage_base_url', value: '' },
         { key: 'room_grace_seconds', value: '120' },
         { key: 'web_origin', value: 'http://localhost:3000' },
