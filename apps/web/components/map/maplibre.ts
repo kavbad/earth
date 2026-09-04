@@ -8,6 +8,7 @@ import type { MapOptions, Map as MapLibreMap, Marker } from 'maplibre-gl'
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+import { whenStyleReady } from './state/styleReady'
 import { clampBounds, fallbackStyle } from './state/view'
 import type {
   EarthMap,
@@ -176,12 +177,8 @@ export const createMapLibreEarthMap: EarthMapFactory = async (container, options
     },
   }
 
-  await new Promise<void>((resolve) => {
-    if (map.loaded()) resolve()
-    else map.once('load', () => resolve())
-    // A style that fails to load still yields a usable (blank) map; do not hang on it.
-    map.once('error', () => resolve())
-  })
+  // A style that fails still yields a usable (blank) map, and so does one that never answers.
+  await whenStyleReady(map)
 
   return earthMap
 }
