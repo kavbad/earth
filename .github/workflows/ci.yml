@@ -92,10 +92,37 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Quiet the Postgres service log
+        # The runner prints the whole service-container log at the end of every job. The suite
+        # asserts hundreds of refusals on purpose, and each one logs an ERROR/CONTEXT/STATEMENT
+        # triplet, so that dump buried the vitest output and made a failing job undiagnosable.
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          alter system set log_checkpoints = off;
+          alter system set log_min_messages = fatal;
+          alter system set log_min_error_statement = fatal;
+          alter system set log_statement = 'none';
+          alter system set log_connections = off;
+          alter system set log_disconnections = off;
+          SQL
+          psql -h 127.0.0.1 -U postgres -d postgres -c 'select pg_reload_conf()'
+
       - name: Root script tests (migration runner + local-stack helpers; need Postgres)
         run: pnpm test:root
       - name: Database tests (@earth/db-tests)
-        run: pnpm db:test
+        run: |
+          set -o pipefail
+          pnpm db:test 2>&1 | tee db-tests.log
+
+      - name: Upload the database test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tests-log
+          path: db-tests.log
+          if-no-files-found: ignore
 
   web-build:
     name: Web build
