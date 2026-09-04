@@ -169,8 +169,12 @@ it.runIf(required)(`the local stack must be running when ${REQUIRE_STACK_ENV}=1`
 })
 
 describe.runIf(stackUp)('local stack (live)', () => {
-  const stack = config as StackConfig
-  const base = stack.EARTH_SUPABASE_URL
+  // `describe.runIf(false)` still evaluates this body to collect the tests it holds; only the
+  // running is skipped. So nothing out here may dereference `config`, which is null whenever the
+  // stack is down — a fresh clone and CI both have no `.local/stack.env`. The `it` bodies below
+  // run only when `stackUp` is true, so reading the real values inside them is safe.
+  const stack = (config ?? {}) as StackConfig
+  const base = stack.EARTH_SUPABASE_URL ?? ''
   let guestToken = ''
 
   it('gateway health names both upstreams', async () => {

@@ -139,7 +139,9 @@ describe('local Storage service (0997 buckets and object policies over HTTP)', (
 
   afterAll(async () => {
     await gateway?.close()
-    await rm(root, { recursive: true, force: true })
+    // `beforeAll` may have thrown before `root` was assigned; an unguarded `rm(undefined)` here
+    // replaces that real setup error with a TypeError and hides why the suite failed.
+    if (root !== undefined) await rm(root, { recursive: true, force: true })
     await sql?.end()
     if (admin !== undefined) {
       await admin.query(`drop database if exists ${quoteIdentifier(database)} with (force)`)
