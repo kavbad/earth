@@ -20,6 +20,8 @@ import type {
   LiveKitWebhookReceiverLike,
   PushSender,
   ServerDeps,
+  StorageHostLike,
+  StorageLike,
   SupabaseRpcClient,
 } from './deps'
 import { type ExpoClientLike, createExpoPushSender } from './push/expo'
@@ -44,6 +46,7 @@ export * from './push/expo'
 export * from './push/noop'
 export * from './push/dispatch'
 export * from './analytics/ingest'
+export * from './media/signed'
 export * from './diagnostics/rtc'
 export * from './metrics/daily'
 export * from './account/delete'
@@ -98,6 +101,8 @@ export interface CreateServerDepsOptions {
   readonly webhookReceiver?: LiveKitWebhookReceiverLike | undefined
   /** Overrides the `auth.admin` found on the service-role client (`authAdminOf`). */
   readonly authAdmin?: AuthAdminLike | undefined
+  /** Overrides the `storage` found on the service-role client (`storageOf`). */
+  readonly storage?: StorageLike | undefined
 }
 
 /** The `auth.admin` a service-role client carries, when it does (the RPC-only fakes do not). */
@@ -106,6 +111,12 @@ export function authAdminOf(
 ): AuthAdminLike | undefined {
   const admin = client.auth?.admin
   return admin !== undefined && typeof admin.deleteUser === 'function' ? admin : undefined
+}
+
+/** The `storage` a service-role client carries, when it does (the RPC-only fakes do not). */
+export function storageOf(client: SupabaseRpcClient & StorageHostLike): StorageLike | undefined {
+  const storage = client.storage
+  return storage !== undefined && typeof storage.from === 'function' ? storage : undefined
 }
 
 const CLIENT_AUTH_OPTIONS = {
@@ -158,5 +169,6 @@ export function createServerDepsFromEnv(options: CreateServerDepsOptions): Serve
     env,
     cronSecret: env.INTERNAL_CRON_SECRET,
     authAdmin: options.authAdmin ?? authAdminOf(supabaseAdmin),
+    storage: options.storage ?? storageOf(supabaseAdmin),
   }
 }

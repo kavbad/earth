@@ -764,6 +764,8 @@ describe('spec §115 integration flows', () => {
       [maya.humanId, 'friend'],
     ])
     expect(asSarah.myParticipant).toBeNull()
+    // 0999: the room screen is discovery too — it never names the group Sarah is not in (§128).
+    expect(asSarah.contextTitle).toBeNull()
     // 0998: Sarah is not in Weekend Crew, so discovery never tells her its name — the card is
     // named for her by the people she can see, friend first (spec §60, SCREEN 13, §128).
     const sarahFeed = await feedPage(world, sarah.as, 'friends')
@@ -776,10 +778,12 @@ describe('spec §115 integration flows', () => {
       participantNames: ['Maya', 'Xavier'],
       participantCount: 2,
     })
+    // 0970: her notification is named the same way, and never carries the group's name (spec §128).
     const sarahLive = await liveNotificationsFor(world, sarah.as, groupRoomId)
-    expect(sarahLive.map((n) => n.type)).toEqual(['group_live'])
+    expect(sarahLive.map((n) => n.type)).toEqual(['multi_live'])
     expect(sarahLive[0]?.payload).toMatchObject({
-      contextTitle: 'Weekend Crew',
+      contextTitle: null,
+      title: 'Maya + Xavier are live',
       participantNames: ['Maya', 'Xavier'],
     })
 

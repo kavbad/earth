@@ -27,6 +27,24 @@ describe('matching', () => {
     ).toBeNull()
   })
 
+  it('captures the rest of the path for a trailing `:name*`', () => {
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media/media/human/a.jpg')).toEqual({
+      bucket: 'media',
+      key: 'human/a.jpg',
+    })
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media/voice/h/2026/09/clip.m4a')).toEqual(
+      { bucket: 'voice', key: 'h/2026/09/clip.m4a' },
+    )
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media/media/a%20b.jpg')).toEqual({
+      bucket: 'media',
+      key: 'a b.jpg',
+    })
+    // The rest must exist, decode, and never swallow the bucket segment.
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media/media')).toBeNull()
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media')).toBeNull()
+    expect(matchPattern('/api/media/:bucket/:key*', '/api/media/media/%E0%A4%A')).toBeNull()
+  })
+
   it('covers every ARCHITECTURE §6 route with the right method', () => {
     const expected: [string, string][] = [
       ['POST', `/api/rooms/${ROOM_ID}/token`],
@@ -41,6 +59,7 @@ describe('matching', () => {
       ['POST', '/api/internal/metrics/daily'],
       ['POST', '/api/analytics/ingest'],
       ['POST', '/api/diagnostics/rtc'],
+      ['GET', '/api/media/media/11111111-1111-4111-8111-111111111111/photo.jpg'],
       ['GET', '/api/health'],
     ]
     for (const [method, path] of expected) {

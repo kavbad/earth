@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { AudienceSchema } from '../enums'
 import { IsoDateTimeSchema, NonNegativeIntSchema } from '../dto/common'
 
-/** Cards that can be ranked; presence rows are assembled by the server, not ranked. */
+/** Cards that can be ranked; presence rows are assembled by the server (`./presence.ts`), not ranked. */
 export const FEED_CANDIDATE_KINDS = ['post', 'live'] as const
 export type FeedCandidateKind = (typeof FEED_CANDIDATE_KINDS)[number]
 export const FeedCandidateKindSchema = z.enum(FEED_CANDIDATE_KINDS)

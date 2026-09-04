@@ -243,12 +243,80 @@ describe('Live notifications and dedupe (spec §57, §58, §86–§87; ARCHITECT
     await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'friends' }, owner.as)
     const mine = await liveNotifications(db, friendOfMember, roomId)
     expect(mine).toHaveLength(1)
-    expect(mine[0]?.type).toBe('group_live')
+    // 0970: Fom is a friend of a publisher, not a member of Crew, so the notification names the
+    // people she can see and never the private group (spec §128, §60).
+    expect(mine[0]?.type).toBe('multi_live')
     expect(mine[0]?.payload).toMatchObject({
       participantNames: ['Gmember', 'Gowner', 'Sam'],
       participantCount: 3,
-      contextTitle: 'Crew',
+      contextTitle: null,
+      title: 'Gmember, Gowner + 1 are live',
     })
+    await db.rpc('room_end', { room_id: roomId }, owner.as)
+  })
+
+  it('0970: a private group never names itself to a non-member the room opened up to; members still get group_live (spec §128)', async () => {
+    const owner = await human(db, 'Powner')
+    const member = await human(db, 'Pmember')
+    const friendOfOwner = await human(db, 'Pfriend')
+    const soloFriend = await human(db, 'Psolo')
+    const group = await createGroup(db, owner, 'Private Book Club')
+    await addMember(db, group, member)
+    await befriend(db, owner, friendOfOwner)
+    await befriend(db, owner, soloFriend)
+
+    const started = await startGroupRoom(db, owner, group)
+    const roomId = started.room.id
+    await joinRoom(db, roomId, member, 'camera', 'friends')
+    // The friends are not in the group.
+    for (const outsider of [friendOfOwner, soloFriend]) {
+      const { rows } = await db.sql.query(
+        'select 1 from public.group_members where group_id = $1 and human_id = $2',
+        [group.groupId, outsider.humanId],
+      )
+      expect(rows).toHaveLength(0)
+      expect(await liveNotifications(db, outsider, roomId)).toHaveLength(0)
+    }
+
+    await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'friends' }, owner.as)
+
+    // The member is unchanged: `group_live`, named for the group.
+    const theirs = await liveNotifications(db, member, roomId)
+    expect(theirs).toHaveLength(1)
+    expect(theirs[0]?.type).toBe('group_live')
+    expect(theirs[0]?.payload).toMatchObject({
+      groupName: 'Private Book Club',
+      contextTitle: 'Private Book Club',
+      title: 'Private Book Club is live',
+    })
+
+    // The non-members get the participant-aware copy, and no row anywhere leaks the group's name.
+    for (const outsider of [friendOfOwner, soloFriend]) {
+      const mine = await liveNotifications(db, outsider, roomId)
+      expect(mine).toHaveLength(1)
+      expect(mine[0]?.type).toBe('multi_live')
+      expect(mine[0]?.payload).toMatchObject({
+        contextTitle: null,
+        participantNames: ['Powner', 'Pmember'],
+        participantCount: 2,
+        title: 'Powner + Pmember are live',
+      })
+      expect(NOTIFICATION_PAYLOAD_SCHEMAS.multi_live.parse(mine[0]?.payload)).toEqual({
+        names: ['Powner', 'Pmember'],
+        total: 2,
+      })
+      expect(JSON.stringify(await notificationsFor(db, outsider))).not.toContain(
+        'Private Book Club',
+      )
+    }
+    // Nothing the outsiders can read anywhere in the table carries the group name.
+    const { rows: leaked } = await db.sql.query(
+      `select 1 from public.notifications
+        where recipient_human_id = any($1::uuid[]) and payload::text like '%Private Book Club%'`,
+      [[friendOfOwner.humanId, soloFriend.humanId]],
+    )
+    expect(leaked).toHaveLength(0)
+
     await db.rpc('room_end', { room_id: roomId }, owner.as)
   })
 })

@@ -6,6 +6,10 @@
  * and paginates with the keyset cursor (never re-implemented here), and the page is rendered
  * into `FeedPageDto` with viewer-aware Live titles. Visitors may read `scope=world` only.
  *
+ * The SCREEN 02 presence row is not ranked: `feed_presence()` is read alongside the candidates for
+ * a signed-in caller's first page and `./presence.ts` prepends one `PresenceCardDto` when — and
+ * only when — there is meaningful state.
+ *
  * Live: `live_candidates(scope, area_id, limit)` plus naming and the SCREEN 13 ordering
  * (`./live-order.ts`).
  */
@@ -16,6 +20,7 @@ import {
   FeedPageDtoSchema,
   type LiveListDto,
   LiveListDtoSchema,
+  type PresenceCardDto,
   type Scope,
   ScopeSchema,
   decodeCursor,
@@ -35,6 +40,7 @@ import {
   rpc,
 } from '../http'
 import { orderLiveRooms } from './live-order'
+import { FEED_PRESENCE_RPC, FeedPresenceResultSchema, presenceCardFrom } from './presence'
 import {
   type FeedCandidateRow,
   FeedCandidatesResultSchema,
@@ -46,6 +52,9 @@ import {
 
 export const FEED_CANDIDATES_RPC = 'feed_candidates' as const
 export const LIVE_CANDIDATES_RPC = 'live_candidates' as const
+export const FEED_LOG = {
+  presenceUnavailable: 'feed.presence_unavailable',
+} as const
 /** DB_API §4: `limit` default 200. */
 export const FEED_CANDIDATE_LIMIT = 200
 export const LIVE_CANDIDATE_LIMIT = 100
@@ -122,13 +131,18 @@ export async function handleFeed(deps: ServerDeps, req: EarthRequest): Promise<E
       ? now.toISOString()
       : decodeCursor(cursor, { scope: query.scope, areaId }).snapshotAt
 
-  const result = await rpc(
-    deps,
-    accessToken,
-    FEED_CANDIDATES_RPC,
-    { scope: query.scope, area_id: areaId, snapshot_at: snapshotAt, limit: FEED_CANDIDATE_LIMIT },
-    FeedCandidatesResultSchema,
-  )
+  // The presence row is independent of the ranked page, so it is read alongside the candidates.
+  const [result, presence] = await Promise.all([
+    rpc(
+      deps,
+      accessToken,
+      FEED_CANDIDATES_RPC,
+      { scope: query.scope, area_id: areaId, snapshot_at: snapshotAt, limit: FEED_CANDIDATE_LIMIT },
+      FeedCandidatesResultSchema,
+    ),
+    // SCREEN 02: the presence row sits above the page's cards, and only ever on the first page.
+    cursor === null ? readPresence(deps, accessToken) : Promise.resolve(null),
+  ])
   const byId = new Map<string, FeedCandidateRow>()
   for (const row of result.rows) {
     if (!byId.has(row.id)) byId.set(row.id, row)
@@ -137,6 +151,7 @@ export async function handleFeed(deps: ServerDeps, req: EarthRequest): Promise<E
   const page = rankFeed(candidates, { scope: query.scope, now, cursor, areaId })
 
   const cards: FeedCardDto[] = []
+  if (presence !== null) cards.push(presence)
   for (const item of page.cards) {
     const row = byId.get(item.id)
     if (row === undefined) continue
@@ -156,6 +171,25 @@ export async function handleFeed(deps: ServerDeps, req: EarthRequest): Promise<E
     'FeedPageDto',
   )
   return ok(dto)
+}
+
+/**
+ * The presence card for a signed-in caller's first page, or `null`. Presence is decoration around
+ * the feed, so a database that cannot answer (an older deployment without `feed_presence`, a
+ * transient failure) costs the row and is logged — never the page.
+ */
+async function readPresence(
+  deps: ServerDeps,
+  accessToken: string | null,
+): Promise<PresenceCardDto | null> {
+  if (accessToken === null) return null
+  try {
+    const result = await rpc(deps, accessToken, FEED_PRESENCE_RPC, {}, FeedPresenceResultSchema)
+    return presenceCardFrom(result)
+  } catch (cause) {
+    deps.logger.warn(FEED_LOG.presenceUnavailable, { error: cause })
+    return null
+  }
 }
 
 /** `GET /api/live`. */

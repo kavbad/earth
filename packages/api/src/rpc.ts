@@ -133,9 +133,11 @@ export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKET
 export const SERVER_TIER_RPCS = [
   'analytics_track',
   'feed_candidates',
+  'feed_presence',
   'human_delete_request',
   'human_pass_record_result',
   'live_candidates',
+  'media_access_grant',
   'metrics_compute_daily',
   'notifications_mark_pushed',
   'notifications_prune',

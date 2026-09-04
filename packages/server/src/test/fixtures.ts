@@ -19,6 +19,9 @@ export function hoursBefore(hours: number, base: number = T0): string {
 export const AUTHOR_PREFIX = '10000000-0000-4000-8000'
 export const ROOM_PREFIX = '20000000-0000-4000-8000'
 export const PARTICIPANT_PREFIX = '30000000-0000-4000-8000'
+export const HUMAN_PREFIX = '90000000-0000-4000-8000'
+export const GROUP_PREFIX = 'a0000000-0000-4000-8000'
+export const CONVERSATION_PREFIX = 'b0000000-0000-4000-8000'
 
 export function postView(n: number, overrides: Partial<PostViewDto['post']> = {}): PostViewDto {
   const authorHumanId = uuidAt(n, AUTHOR_PREFIX)
@@ -95,6 +98,7 @@ export function participant(
 ): LiveParticipantRow {
   return {
     id: uuidAt(n, PARTICIPANT_PREFIX),
+    humanId: uuidAt(n, HUMAN_PREFIX),
     displayName: `Person ${n}`,
     avatarUrl: null,
     isGuest: false,
@@ -143,6 +147,44 @@ export function liveRow(
     post: null,
     live,
   }
+}
+
+// ---------------------------------------------------------------------------
+// `feed_presence()` rows (SCREEN 02 presence row)
+// ---------------------------------------------------------------------------
+
+/** A group of the viewer's with members active in its conversation right now. */
+export function presenceGroup(
+  n: number,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    groupId: uuidAt(n, GROUP_PREFIX),
+    groupName: 'Weekend Crew',
+    conversationId: uuidAt(n, CONVERSATION_PREFIX),
+    activeCount: 3,
+    humanIds: [uuidAt(n, HUMAN_PREFIX)],
+    avatarUrls: [],
+    ...overrides,
+  }
+}
+
+/** A friend in the viewer's current area. */
+export function presenceNearbyFriend(
+  n: number,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    humanId: uuidAt(n, HUMAN_PREFIX),
+    displayName: 'Sarah',
+    avatarUrl: null,
+    ...overrides,
+  }
+}
+
+/** A whole `feed_presence()` result; every source empty unless overridden. */
+export function presenceResult(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { liveRooms: [], activeGroups: [], nearbyFriends: [], ...overrides }
 }
 
 export const RECIPIENT_A = '41111111-1111-4111-8111-111111111111'

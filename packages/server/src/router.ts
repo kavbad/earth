@@ -1,7 +1,8 @@
 /**
  * Route table for every server-tier route of ARCHITECTURE §6 plus a health route, and
  * `createEarthServer(deps)` which turns a request into a response. Matching is by method and
- * path segments (`:param` captures one segment); handlers are wrapped so any thrown value becomes
+ * path segments (`:param` captures one segment, a trailing `:param*` the rest of the path — the
+ * storage key of `/api/media/:bucket/:key*`); handlers are wrapped so any thrown value becomes
  * the JSON error shape of `./http.ts`.
  */
 import { handleAccountDelete } from './account/delete'
@@ -24,6 +25,7 @@ import {
   ok,
   requestPath,
 } from './http'
+import { handleMediaSigned } from './media/signed'
 import { handleMetricsDaily } from './metrics/daily'
 import { handlePushDispatch } from './push/dispatch'
 import { handleRoomsSweep } from './rooms/sweep'
@@ -132,6 +134,13 @@ export const ROUTES: readonly RouteDefinition[] = [
     handler: handleAnalyticsIngest,
   },
   {
+    name: 'media.signed',
+    method: 'GET',
+    pattern: '/api/media/:bucket/:key*',
+    handler: (deps, req, params) =>
+      handleMediaSigned(deps, req, param(params, 'bucket'), param(params, 'key')),
+  },
+  {
     name: 'diagnostics.rtc',
     method: 'POST',
     pattern: '/api/diagnostics/rtc',
@@ -142,6 +151,9 @@ export const ROUTES: readonly RouteDefinition[] = [
 // ---------------------------------------------------------------------------
 // Matching
 // ---------------------------------------------------------------------------
+
+/** Suffix of a catch-all pattern segment (`:key*`). */
+export const REST_SUFFIX = '*' as const
 
 function segmentsOf(path: string): string[] {
   return path.split('/').filter((segment) => segment.length > 0)
@@ -155,20 +167,48 @@ function decodeSegment(segment: string): string | null {
   }
 }
 
-/** Params when `pattern` matches `path` (segment by segment), else `null`. */
+/** `:name*` as the last pattern segment captures the rest of the path; its name, or `null`. */
+export function restParamName(segment: string | undefined): string | null {
+  if (segment === undefined) return null
+  const isRest = segment.startsWith(':') && segment.endsWith(REST_SUFFIX) && segment.length > 2
+  return isRest ? segment.slice(1, -1) : null
+}
+
+/** The remaining segments, each decoded, joined back with `/` (a storage key), or `null`. */
+function decodeRest(segments: readonly string[]): string | null {
+  const decoded: string[] = []
+  for (const segment of segments) {
+    const value = decodeSegment(segment)
+    if (value === null || value.length === 0) return null
+    decoded.push(value)
+  }
+  return decoded.length === 0 ? null : decoded.join('/')
+}
+
+/**
+ * Params when `pattern` matches `path` (segment by segment), else `null`. A trailing `:name*`
+ * captures one or more remaining segments (`/api/media/:bucket/:key*` → `key` = `<human>/<file>`).
+ */
 export function matchPattern(pattern: string, path: string): RouteParams | null {
   const expected = segmentsOf(pattern)
   const actual = segmentsOf(path)
-  if (expected.length !== actual.length) return null
+  const rest = restParamName(expected[expected.length - 1])
+  if (rest === null ? expected.length !== actual.length : actual.length < expected.length) {
+    return null
+  }
   const params: Record<string, string> = {}
   for (let i = 0; i < expected.length; i += 1) {
     const want = expected[i] ?? ''
-    const got = actual[i] ?? ''
-    if (want.startsWith(':')) {
-      const value = decodeSegment(got)
+    const isRest = rest !== null && i === expected.length - 1
+    if (isRest) {
+      const value = decodeRest(actual.slice(i))
+      if (value === null) return null
+      params[rest] = value
+    } else if (want.startsWith(':')) {
+      const value = decodeSegment(actual[i] ?? '')
       if (value === null || value.length === 0) return null
       params[want.slice(1)] = value
-    } else if (want !== got) {
+    } else if (want !== (actual[i] ?? '')) {
       return null
     }
   }

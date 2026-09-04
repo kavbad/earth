@@ -1,4 +1,4 @@
--- 0951 — identity invariant fixes from adversarial verification (ARCHITECTURE §4; spec §42, §48,
+-- 0952 — identity invariant fixes from adversarial verification (ARCHITECTURE §4; spec §42, §48,
 -- §77–80; DB_API §1). Each finding is reproduced by supabase/tests/src/verify/identity.test.ts.
 --
 --   1. Guest is not Human. earth.current_human_id() / earth.current_human() resolved a Human for an

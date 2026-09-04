@@ -144,6 +144,7 @@ Routes (all under `/api`, JSON, `Authorization: Bearer <supabase access token>` 
 | `POST /api/internal/metrics/daily` | Cron: `metrics_compute_daily(date)`. |
 | `POST /api/analytics/ingest` | First-party event sink (subset of contract events), rate limited. |
 | `POST /api/diagnostics/rtc` | RTC diagnostics sink. |
+| `GET /api/media/:bucket/:key*` | Signed access for private media (spec §104), the URL `earth.media_url()` puts in every `PostMediaDto`: authorizes the caller with RPC `media_access_grant(bucket, storage_key)` **as the caller**, then `302`s to a short-lived signed URL minted with the service-role Storage client. Visitors allowed (world posts); anyone outside the audience gets `403 forbidden` and nothing is signed. |
 
 ## 7. Typed application API (`packages/api`)
 
@@ -181,6 +182,7 @@ Every method validates its result with the DTO zod schema from `@earth/domain`. 
 2. `@earth/domain/feed.rankFeed(candidates, ctx)` computes scores with the spec weights (`FRIENDS_WEIGHTS`, `WORLD_WEIGHTS`), applies diversity rules (max 2 consecutive by same author, at most 1 Live card per 4 posts after the first page), and orders deterministically by `(score desc, id asc)`.
 3. Cursor: base64url JSON `{ v: 1, snapshotAt, lastScore, lastId, scope, areaId }` (implemented in `packages/domain/src/feed/cursor.ts`; the server tier must use it, never re-implement). Later pages exclude Lives (they only appear on page 1) and use keyset `(score, id)`. Offset pagination is forbidden.
 4. Live cards use `orderParticipantsForViewer(participants, viewerRelations)` → `roomTitle(...)` producing `Xavier is live`, `Xavier + Kavon are live`, `Weekend Crew is live`.
+5. The SCREEN 02 presence row is not ranked and carries no candidates: RPC `feed_presence()` returns the viewer's friends-live rooms, active groups and nearby friends, `packages/server/src/feed/presence.ts` labels them through `packages/domain/src/feed/presence.ts` (`Xavier + Maya live`, `Weekend Crew · 3 active`, `Sarah nearby`), and one `PresenceCardDto` is prepended to page 1 — only when there is meaningful state, never as an empty placeholder.
 
 ## 10. Rooms, consent, and tokens
 
@@ -217,10 +219,12 @@ Tokens live in `packages/ui/src/tokens.ts` and are the only source of colors, ty
 
 ## 15. Local stack and tests
 
-- `scripts/local-stack/up.sh` downloads pinned binaries into `.local/bin` (PostgREST 13.0.4, GoTrue 2.185.0, LiveKit 1.9.1, Mailpit) and runs: Postgres (system service on 5432, database `earth_local`), PostgREST on 3001, GoTrue on 9999 (anonymous sign-ins enabled, email OTP through Mailpit SMTP on 1025 / API 8025), LiveKit on 7880 in dev mode, and `apps/web` on 3000. Supabase Realtime is not part of the local stack; the polling fallback in `@earth/realtime` covers local and degraded environments.
+- `scripts/local-stack/up.sh` downloads pinned binaries into `.local/bin` (PostgREST 13.0.4, GoTrue 2.185.0, LiveKit 1.9.1, Mailpit) and runs: Postgres (system service on 5432, database `earth_local`), PostgREST on 3001, GoTrue on 9999 (anonymous sign-ins enabled, email OTP through Mailpit SMTP on 1025 / API 8025), LiveKit on 7880 in dev mode, and `apps/web` on 3000. Supabase Storage is served by the gateway itself (`scripts/local-stack/storage.mjs`) onto `.local/storage`, authorized by the `storage.objects` policies of migration 0997 — the `storage` schema those policies need comes from the Supabase shim. Supabase Realtime is not part of the local stack; the polling fallback in `@earth/realtime` covers local and degraded environments.
 - `pnpm db:reset` creates the database from migrations and applies `supabase/seed` when `APP_ENV != production`.
 - `supabase/tests` use vitest + `pg`: each test file creates a scratch database from a template built once per run, applies migrations, installs an `auth` schema shim (`auth.users`, `auth.uid()`, `auth.jwt()`, `auth.role()`), and impersonates roles with `set local role` + `request.jwt.claims`. The authorization matrix (`Visitor / Guest / Human owner / group member / non-member / friend / blocked`) is a table-driven test covering every exposed table.
+- Component tests: `apps/web` renders with `react-dom/server` and asserts on the HTML; `apps/mobile` mounts screens with react-test-renderer through `apps/mobile/test/render.tsx` and asserts on the native tree (host type, `accessibilityLabel` / `accessibilityRole` / `accessibilityState`, copy). React Native ships Flow source and a native runtime, so `apps/mobile/vitest.config.mts` aliases `react-native` and the Expo/native modules to the host-component doubles in `apps/mobile/test/native`; Metro always bundles the real ones.
 - `e2e/` Playwright uses Chromium fake media devices and Mailpit to read OTP codes. Journeys are named `e2e/journeys/01-start-earth.spec.ts` … `12-live-consent.spec.ts`.
+- The Playwright journeys walk `apps/web` only (`e2e/playwright.config.ts` sets one `Desktop Chrome` project against the Next.js app). No `apps/mobile` code runs in `e2e/`; the mobile client's runtime gate is `pnpm --filter earth-mobile test` plus `expo export`.
 - CI (`.github/workflows/ci.yml`): lint, typecheck, unit tests, DB tests (postgis service container), web build, `expo export`, e2e with the local stack.
 
 ## 16. Working agreement for agents
@@ -230,3 +234,80 @@ Tokens live in `packages/ui/src/tokens.ts` and are the only source of colors, ty
 - Use the enums, DTOs, error codes, and copy constants; never string literals for domain values.
 - Do not commit. The orchestrator commits.
 - Never weaken an invariant from spec §128 to make a test pass.
+
+## 17. Deviations from this contract, and why
+
+This section is a record, not a revision: §1–§16 above are the contract as it was written before
+the build, and they stay as they were. Everything below is a place where the implementation
+deliberately does something else. Each entry says what the contract asks for, what the code does,
+and the reason. Nothing here weakens a spec §128 invariant.
+
+1. **Migration numbering runs past `0999` (§5).** §5 assigns ranges `0001–0999`. The build added a
+   forward-only fix series inside `0900–0999` (`0950`–`0973`, `0996`–`0999`) and then
+   `1000_fix_room_json_context_title_for_seated_outsiders.sql`. Reason: a defect in an earlier
+   migration is fixed by a later one, never by editing the original (§5, §16), and the runner
+   applies files in lexical order — `0999` was taken, so the next fix must sort after it
+   (`"0999…" < "1000…"`, `scripts/db/migrate-core.ts:144`). The rule that still holds absolutely is
+   that no two files share a numeric prefix: the hosted ledger
+   `supabase_migrations.schema_migrations` keys on it, so a duplicate aborts `supabase db push`
+   part-way through the schema (`duplicateMigrationVersions`, `scripts/db/migrate-core.ts:132`).
+
+2. **Feature flags and settings live in `0006_flags_settings.sql`, not `0800_flags.sql` (§12).**
+   Reason: `earth.flag(key)` and `earth.setting(key)` are called by RLS policies and RPCs from the
+   `0050` range onward, so `public.feature_flags` and `public.app_settings` have to exist in the
+   helper range that everything else builds on. The launch defaults §12 lists are seeded there
+   verbatim (`0006_flags_settings.sql:73`), together with the four `app_settings` keys the database
+   reads at runtime (`environment`, `web_origin`, `public_storage_base_url`, `room_grace_seconds`).
+
+3. **The hosted Postgres major is 17, while local and CI run 16 (§3).** `supabase/config.toml:20`
+   declares `major_version = 17`. Reason: the Supabase CLI validates this value against the majors
+   Supabase actually hosts — 15 and 17 — and aborts *every* command with "Invalid db.major_version"
+   for 16, so `supabase db push` could not run at all. The local stack and the CI service container
+   stay on Postgres 16; nothing in the schema depends on the difference.
+
+4. **`up.sh` does not start `apps/web` by default (§15).** §15 describes the stack as including
+   "`apps/web` on 3000"; the script starts it only with `--with-web` (`scripts/local-stack/up.sh:8`).
+   Reason: the Playwright harness builds and starts its own production server on that port, and a
+   dev server left behind would be walked in place of the build — `e2e/global-setup.ts` now refuses
+   to start when anything already answers `/api/health`.
+
+5. **The server tier grew four dependencies and one route beyond §6.** `ServerDeps`
+   (`packages/server/src/deps.ts:183`) adds `supabaseAnon` (Visitor-scope reads for
+   `GET /api/feed?scope=world` and the analytics sink), `env`, `cronSecret`
+   (`x-earth-cron-secret`, `packages/server/src/cron.ts:11`), and the optional `authAdmin` and
+   `storage` clients. The route table gained `POST /api/account/delete`
+   (`packages/server/src/router.ts:106`). Reason: account deletion is a product requirement that
+   needs the Supabase admin auth API, and media signing needs the service-role Storage client;
+   both are optional so the rest of the tier runs without them. `GET /api/media/:bucket/:key*` was
+   added to the §6 table itself when it was built.
+
+6. **`packages/permissions` fixtures are consumed by `supabase/tests/src/authz/permissions-fixtures.test.ts`**,
+   not `supabase/tests/permissions.test.ts` (§1). Reason: the DB test package keeps every suite
+   under `src/<area>/`; the fixture contract is unchanged — both sides still read the same JSON.
+
+7. **`scripts/` has no typegen (§2).** Reason: nothing consumes generated database types. DTOs are
+   zod schemas in `@earth/domain` and the DB tests assert that the SQL payloads parse against them,
+   which is a stronger check than a generated type that no one validates at runtime.
+
+8. **`e2e/` holds 14 spec files, not 12 (§2).** E2E 1–12 are there as named, plus `00-smoke`
+   (the app and the gateway answer) and `00b-harness` (the claim fixture itself, proven through the
+   real UI). Reason: when a journey fails, these two say whether the product or the harness broke.
+
+9. **Storage is part of the local stack, served by the gateway (§15).** `scripts/local-stack/storage.mjs`
+   implements upload / signed URL / download / delete onto `.local/storage` and holds no rule of its
+   own — every request runs as the role its JWT carries and the `storage.objects` policies of
+   `0997_storage_buckets.sql` decide. The `storage` schema those policies need comes from
+   `supabase/tests/sql/supabase_shim.sql` (block 6), which is skipped on any database that already
+   has it. Reason: without this the Storage half of the product (photo/voice messages, post media,
+   avatars) executed nowhere and was proven by nothing.
+
+10. **Supabase Realtime is not in the local stack (§15).** The gateway answers `/realtime/v1/*`
+    with 503 and refuses websocket upgrades, so `@earth/realtime` takes its polling fallback.
+    Reason: no redistributable single-binary Realtime server exists for the sandbox; the fallback is
+    a product requirement anyway (offline/degraded, §8), so exercising it locally is not a loss.
+
+11. **The §127 done-statements are proven end to end on the web client only.** The Playwright
+    project is one `Desktop Chrome` against `apps/web` (`e2e/playwright.config.ts`). The mobile
+    client's runtime gate is `pnpm --filter earth-mobile test` — pure state tests plus screen tests
+    that mount the real components through `apps/mobile/test/render.tsx` — and `expo export`. Reason:
+    a device harness (Maestro/Detox) needs a simulator this environment does not have.

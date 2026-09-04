@@ -13,7 +13,11 @@ max_rows = 200
 
 [db]
 port = 54322
-major_version = 16
+# Postgres major of the hosted project (what `supabase db push` in .github/workflows/deploy.yml
+# targets). The CLI validates this against the majors Supabase hosts and aborts every command with
+# "Invalid db.major_version" for anything else; 15 and 17 are the accepted values, 16 is not.
+# scripts/local-stack/env.test.ts pins it. The local/CI Postgres is separate (README prerequisites).
+major_version = 17
 
 [realtime]
 enabled = true

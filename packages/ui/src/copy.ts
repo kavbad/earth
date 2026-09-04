@@ -264,6 +264,9 @@ export const copy = {
 
   // ------------------------------------------------------------------ SCREEN 02–05 Home
   addPeopleYouKnow: 'Add people you actually know',
+  // The server labels the presence row it sends with the same three strings, built by
+  // `presenceLiveLabel` / `presenceGroupActiveLabel` / `presenceNearbyLabel` in
+  // `packages/domain/src/feed/presence.ts`; both sides pin the spec's examples.
   /** Presence row: `Xavier + Maya live`. Rendered only with meaningful state (empty otherwise). */
   presenceLive: (names: readonly string[], total?: number): string => namesLive(names, total),
   /** Presence row: `Weekend Crew · 3 active`. */

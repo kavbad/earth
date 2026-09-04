@@ -38,8 +38,16 @@ alter default privileges in schema public grant all on sequences to service_role
 alter default privileges in schema public grant execute on functions to service_role;
 
 -- The migration ledger is created by the runner before any migration (local stack and tests only).
+-- A hosted project has no such table (`supabase db push` records in supabase_migrations.schema_migrations),
+-- so both statements must tolerate its absence or the push aborts here and nothing is ever deployed.
 alter table if exists public.earth_migrations enable row level security;
-revoke all on table public.earth_migrations from anon, authenticated;
+do $ledger$
+begin
+  if to_regclass('public.earth_migrations') is not null then
+    execute 'revoke all on table public.earth_migrations from anon, authenticated';
+  end if;
+end
+$ledger$;
 
 -- earth ----------------------------------------------------------------------------------------------
 revoke all on schema earth from public, anon, authenticated;

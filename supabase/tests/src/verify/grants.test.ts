@@ -187,9 +187,11 @@ const HUMAN_ONLY = [
 const VISITOR_READ_SURFACE = [
   'area_get',
   'feed_candidates',
+  'feed_presence',
   'live_candidates',
   'map_objects',
   'me_get',
+  'media_access_grant',
   'place_get',
   'post_get',
   'post_replies',
@@ -540,6 +542,8 @@ interface World {
   dmId: string
   messageId: string
   mediaId: string
+  /** `media_objects.storage_key` of `mediaId` (what `GET /api/media/:bucket/:key*` is asked for). */
+  mediaStorageKey: string
   areaId: string
   placeId: string
   shareId: string
@@ -623,7 +627,8 @@ async function buildWorld(db: TestDb): Promise<World> {
     { conversation_id: dmId, client_id: randomUUID(), type: 'text', text: 'hello bob' },
     alice.as,
   )
-  const mediaId = await createMedia(db, alice)
+  const mediaStorageKey = `${alice.humanId}/grants.jpg`
+  const mediaId = await createMedia(db, alice, { key: mediaStorageKey })
   const areaId = await scalar<string>(
     db,
     `select id from public.areas where type = 'city' order by name limit 1`,
@@ -676,6 +681,7 @@ async function buildWorld(db: TestDb): Promise<World> {
     dmId,
     messageId: message.id,
     mediaId,
+    mediaStorageKey,
     areaId,
     placeId,
     shareId: share.id,
@@ -709,6 +715,11 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       return { q: 'grants', limit: 10 }
     case 'group_invite_preview':
       return { token: token(w.groupInviteToken) }
+    case 'media_access_grant':
+      return {
+        bucket: 'media',
+        storage_key: real ? w.mediaStorageKey : `${randomUUID()}/probe.jpg`,
+      }
     case 'room_invite_preview':
       return { token: token(w.roomInviteToken) }
     // any credential
@@ -916,6 +927,8 @@ function argsFor(name: string, w: World, real: boolean): Record<string, unknown>
       return { id: id(w.areaId) }
     case 'feed_candidates':
       return { scope: 'world', area_id: null, snapshot_at: null, limit: 20 }
+    case 'feed_presence':
+      return {}
     case 'live_candidates':
       return { scope: 'world', area_id: null, limit: 20 }
     case 'map_objects':

@@ -237,6 +237,13 @@ test('E2E 5 — Friend Live', async ({ browser }) => {
     await expect(tileFor(c.page, nameA)).toBeVisible()
     await expect(tiles(c.page)).toHaveCount(2)
 
+    // Spec §128: the room screen is a discovery surface too. Its header names the publishers for
+    // C (spec §60, B first), and the private group C is not a member of is nowhere on the page.
+    await expect(c.page.getByRole('heading', { level: 1 })).toHaveText(`${nameB} + ${nameA}`, {
+      timeout: ROOM_STATE_TIMEOUT_MS,
+    })
+    await expect(c.page.getByText(groupName, { exact: false })).toHaveCount(0)
+
     await c.page.getByRole('button', { name: copy.joinThem }).click()
     await c.page.getByRole('button', { name: copy.joinAudio, exact: true }).click()
     // Joining a Friends Live means C's own friends may see C here: SCREEN 16 says so first.

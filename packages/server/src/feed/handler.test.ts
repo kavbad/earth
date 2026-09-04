@@ -7,9 +7,26 @@ import {
 } from '@earth/domain'
 import { describe, expect, it } from 'vitest'
 
-import { FEED_CANDIDATE_LIMIT, LIVE_CANDIDATE_LIMIT, handleFeed, handleLive } from './handler'
+import {
+  FEED_CANDIDATES_RPC,
+  FEED_CANDIDATE_LIMIT,
+  FEED_LOG,
+  LIVE_CANDIDATE_LIMIT,
+  handleFeed,
+  handleLive,
+} from './handler'
+import { FEED_PRESENCE_RPC } from './presence'
 import { FakeRpcFailure, TEST_NOW, createFakeDeps, fakeRequest, rpcFailure } from '../test/fakes'
-import { liveRoom, liveRow, participant, postRow, postView } from '../test/fixtures'
+import {
+  liveRoom,
+  liveRow,
+  participant,
+  postRow,
+  postView,
+  presenceGroup,
+  presenceNearbyFriend,
+  presenceResult,
+} from '../test/fixtures'
 
 function candidates(postCount: number, liveCount = 0): Record<string, unknown>[] {
   const posts = Array.from({ length: postCount }, (_, i) => postRow(i + 1))
@@ -113,7 +130,7 @@ describe('handleFeed', () => {
       ).body,
     )
     expect(second.snapshotAt).toBe(first.snapshotAt)
-    expect(supabase.calls[1]?.args['snapshot_at']).toBe(first.snapshotAt)
+    expect(supabase.callsTo(FEED_CANDIDATES_RPC)[1]?.args['snapshot_at']).toBe(first.snapshotAt)
     expect(second.cards.every((c) => c.kind === 'post')).toBe(true)
     expect(second.cards).toHaveLength(FEED_PAGE_SIZE)
 
@@ -151,6 +168,112 @@ describe('handleFeed', () => {
       title: 'Xavier + Ben are live',
       participantNames: ['Xavier', 'Ben'],
     })
+  })
+
+  it('prepends the SCREEN 02 presence row: friends live, active groups, friends nearby', async () => {
+    const { deps, supabase } = createFakeDeps({
+      rpc: {
+        feed_candidates: () => candidates(3),
+        feed_presence: () =>
+          presenceResult({
+            liveRooms: [
+              liveRoom(50, {
+                participants: [
+                  participant(1, { displayName: 'Xavier', relationToViewer: 'friend' }),
+                  participant(2, { displayName: 'Maya', relationToViewer: 'friend' }),
+                ],
+                participantCount: 2,
+              }),
+            ],
+            activeGroups: [presenceGroup(3)],
+            nearbyFriends: [presenceNearbyFriend(4)],
+          }),
+      },
+    })
+    const page = FeedPageDtoSchema.parse(
+      (await handleFeed(deps, fakeRequest({ url: '/api/feed?scope=friends', bearer: 'jwt' }))).body,
+    )
+    const first = page.cards[0]
+    expect(first?.kind).toBe('presence')
+    expect(first?.kind === 'presence' ? first.items.map((item) => item.label) : []).toEqual([
+      'Xavier + Maya live',
+      'Weekend Crew · 3 active',
+      'Sarah nearby',
+    ])
+    expect(page.cards.filter((card) => card.kind === 'presence')).toHaveLength(1)
+    expect(page.cards.slice(1).every((card) => card.kind === 'post')).toBe(true)
+    expect(supabase.callsTo(FEED_PRESENCE_RPC)[0]).toEqual({
+      client: 'user:jwt',
+      name: FEED_PRESENCE_RPC,
+      args: {},
+    })
+  })
+
+  it('shows no presence row without meaningful state, for visitors, or on later pages', async () => {
+    const empty = createFakeDeps({
+      rpc: { feed_candidates: () => candidates(3), feed_presence: () => presenceResult() },
+    })
+    const page = FeedPageDtoSchema.parse(
+      (await handleFeed(empty.deps, fakeRequest({ url: '/api/feed?scope=friends', bearer: 'jwt' })))
+        .body,
+    )
+    expect(page.cards.some((card) => card.kind === 'presence')).toBe(false)
+
+    // Visitors have no presence to speak of: the row is never read for them.
+    const visitor = createFakeDeps({
+      rpc: {
+        feed_candidates: () => candidates(3),
+        feed_presence: () => presenceResult({ nearbyFriends: [presenceNearbyFriend(4)] }),
+      },
+    })
+    const visitorPage = FeedPageDtoSchema.parse(
+      (await handleFeed(visitor.deps, fakeRequest({ url: '/api/feed' }))).body,
+    )
+    expect(visitorPage.cards.some((card) => card.kind === 'presence')).toBe(false)
+    expect(visitor.supabase.callsTo(FEED_PRESENCE_RPC)).toHaveLength(0)
+
+    // Page 2 of the same scroll: the row belongs to the top of the feed only.
+    const paged = createFakeDeps({
+      rpc: {
+        feed_candidates: () => candidates(45),
+        feed_presence: () => presenceResult({ nearbyFriends: [presenceNearbyFriend(4)] }),
+      },
+    })
+    const firstPage = FeedPageDtoSchema.parse(
+      (await handleFeed(paged.deps, fakeRequest({ url: '/api/feed?scope=friends', bearer: 'jwt' })))
+        .body,
+    )
+    expect(firstPage.cards[0]?.kind).toBe('presence')
+    const secondPage = FeedPageDtoSchema.parse(
+      (
+        await handleFeed(
+          paged.deps,
+          fakeRequest({
+            url: `/api/feed?scope=friends&cursor=${encodeURIComponent(firstPage.nextCursor ?? '')}`,
+            bearer: 'jwt',
+          }),
+        )
+      ).body,
+    )
+    expect(secondPage.cards.some((card) => card.kind === 'presence')).toBe(false)
+    expect(paged.supabase.callsTo(FEED_PRESENCE_RPC)).toHaveLength(1)
+  })
+
+  it('serves the feed without the row when presence cannot be read', async () => {
+    const { deps, logs } = createFakeDeps({
+      rpc: {
+        feed_candidates: () => candidates(3),
+        feed_presence: () => {
+          throw rpcFailure('internal')
+        },
+      },
+    })
+    const page = FeedPageDtoSchema.parse(
+      (await handleFeed(deps, fakeRequest({ url: '/api/feed?scope=friends', bearer: 'jwt' }))).body,
+    )
+    expect(page.cards).toHaveLength(3)
+    expect(page.cards.some((card) => card.kind === 'presence')).toBe(false)
+    expect(logs.records.some((record) => record.msg === FEED_LOG.presenceUnavailable)).toBe(true)
   })
 
   it('surfaces database errors and refuses rows that violate the contract', async () => {

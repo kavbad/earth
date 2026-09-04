@@ -53,6 +53,35 @@ export interface AuthAdminHostLike {
 }
 
 // ---------------------------------------------------------------------------
+// Storage (structural)
+// ---------------------------------------------------------------------------
+
+/** What `createSignedUrl` resolves to (`StorageError` and `{ signedUrl }` of supabase-js). */
+export interface SignedUrlResult {
+  readonly data: { readonly signedUrl: string } | null
+  readonly error: { readonly message: string } | null
+}
+
+/** One bucket of the Storage API, structurally: only the signing call the media route makes. */
+export interface StorageBucketLike {
+  createSignedUrl(path: string, expiresIn: number): PromiseLike<SignedUrlResult>
+}
+
+/**
+ * `supabase.storage` of the service-role client (`GET /api/media/:bucket/:key`, spec §104): the
+ * private buckets are readable by their owner only (0997), so the server signs on the viewer's
+ * behalf once the database has authorized them.
+ */
+export interface StorageLike {
+  from(bucket: string): StorageBucketLike
+}
+
+/** A client that carries `storage` (the real client does; the RPC-only fakes do not). */
+export interface StorageHostLike {
+  readonly storage?: StorageLike | undefined
+}
+
+// ---------------------------------------------------------------------------
 // LiveKit
 // ---------------------------------------------------------------------------
 
@@ -172,6 +201,11 @@ export interface ServerDeps {
    * it the Human is still deleted and the response says `credentialDeleted: false`.
    */
   readonly authAdmin?: AuthAdminLike | undefined
+  /**
+   * Supabase Storage (service role) for `GET /api/media/:bucket/:key`. Optional: without it the
+   * route answers `internal` rather than signing, and every other route is unaffected.
+   */
+  readonly storage?: StorageLike | undefined
 }
 
 export type { AnalyticsSink, Logger, ServerEnv, HumanVerificationProvider }

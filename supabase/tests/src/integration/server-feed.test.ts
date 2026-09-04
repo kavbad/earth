@@ -1,14 +1,16 @@
 /**
  * `GET /api/feed` end to end (ARCHITECTURE §6, §9; spec PART IX): `handleFeed` runs against the
- * real `feed_candidates` through the harness-backed deps. Page 1 carries the caller's friend posts
- * and viewer-named Live cards, page 2 follows the keyset cursor with no repeats and no Lives, a
- * Visitor reads World without a bearer, and every other scope needs one.
+ * real `feed_candidates` and `feed_presence` through the harness-backed deps. Page 1 carries the
+ * SCREEN 02 presence row, the caller's friend posts and viewer-named Live cards, page 2 follows the
+ * keyset cursor with no repeats, no Lives and no presence row, a Visitor reads World without a
+ * bearer, and every other scope needs one.
  */
 import {
   FEED_PAGE_SIZE,
   FeedPageDtoSchema,
   type FeedCardDto,
   type LiveCardDto,
+  type PresenceCardDto,
 } from '@earth/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -34,6 +36,7 @@ import {
 } from './server-deps'
 
 const isLive = (card: FeedCardDto): card is LiveCardDto => card.kind === 'live'
+const isPresence = (card: FeedCardDto): card is PresenceCardDto => card.kind === 'presence'
 
 describe('GET /api/feed (server tier ↔ feed_candidates)', () => {
   let db: TestDb
@@ -111,10 +114,18 @@ describe('GET /api/feed (server tier ↔ feed_candidates)', () => {
       areaName: null,
       snapshotAt: ctx.clock.now.toISOString(),
     })
-    expect(page.cards).toHaveLength(FEED_PAGE_SIZE)
+    // SCREEN 02: the presence row is prepended to page 1 and is not one of the ranked cards.
+    const presence = page.cards.filter(isPresence)
+    expect(presence).toHaveLength(1)
+    expect(page.cards[0]).toBe(presence[0])
+    expect(presence[0]?.items.map((item) => [item.type, item.label, item.roomId])).toEqual([
+      ['friends_live', 'Xavier + Kavon live', duoRoom],
+    ])
+    const ranked = page.cards.filter((card) => !isPresence(card))
+    expect(ranked).toHaveLength(FEED_PAGE_SIZE)
     expect(page.nextCursor).not.toBeNull()
 
-    const lives = page.cards.filter(isLive)
+    const lives = ranked.filter(isLive)
     expect(lives.map((card) => card.title).sort()).toEqual([
       'Weekend Crew is live',
       'Xavier + Kavon are live',
@@ -134,7 +145,7 @@ describe('GET /api/feed (server tier ↔ feed_candidates)', () => {
       contextTitle: 'Weekend Crew',
     })
 
-    const posts = page.cards.filter((card) => !isLive(card))
+    const posts = ranked.filter((card) => !isLive(card))
     expect(posts).toHaveLength(FEED_PAGE_SIZE - lives.length)
     for (const card of posts) {
       if (card.kind !== 'post') throw new Error(`unexpected card ${card.kind}`)
@@ -148,6 +159,11 @@ describe('GET /api/feed (server tier ↔ feed_candidates)', () => {
       client: `user:${bearer}`,
       as: me.as,
       args: { scope: 'friends', area_id: null, snapshot_at: ctx.clock.now.toISOString() },
+    })
+    // The presence row is read as the caller too — the database decides whose presence it is.
+    expect(ctx.callsTo('feed_presence').at(-1)).toMatchObject({
+      client: `user:${bearer}`,
+      as: me.as,
     })
   })
 
@@ -172,8 +188,13 @@ describe('GET /api/feed (server tier ↔ feed_candidates)', () => {
     expect(second.snapshotAt).toBe(first.snapshotAt)
     expect(ctx.callsTo('feed_candidates').at(-1)?.args['snapshot_at']).toBe(first.snapshotAt)
     expect(second.cards.every((card) => card.kind === 'post')).toBe(true)
-    const firstIds = first.cards.filter((card) => !isLive(card)).map((card) => card.id)
-    const secondIds = second.cards.map((card) => card.id)
+    const firstIds = first.cards
+      .filter((card) => !isLive(card) && !isPresence(card))
+      .map((card) => card.id)
+    const secondIds = second.cards
+      .filter((card) => !isLive(card) && !isPresence(card))
+      .map((card) => card.id)
+    expect(secondIds).toHaveLength(second.cards.length)
     expect(secondIds.filter((id) => firstIds.includes(id))).toEqual([])
     expect(new Set([...firstIds, ...secondIds])).toEqual(friendPosts)
     expect(second.cards).toHaveLength(friendPosts.size - firstIds.length)

@@ -40,9 +40,11 @@ import {
 import {
   createFakeAnalyticsSink,
   createFakePushSender,
+  createFakeStorage,
   testServerEnv,
   type FakeAnalyticsSink,
   type FakePushSender,
+  type FakeStorage,
 } from '../../../../packages/server/src/test/fakes'
 import type { RoleSpec, TestDb } from '../harness'
 
@@ -86,6 +88,8 @@ export interface ServerTestDeps {
   readonly clock: { now: Date }
   readonly verification: MockHumanVerificationProvider
   readonly push: FakePushSender
+  /** Records what `GET /api/media/:bucket/:key*` signs (no Storage service in the test stack). */
+  readonly storage: FakeStorage
   readonly analytics: FakeAnalyticsSink
   readonly logs: MemorySink
   readonly calls: RecordedRpc[]
@@ -182,6 +186,7 @@ export function createServerTestDeps(
   }
   const calls: RecordedRpc[] = []
   const push = createFakePushSender()
+  const storage = createFakeStorage()
   const analytics = createFakeAnalyticsSink()
   const logs = createMemorySink()
   const mock = new MockHumanVerificationProvider({
@@ -207,6 +212,7 @@ export function createServerTestDeps(
     now: () => clock.now,
     env,
     cronSecret: env.INTERNAL_CRON_SECRET,
+    storage: storage.storage,
   }
   return {
     deps,
@@ -214,6 +220,7 @@ export function createServerTestDeps(
     clock,
     verification: mock,
     push,
+    storage,
     analytics,
     logs,
     calls,

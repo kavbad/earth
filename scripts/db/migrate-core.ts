@@ -111,6 +111,35 @@ export function quoteIdentifier(name: string): string {
   return `"${name.replace(/"/g, '""')}"`
 }
 
+/**
+ * The version `supabase db push` records for a migration: the digits before the first underscore
+ * of the filename. Throws for a name the Supabase CLI could not version.
+ */
+export function migrationVersion(name: string): string {
+  const version = /^(\d+)_/.exec(name)?.[1]
+  if (version === undefined) {
+    throw new Error(`Migration filename must start with a numeric version: ${name}`)
+  }
+  return version
+}
+
+/**
+ * Versions claimed by more than one migration file, sorted. `version` is the primary key of the
+ * hosted ledger (`supabase_migrations.schema_migrations`), so a repeated prefix aborts
+ * `supabase db push` part-way through the schema even though this runner — keyed on the full
+ * filename — applies both files happily.
+ */
+export function duplicateMigrationVersions(names: readonly string[]): string[] {
+  const seen = new Set<string>()
+  const duplicates = new Set<string>()
+  for (const name of names) {
+    const version = migrationVersion(name)
+    if (seen.has(version)) duplicates.add(version)
+    seen.add(version)
+  }
+  return [...duplicates].sort()
+}
+
 /** Keeps only `.sql` files and orders them lexically so `0001_` runs before `0002_`. */
 export function orderSqlFiles(names: readonly string[]): string[] {
   return names

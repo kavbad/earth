@@ -424,6 +424,8 @@ describe('audience invariants — adversarial verification (spec §128)', () => 
     let directRoomId: string
     let worldPostId: string
     let nbPostId: string
+    /** The private group's own name — `public.groups` shows it to its members only (0170 RLS). */
+    const crewName = `Crew ${tag}`
     const secrets = {
       groupMessage: `groupmsg-${tag}`,
       dmMessage: `dmmsg-${tag}`,
@@ -443,7 +445,7 @@ describe('audience invariants — adversarial verification (spec §128)', () => 
       await setContext(db, sid, { currentAreaId: mission, currentCityId: sf })
       guest = (await createGuest(db)).as
       claiming = (await createHuman(db, { handle: `claimw${tag}`, status: 'pending' })).as
-      crew = await createGroup(db, gus, `Crew ${tag}`)
+      crew = await createGroup(db, gus, crewName)
       await addMember(db, crew, hal)
       await sendMessage(db, gus, crew.conversationId, secrets.groupMessage)
       dm = await directConversation(db, gus, ivy)
@@ -634,6 +636,76 @@ describe('audience invariants — adversarial verification (spec §128)', () => 
       // The members of the chat keep their context.
       expect((await getRoom(db, directRoomId, gus.as)).contextTitle).toBe(ivy.displayName)
       expect((await getRoom(db, directRoomId, ivy.as)).contextTitle).toBe(gus.displayName)
+    })
+
+    it('opening a group room up never names the private group outside it — on the room screen either', async () => {
+      // Spec §58: the group's Live opens outward. Gus is its only publisher, so it applies at once.
+      await openUp(db, groupRoomId, gus, 'world')
+      const outsiders: Array<[string, RoleSpec]> = [
+        ['visitor', 'visitor'],
+        ['stranger', sid.as],
+        ["the host's friend", jo.as],
+        ['service', 'service'],
+      ]
+      for (const [label, as] of outsiders) {
+        // `room_get` is the room screen's payload (SCREEN 14 header): the leak 0998 closed on the
+        // discovery surfaces must be closed here too (spec §128).
+        const room = await getRoom(db, groupRoomId, as)
+        expect(room.id, label).toBe(groupRoomId)
+        expect(room.contextTitle, label).toBeNull()
+        expect(JSON.stringify(room), label).not.toContain(crewName)
+        // The discovery surfaces stay closed (0998).
+        const lives = await db.rpc<{ candidates: Array<{ roomId: string }> }>(
+          'live_candidates',
+          { scope: 'world', area_id: null },
+          as,
+        )
+        const card = lives.candidates.find((c) => c.roomId === groupRoomId)
+        expect(card, label).toBeDefined()
+        expect(JSON.stringify(card), label).not.toContain(crewName)
+        expect(
+          JSON.stringify(await db.rpc('feed_candidates', { scope: 'world' }, as)),
+          label,
+        ).not.toContain(crewName)
+        expect(JSON.stringify(await mapObjects(db, 'world', SF_BBOX, as)), label).not.toContain(
+          crewName,
+        )
+        // Nothing else would have told them: the group is its members' (0170 RLS), so `room_get`
+        // was the only path that spoke its name. The service is the one caller allowed to read it.
+        if (as !== 'service') {
+          expect(
+            await errorCode(db.rpc('group_get', { group_id: crew.groupId }, as)),
+            label,
+          ).not.toBeNull()
+        }
+      }
+      // The group's own people keep their context, in the room and out of it (spec §60).
+      expect((await getRoom(db, groupRoomId, gus.as)).contextTitle).toBe(crewName)
+      expect((await getRoom(db, groupRoomId, hal.as)).contextTitle).toBe(crewName)
+    })
+
+    it('a seat in the opened-up room is not membership: a viewer never reads the group name', async () => {
+      // Both room screens open a Live as a viewer first (spec §59): they call
+      // `room_join(media_state => 'watching')` on mount, so an outsider who taps a friend's Live
+      // card holds a participant seat before they read anything. 1000: a seat is not membership.
+      await db.rpc(
+        'room_set_visibility',
+        { room_id: groupRoomId, visibility: 'world', join_policy: 'anyone' },
+        gus.as,
+      )
+      const seated = await db.rpc<{ contextTitle: string | null }>(
+        'room_join',
+        { room_id: groupRoomId, media_state: 'watching', consent_level: 'invited' },
+        sid.as,
+      )
+      expect(seated.contextTitle).toBeNull()
+      const room = await getRoom(db, groupRoomId, sid.as)
+      expect(room.contextTitle).toBeNull()
+      expect(JSON.stringify(room)).not.toContain(crewName)
+      // The seat itself is real — this is a naming rule, not a visibility one.
+      expect(room.myParticipant).not.toBeNull()
+      // And it still tells the group's own people what room they are in.
+      expect((await getRoom(db, groupRoomId, hal.as)).contextTitle).toBe(crewName)
     })
   })
 

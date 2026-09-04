@@ -45,7 +45,10 @@ import { parseOutput } from '../http'
 
 /** One participant of a discoverable room, as `live_candidates` / the live payload returns it. */
 export const LiveParticipantRowSchema = z.object({
+  /** The `room_participants` row id — not the Human (a seat may be a Guest). */
   id: z.uuid(),
+  /** `null` for Guests, who have no Human behind them (`earth.room_participant_json`). */
+  humanId: z.uuid().nullable().default(null),
   displayName: z.string().trim().min(1),
   avatarUrl: NullableUrlSchema.default(null),
   isGuest: z.boolean().default(false),
@@ -145,12 +148,14 @@ export function candidateOf(row: FeedCandidateRow): FeedCandidate {
 // ---------------------------------------------------------------------------
 
 interface NamedLiveParticipant extends NamingParticipant {
+  readonly humanId: string | null
   readonly avatarUrl: string | null
 }
 
 export function namingParticipantsOf(row: LiveRoomRow): NamedLiveParticipant[] {
   return row.participants.map((p) => ({
     id: p.id,
+    humanId: p.humanId,
     displayName: p.displayName,
     isGuest: p.isGuest,
     mediaState: p.mediaState,

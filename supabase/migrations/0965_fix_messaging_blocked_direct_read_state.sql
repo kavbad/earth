@@ -1,4 +1,4 @@
--- 0961 — fix: messaging invariants around blocked direct conversations, read state and tombstones
+-- 0965 — fix: messaging invariants around blocked direct conversations, read state and tombstones
 -- (spec §21, §27, §55, §56, §128; DB_API §2; 0170 / 0185 / 0250 / 0260 / 0270 review).
 --
 -- supabase/tests/src/verify/messaging.test.ts reproduced five sequences that slipped past 0260 / 0270
@@ -210,7 +210,7 @@ begin
      or to_regprocedure('earth.assert_conversation_access(uuid, uuid)') is null
      or to_regprocedure('earth.conversation_members_read_pointer_trigger()') is null
      or to_regprocedure('earth.messages_tombstone_notifications_trigger()') is null then
-    raise exception '0961: messaging primitives missing';
+    raise exception '0965: messaging primitives missing';
   end if;
   if not exists (
     select 1 from pg_trigger t
@@ -219,14 +219,14 @@ begin
     select 1 from pg_trigger t
      where t.tgrelid = 'public.messages'::regclass and t.tgname = 'messages_tombstone_notifications' and not t.tgisinternal
   ) then
-    raise exception '0961: triggers on conversation_members / messages are missing';
+    raise exception '0965: triggers on conversation_members / messages are missing';
   end if;
   if (
     select count(distinct p.tablename) from pg_policies p
      where p.schemaname = 'public' and p.tablename in ('conversations', 'conversation_members')
        and p.cmd = 'SELECT' and p.qual like '%can_view_conversation%'
   ) <> 2 then
-    raise exception '0961: block-aware select policies on conversations / conversation_members are missing';
+    raise exception '0965: block-aware select policies on conversations / conversation_members are missing';
   end if;
 end
 $$;

@@ -1,7 +1,10 @@
 -- Storage buckets and object policies (ARCHITECTURE §5, spec §10).
--- Guarded: the `storage` schema exists on hosted Supabase; the local stack and the test database
--- have no Storage service, so this migration is a no-op there (clients fall back to signed-URL-less
--- paths and the api package reports storage as unavailable).
+-- Guarded on the `storage` schema, which a hosted Supabase project gets from its Storage service and
+-- a plain Postgres gets from the Supabase shim (supabase/tests/sql/supabase_shim.sql block 6). Both
+-- the local stack and the test database therefore run everything below: the local Storage service
+-- (scripts/local-stack/storage.mjs) authorizes every upload and download with exactly these policies,
+-- and supabase/tests/src/storage/objects.test.ts asserts them row by row. The guard remains for a
+-- database that has neither (a bare psql target), where this file is a no-op.
 --
 -- Object keys follow `<human_id>/<random>.<ext>` (packages/api identity.uploadMedia), so ownership is
 -- the first path segment compared with earth.current_human_id().

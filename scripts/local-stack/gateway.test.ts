@@ -292,6 +292,8 @@ describe('optionsFromEnv', () => {
         rest: { host: DEFAULT_HOST, port: DEFAULT_PORTS.postgrest },
         auth: { host: DEFAULT_HOST, port: DEFAULT_PORTS.gotrue },
       },
+      // No database URL and no JWT secret: Storage stays unavailable, as it was before it existed.
+      storageOptions: null,
     })
   })
 
@@ -308,6 +310,7 @@ describe('optionsFromEnv', () => {
       host: '0.0.0.0',
       port: 1,
       upstreams: { rest: { host: 'db.internal', port: 2 }, auth: { host: 'db.internal', port: 3 } },
+      storageOptions: null,
     })
     expect(() => optionsFromEnv({ EARTH_PORT_GATEWAY: 'eighty' })).toThrow(/not a port/)
     expect(optionsFromEnv({ EARTH_PORT_GATEWAY: '' }).port).toBe(DEFAULT_PORTS.gateway)

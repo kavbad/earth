@@ -12,6 +12,8 @@ import {
   applySqlFile,
   assertResetAllowed,
   databaseNameFromUrl,
+  duplicateMigrationVersions,
+  migrationVersion,
   orderSqlFiles,
   parseArgs,
   quoteIdentifier,
@@ -84,6 +86,21 @@ describe('url helpers', () => {
   it('quotes identifiers safely', () => {
     expect(quoteIdentifier('earth_local')).toBe('"earth_local"')
     expect(quoteIdentifier('we"ird')).toBe('"we""ird"')
+  })
+})
+
+describe('migration versions', () => {
+  it('reads the version the Supabase CLI keys its ledger on', () => {
+    expect(migrationVersion('0001_extensions.sql')).toBe('0001')
+    expect(migrationVersion('0965_fix_messaging_blocked_direct_read_state.sql')).toBe('0965')
+    expect(() => migrationVersion('supabase_shim.sql')).toThrow(/numeric version/)
+  })
+
+  it('reports every version claimed by more than one file', () => {
+    expect(duplicateMigrationVersions(['0001_a.sql', '0002_b.sql'])).toEqual([])
+    expect(
+      duplicateMigrationVersions(['0951_a.sql', '0951_b.sql', '0961_c.sql', '0961_d.sql']),
+    ).toEqual(['0951', '0961'])
   })
 })
 

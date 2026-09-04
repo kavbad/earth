@@ -27,10 +27,12 @@ export const feedCopy = {
   noCityYet: 'No city yet.',
   feedList: 'Feed',
   nearbyHidden: 'Only what people chose to share.',
+  openSearch: 'Search',
 
   // SCREEN 23 notifications
   nothingYet: 'Nothing yet.',
   unread: 'Unread',
+  unreadCount: (count: number): string => (count === 1 ? '1 unread' : `${count} unread`),
   accept: 'Accept',
   notificationsFor: 'Notifications are for people on Earth.',
 

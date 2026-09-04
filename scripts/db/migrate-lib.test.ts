@@ -9,6 +9,7 @@ import {
   MIGRATIONS_TABLE,
   SHIM_RECORD_PREFIX,
   adminDatabaseUrl,
+  duplicateMigrationVersions,
   quoteIdentifier,
   resetDatabase,
   type Logger,
@@ -57,6 +58,17 @@ describe('repository layout', () => {
     const names = (await listSqlFiles(MIGRATIONS_DIR)).map((f) => f.name)
     expect(names).toContain('0001_extensions.sql')
     expect(names).toEqual([...names].sort())
+  })
+
+  // `supabase db push` (.github/workflows/deploy.yml) records each file under the digits before its
+  // first underscore, and `supabase_migrations.schema_migrations.version` is a primary key: two
+  // files sharing a prefix abort the hosted push part-way through the schema. This runner's ledger
+  // is keyed on the whole filename (migrate-core.ts `name text primary key`), so only this assertion
+  // catches it.
+  it('gives every migration a version prefix no other migration claims', async () => {
+    const names = (await listSqlFiles(MIGRATIONS_DIR)).map((f) => f.name)
+    expect(names.length).toBeGreaterThan(0)
+    expect(duplicateMigrationVersions(names)).toEqual([])
   })
 
   it('returns no files for a missing directory', async () => {

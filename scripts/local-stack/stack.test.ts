@@ -42,6 +42,9 @@ export const AUTH_PATHS = {
   verify: `${PREFIXES.auth}/verify`,
 } as const
 
+/** Storage's answer to a request with no bearer at all (its own error envelope, not the gateway's). */
+export const STORAGE_REFUSED_STATUS = 403
+
 /** `type` accepted by /verify for email codes from both the signup and the magic-link templates. */
 export const EMAIL_OTP_VERIFY_TYPE = 'email' as const
 
@@ -248,10 +251,23 @@ describe.runIf(stackUp)('local stack (live)', () => {
     })
   }, 45_000)
 
-  it('Storage and Realtime answer with their documented unavailable statuses', async () => {
-    const storage = await fetch(`${base}${PREFIXES.storage}/object/avatars/a.png`)
-    expect(storage.status).toBe(UNAVAILABLE_STATUS.storage)
-    await storage.arrayBuffer()
+  it('Storage is served by the stack and refuses an uncredentialed upload', async () => {
+    // scripts/local-stack/storage.mjs, mounted on the gateway: it answers (no longer 501) and the
+    // 0997 policies decide. The round trip itself is covered by scripts/local-stack/storage.test.ts.
+    const upload = await fetch(`${base}${PREFIXES.storage}/object/media/nobody/a.png`, {
+      method: 'POST',
+      headers: { 'content-type': 'image/png' },
+      body: 'not-a-png',
+    })
+    expect(upload.status).toBe(STORAGE_REFUSED_STATUS)
+    await expect(upload.json()).resolves.toMatchObject({ error: 'Unauthorized' })
+
+    const missing = await fetch(`${base}${PREFIXES.storage}/object/public/avatars/nobody/a.png`)
+    expect(missing.status).toBe(404)
+    await missing.arrayBuffer()
+  })
+
+  it('Realtime answers with its documented unavailable status', async () => {
     const realtime = await fetch(`${base}${PREFIXES.realtime}/api/broadcast`, {
       method: 'POST',
       body: '{}',

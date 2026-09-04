@@ -14,6 +14,8 @@ import type {
   RpcArgs,
   RpcError,
   ServerDeps,
+  SignedUrlResult,
+  StorageLike,
   SupabaseRpcClient,
 } from '../deps'
 import type { EarthRequest } from '../http'
@@ -158,6 +160,48 @@ export function createFakePushSender(): FakePushSender {
 }
 
 // ---------------------------------------------------------------------------
+// Storage
+// ---------------------------------------------------------------------------
+
+export interface SignedUrlCall {
+  readonly bucket: string
+  readonly path: string
+  readonly expiresIn: number
+}
+
+export interface FakeStorage {
+  readonly storage: StorageLike
+  readonly calls: SignedUrlCall[]
+  /** What the next `createSignedUrl` answers; defaults to a deterministic signed URL. */
+  signFor: (call: SignedUrlCall) => SignedUrlResult
+}
+
+export const FAKE_STORAGE_ORIGIN = 'https://storage.test' as const
+
+export function createFakeStorage(): FakeStorage {
+  const calls: SignedUrlCall[] = []
+  const fake: FakeStorage = {
+    calls,
+    signFor: (call) => ({
+      data: {
+        signedUrl: `${FAKE_STORAGE_ORIGIN}/object/sign/${call.bucket}/${call.path}?token=t-${call.expiresIn}`,
+      },
+      error: null,
+    }),
+    storage: {
+      from: (bucket) => ({
+        async createSignedUrl(path, expiresIn) {
+          const call: SignedUrlCall = { bucket, path, expiresIn }
+          calls.push(call)
+          return fake.signFor(call)
+        },
+      }),
+    },
+  }
+  return fake
+}
+
+// ---------------------------------------------------------------------------
 // Verification provider
 // ---------------------------------------------------------------------------
 
@@ -275,6 +319,7 @@ export function createFakeAnalyticsSink(): FakeAnalyticsSink {
 export interface FakeDeps {
   readonly deps: ServerDeps
   readonly supabase: FakeSupabase
+  readonly storage: FakeStorage
   readonly push: FakePushSender
   readonly analytics: FakeAnalyticsSink
   readonly logs: MemorySink
@@ -288,10 +333,13 @@ export interface FakeDepsOptions {
   readonly livekit?: Partial<ServerDeps['livekit']>
   readonly now?: Date
   readonly cronSecret?: string
+  /** `false` drops `deps.storage` (Storage not configured). */
+  readonly storage?: boolean
 }
 
 export function createFakeDeps(options: FakeDepsOptions = {}): FakeDeps {
   const supabase = createFakeSupabase(options.rpc)
+  const storage = createFakeStorage()
   const push = createFakePushSender()
   const analytics = createFakeAnalyticsSink()
   const logs = createMemorySink()
@@ -311,6 +359,7 @@ export function createFakeDeps(options: FakeDepsOptions = {}): FakeDeps {
     now: () => clock.now,
     env,
     cronSecret: options.cronSecret ?? TEST_CRON_SECRET,
+    storage: options.storage === false ? undefined : storage.storage,
   }
-  return { deps, supabase, push, analytics, logs, verification: fakeProvider, clock }
+  return { deps, supabase, storage, push, analytics, logs, verification: fakeProvider, clock }
 }

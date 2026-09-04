@@ -640,6 +640,100 @@ describe('location sharing (DB_API §5)', () => {
       expect(await visibleShares(db, bob.as)).toEqual([])
       await db.rpc('location_share_revoke', { share_id: share.id }, alice.as)
     })
+
+    // spec §128 "Exact location is never inferred as public permission": the share was made to the
+    // Room as it stood, so opening the Room up ends it instead of carrying it to the wider audience.
+    it('ends the share when the Room is opened up, before anyone from the wider audience joins', async () => {
+      const sharer = await human(db, 'Sharer')
+      const watcher = await human(db, 'Watcher')
+      const stranger = await human(db, 'Stranger')
+      await befriend(db, sharer, watcher)
+      const started = await startStandaloneRoom(db, sharer)
+      const roomId = started.room.id
+      await joinRoom(db, roomId, watcher, 'watching')
+      const share = await createShare(db, sharer, {
+        audienceType: 'temporary_context',
+        audienceId: roomId,
+        precision: 'precise',
+      })
+      expect((await visibleShares(db, watcher.as)).map((s) => s.shareId)).toEqual([share.id])
+      expect(await visibleShares(db, stranger.as)).toEqual([])
+
+      // The moderator opening the Room to World is not consent to hand out coordinates.
+      const opened = await db.rpc<{ applied: boolean; visibility: string }>(
+        'room_set_visibility',
+        { room_id: roomId, visibility: 'world', join_policy: 'anyone' },
+        sharer.as,
+      )
+      expect(opened).toMatchObject({ applied: true, visibility: 'world' })
+
+      expect((await shareRow(db, share.id))?.revoked_at ?? null).not.toBeNull()
+      expect(await storedPosition(db, share.id)).toBeNull()
+      expect(await visibleShares(db, watcher.as)).toEqual([])
+      await joinRoom(db, roomId, stranger, 'watching')
+      expect(await visibleShares(db, stranger.as)).toEqual([])
+      await db.rpc('room_end', { room_id: roomId, reason: null }, sharer.as)
+    })
+
+    // The deferred half of the same rule: a widening that waits for a publisher's consent ends the
+    // share when `earth.room_evaluate_pending_visibility` finally applies it, not when it is asked for.
+    it('ends the share when a pending widening is applied by the last consent', async () => {
+      const sharer = await human(db, 'PendingSharer')
+      const publisher = await human(db, 'PendingPublisher')
+      const stranger = await human(db, 'PendingStranger')
+      await befriend(db, sharer, publisher)
+      const started = await startStandaloneRoom(db, sharer)
+      const roomId = started.room.id
+      await joinRoom(db, roomId, publisher, 'camera', 'friends')
+      const share = await createShare(db, sharer, {
+        audienceType: 'temporary_context',
+        audienceId: roomId,
+        precision: 'precise',
+      })
+      expect((await visibleShares(db, publisher.as)).map((s) => s.shareId)).toEqual([share.id])
+
+      const pending = await db.rpc<{ applied: boolean }>(
+        'room_set_visibility',
+        { room_id: roomId, visibility: 'world', join_policy: 'anyone' },
+        sharer.as,
+      )
+      expect(pending.applied).toBe(false)
+      // Still pending: the audience has not changed, so the share is untouched.
+      expect(await shareRow(db, share.id)).toMatchObject({ revoked_at: null })
+      expect((await visibleShares(db, publisher.as)).map((s) => s.shareId)).toEqual([share.id])
+
+      const applied = await db.rpc<{ applied: boolean; visibility: string }>(
+        'room_consent',
+        { room_id: roomId, level: 'world' },
+        publisher.as,
+      )
+      expect(applied).toMatchObject({ applied: true, visibility: 'world' })
+      expect((await shareRow(db, share.id))?.revoked_at ?? null).not.toBeNull()
+      expect(await storedPosition(db, share.id)).toBeNull()
+      expect(await visibleShares(db, publisher.as)).toEqual([])
+      await joinRoom(db, roomId, stranger, 'watching')
+      expect(await visibleShares(db, stranger.as)).toEqual([])
+      await db.rpc('room_end', { room_id: roomId, reason: null }, sharer.as)
+    })
+
+    // Narrowing does not widen the audience, so it leaves the share alone.
+    it('keeps the share when the Room is narrowed', async () => {
+      const sharer = await human(db, 'NarrowSharer')
+      const watcher = await human(db, 'NarrowWatcher')
+      await befriend(db, sharer, watcher)
+      const started = await startStandaloneRoom(db, sharer)
+      const roomId = started.room.id
+      await joinRoom(db, roomId, watcher, 'watching')
+      const share = await createShare(db, sharer, {
+        audienceType: 'temporary_context',
+        audienceId: roomId,
+        precision: 'precise',
+      })
+      await db.rpc('room_set_visibility', { room_id: roomId, visibility: 'invited' }, sharer.as)
+      expect(await shareRow(db, share.id)).toMatchObject({ revoked_at: null })
+      expect((await visibleShares(db, watcher.as)).map((s) => s.shareId)).toEqual([share.id])
+      await db.rpc('room_end', { room_id: roomId, reason: null }, sharer.as)
+    })
   })
 
   describe('several shares at once', () => {

@@ -2,6 +2,8 @@
  * Keeps scripts/local-stack/env.sh honest: its ports mirror @earth/config LOCAL_PORTS and
  * supabase/config.toml, the keys it mints verify with the shared secret, and the dotenv it writes
  * carries what the apps and e2e need (nothing internal, nothing that could leak into Next.js).
+ * Also guards the one supabase/config.toml value the Supabase CLI itself validates, because a bad
+ * one takes the deploy workflow's `supabase db push` down with it.
  */
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -25,6 +27,17 @@ const TEMPLATES_DIR = path.join(STACK_DIR, 'mail-templates')
 
 /** Minimum enforced by @earth/config `SUPABASE_JWT_SECRET_MIN_LENGTH` (packages/config/src/env.ts). */
 const JWT_SECRET_MIN_LENGTH = 32
+
+/**
+ * Postgres majors Supabase hosts, i.e. the only values the CLI accepts for `[db] major_version`.
+ * Anything else (16 included) aborts every CLI command with `LegacyDbConfigLoadError: Failed
+ * reading config: Invalid db.major_version`, so `supabase link` and `supabase db push` in
+ * .github/workflows/deploy.yml can never run.
+ */
+const SUPABASE_DB_MAJOR_VERSIONS = [15, 17]
+
+/** The major the hosted project runs and the deploy workflow pushes migrations to. */
+const HOSTED_DB_MAJOR_VERSION = 17
 
 /** `: "${NAME:=value}"` defaults declared in env.sh. */
 function shellDefaults(source: string): Record<string, string> {
@@ -302,5 +315,14 @@ describe('env.sh evaluated', () => {
     expect(Object.keys(stackEnv).some((key) => key.startsWith('GOTRUE_'))).toBe(false)
     expect(stackEnv['PORT']).toBeUndefined()
     expect(stackEnv['PATH']).toBeUndefined()
+  })
+})
+
+describe('supabase/config.toml', () => {
+  it('declares a [db] major_version the Supabase CLI accepts, so `supabase db push` can run', async () => {
+    const toml = await readFile(SUPABASE_CONFIG, 'utf8')
+    const major = Number(tomlValue(toml, 'db', 'major_version'))
+    expect(SUPABASE_DB_MAJOR_VERSIONS).toContain(major)
+    expect(major).toBe(HOSTED_DB_MAJOR_VERSION)
   })
 })

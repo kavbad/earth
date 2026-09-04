@@ -23,6 +23,14 @@ export const PRESENCE_PING_INTERVAL_SECONDS = 30
 /** A Human is "active" for push suppression when pinged within this window (ARCHITECTURE §11). */
 export const PRESENCE_ACTIVE_WINDOW_SECONDS = 30
 
+/**
+ * SCREEN 02 presence row: a Human counts as present when pinged within this window. Wider than
+ * `PRESENCE_ACTIVE_WINDOW_SECONDS` (which suppresses a push the reader is about to see anyway) —
+ * "Weekend Crew · 3 active" and "Sarah nearby" describe the last few minutes, not the last ping.
+ * Mirrored by `public.feed_presence()` (migration 0973).
+ */
+export const PRESENCE_ROW_WINDOW_MINUTES = 10
+
 /** Realtime channel join timeout before polling fallback (ARCHITECTURE §8). */
 export const REALTIME_JOIN_TIMEOUT_MS = 5_000
 export const REALTIME_POLL_INTERVAL_MS = 2_000

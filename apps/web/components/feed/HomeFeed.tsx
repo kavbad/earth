@@ -1,10 +1,11 @@
 'use client'
 
 /**
- * SCREEN 01–05 — Home: the `earth` wordmark, the radius control, a subtitle for Neighborhood /
- * City (with the city switch), the presence row only when there is state, then the feed for the
- * radius — cached per radius so switching crossfades in place. Visitors browse World; every
- * other radius and every action opens the claim sheet (spec §43).
+ * SCREEN 01–05 — Home: the `earth` wordmark with Search (SCREEN 21) and Notifications
+ * (SCREEN 23), the radius control, a subtitle for Neighborhood / City (with the city switch),
+ * the presence row only when there is state, then the feed for the radius — cached per radius so
+ * switching crossfades in place. Visitors browse World; every other radius and every action opens
+ * the claim sheet (spec §43).
  */
 import { FeatureFlag } from '@earth/config'
 import { copy, space } from '@earth/ui'
@@ -26,11 +27,14 @@ import { AddPeopleRow } from './AddPeopleRow'
 import { CitySwitch } from './CitySwitch'
 import { ComposeEntry } from './ComposeEntry'
 import { FeedList } from './FeedList'
+import { NotificationsButton } from './NotificationsButton'
 import { PresenceRow } from './PresenceRow'
+import { SearchButton } from './SearchButton'
 import { feedCopy } from './copy'
 import { useAreaName } from './hooks/useAreaName'
 import { useFeed } from './hooks/useFeed'
 import { usePullToRefresh } from './hooks/usePullToRefresh'
+import { useUnreadCount } from './hooks/useUnreadCount'
 import {
   areaIdForScope,
   cityChoices,
@@ -75,6 +79,7 @@ export function HomeFeed() {
     scope,
     friendCount: myProfile?.counts.friends ?? null,
   })
+  const unread = useUnreadCount()
 
   // feed_opened on first render and on every radius change; public_world_viewed for Visitors.
   const opened = useRef(false)
@@ -107,6 +112,12 @@ export function HomeFeed() {
   return (
     <>
       <ScreenHeader
+        trailing={
+          <div className="flex items-center">
+            <SearchButton />
+            {isHuman ? <NotificationsButton unreadCount={unread} /> : null}
+          </div>
+        }
         {...(subtitle === undefined ? {} : { subtitle })}
         presence={
           feed.view.presence.length > 0 ? <PresenceRow items={feed.view.presence} /> : undefined

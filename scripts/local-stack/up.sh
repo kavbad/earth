@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Starts the local stack (ARCHITECTURE.md §15): Postgres (system service), PostgREST, GoTrue,
-# LiveKit (dev mode), Mailpit and the Supabase-shaped gateway (gateway.mjs); optionally apps/web.
+# LiveKit (dev mode), Mailpit and the Supabase-shaped gateway (gateway.mjs, which also serves
+# Supabase Storage from storage.mjs onto .local/storage); optionally apps/web.
 #
 #   bash scripts/local-stack/up.sh [--with-web]
 #
@@ -130,6 +131,16 @@ prepare_args=()
 [[ "${KEEP_DB:-0}" == "1" ]] && prepare_args+=(--keep)
 earth_tsx "$EARTH_STACK_DIR/prepare-db.ts" "${prepare_args[@]}"
 
+# Storage bytes live next to the database they belong to: a recreated database starts with an empty
+# object store, or every `storage.objects` row would be gone while its file lingered.
+EARTH_STORAGE_DIR="${EARTH_STORAGE_DIR:-$EARTH_LOCAL_DIR/storage}"
+export EARTH_STORAGE_DIR
+if [[ "${KEEP_DB:-0}" != "1" ]]; then
+  rm -rf "$EARTH_STORAGE_DIR"
+  log "cleared the Storage object directory $EARTH_STORAGE_DIR"
+fi
+mkdir -p "$EARTH_STORAGE_DIR"
+
 log "applying GoTrue migrations from $EARTH_GOTRUE_MIGRATIONS_DIR"
 if ! PORT="$EARTH_PORT_GOTRUE" "$EARTH_BIN_DIR/gotrue" migrate > "$EARTH_LOG_DIR/gotrue-migrate.log" 2>&1; then
   tail -n 20 "$EARTH_LOG_DIR/gotrue-migrate.log" >&2
@@ -194,12 +205,13 @@ earth_write_stack_env
 cat <<SUMMARY
 
 Earth local stack is up.
-  Supabase URL (gateway)  $EARTH_SUPABASE_URL   -> /rest/v1 PostgREST ($EARTH_PORT_POSTGREST), /auth/v1 GoTrue ($EARTH_PORT_GOTRUE)
+  Supabase URL (gateway)  $EARTH_SUPABASE_URL   -> /rest/v1 PostgREST ($EARTH_PORT_POSTGREST), /auth/v1 GoTrue ($EARTH_PORT_GOTRUE), /storage/v1 Storage
+  Storage objects         ${EARTH_STORAGE_DIR:-$EARTH_LOCAL_DIR/storage}   (buckets avatars/media/voice; storage.objects policies from migration 0997)
   Postgres                $DATABASE_URL
   LiveKit                 $EARTH_LIVEKIT_URL   (dev keys: $LIVEKIT_API_KEY / $LIVEKIT_API_SECRET)
   Mailpit                 $EARTH_MAILPIT_URL   (SMTP $EARTH_PORT_MAILPIT_SMTP; OTP codes: bash scripts/local-stack/otp.sh <email>)
   Web                     $EARTH_WEB_URL   $([[ $WITH_WEB == 1 ]] && echo '(running)' || echo '(start with pnpm dev:web or --with-web)')
   Env for apps            $EARTH_STACK_ENV_FILE
-  Not available locally   Supabase Storage (501) and Realtime (503; clients fall back to polling)
+  Not available locally   Supabase Realtime (503; clients fall back to polling)
   Logs / pids             $EARTH_LOG_DIR / $EARTH_PID_DIR   stop: pnpm stack:down
 SUMMARY

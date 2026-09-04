@@ -1,10 +1,13 @@
 /** Types for gateway.mjs (plain JavaScript so `node` runs it without a loader). */
 import type { Server } from 'node:http'
 
+import type { StorageEnvOptions, StorageService } from './storage.d.mts'
+
 export declare const GATEWAY_SERVICE_NAME: 'earth-local-gateway'
 
 export declare const ROUTE_KINDS: {
   readonly proxy: 'proxy'
+  readonly storage: 'storage'
   readonly unavailable: 'unavailable'
   readonly template: 'template'
   readonly health: 'health'
@@ -35,13 +38,14 @@ export declare const DEFAULT_HOST: '127.0.0.1'
 
 export type Route =
   | { kind: 'proxy'; service: ProxiedService; path: string }
+  | { kind: 'storage'; path: string }
   | { kind: 'unavailable'; service: UnavailableService; status: number }
   | { kind: 'template'; name: string }
   | { kind: 'health' }
   | { kind: 'not_found' }
 
 export declare function stripPrefix(pathname: string, prefix: string): string
-export declare function resolveRoute(url: string): Route
+export declare function resolveRoute(url: string, options?: { storage?: boolean }): Route
 
 export interface Upstream {
   host: string
@@ -50,6 +54,8 @@ export interface Upstream {
 
 export interface GatewayOptions {
   upstreams: Record<ProxiedService, Upstream>
+  /** When given, `/storage/v1` is served by it instead of answering 501. */
+  storage?: StorageService
   templatesDir?: string
   log?: (line: string) => void
 }
@@ -68,4 +74,6 @@ export interface RunningGateway {
 
 export declare function createGateway(options: GatewayOptions): Server
 export declare function startGateway(options: StartOptions): Promise<RunningGateway>
-export declare function optionsFromEnv(env: NodeJS.ProcessEnv): StartOptions & { host: string }
+export declare function optionsFromEnv(
+  env: NodeJS.ProcessEnv,
+): Omit<StartOptions, 'storage'> & { host: string; storageOptions: StorageEnvOptions | null }

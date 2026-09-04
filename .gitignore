@@ -5,6 +5,8 @@ node_modules
 dist
 .turbo
 .local
+# Supabase CLI scratch (created by `supabase link` / `supabase db push`).
+supabase/.temp
 coverage
 .env
 .env.*

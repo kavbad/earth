@@ -41,6 +41,8 @@ export interface EarthResponse {
 export const HTTP_STATUS = {
   ok: 200,
   accepted: 202,
+  /** `GET /api/media/:bucket/:key*` redirects to the signed Storage URL. */
+  found: 302,
   badRequest: 400,
   unauthorized: 401,
   forbidden: 403,
