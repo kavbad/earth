@@ -18,7 +18,7 @@ export function TextArea({ label, hint, error, id, className, rows = 3, ...rest 
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
   return (
     <div className={cx('flex flex-col gap-1', className)}>
-      <label htmlFor={inputId} className="text-secondary text-text-secondary">
+      <label htmlFor={inputId} className="text-secondary font-medium text-text-primary">
         {label}
       </label>
       <textarea

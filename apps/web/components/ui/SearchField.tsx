@@ -27,7 +27,7 @@ export function SearchField({ label, className, ...rest }: SearchFieldProps) {
       <input
         type="search"
         autoComplete="off"
-        className="min-h-touch-target w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-10 text-body text-text-primary placeholder:text-text-secondary"
+        className="min-h-touch-target w-full rounded-medium bg-subtle-fill py-2 pr-4 pl-10 text-body text-text-primary placeholder:text-text-tertiary"
         {...rest}
       />
     </label>

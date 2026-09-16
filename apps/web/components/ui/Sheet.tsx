@@ -63,14 +63,14 @@ export function Sheet({
       ref={ref}
       aria-labelledby={title === undefined ? undefined : titleId}
       className={cx(
-        'fixed inset-x-0 top-auto bottom-0 m-0 max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-medium border-0 bg-background p-0 text-text-primary shadow-none',
+        'fixed inset-x-0 top-auto bottom-0 m-0 max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-large border-0 bg-background p-0 text-text-primary shadow-sheet',
         'open:animate-[earth-sheet-up_var(--earth-duration-base)_var(--earth-easing-enter)]',
-        'backdrop:bg-text-primary/40',
-        'rail:inset-auto rail:top-1/2 rail:left-1/2 rail:w-[420px] rail:-translate-x-1/2 rail:-translate-y-1/2 rail:rounded-medium',
+        'backdrop:bg-text-primary/24',
+        'rail:inset-auto rail:top-1/2 rail:left-1/2 rail:w-[420px] rail:-translate-x-1/2 rail:-translate-y-1/2 rail:rounded-large',
         className,
       )}
     >
-      <div className="p-screen-margin pb-[calc(var(--earth-space-4)+env(safe-area-inset-bottom))]">
+      <div className="px-screen-margin pt-5 pb-[calc(var(--earth-space-5)+env(safe-area-inset-bottom))]">
         {closeButton ? (
           <button
             type="button"
@@ -82,7 +82,7 @@ export function Sheet({
           </button>
         ) : null}
         {title !== undefined ? (
-          <h2 id={titleId} className="mb-4 pr-8 text-section">
+          <h2 id={titleId} className="mb-5 pr-8 text-section">
             {title}
           </h2>
         ) : null}

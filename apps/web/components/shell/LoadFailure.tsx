@@ -28,7 +28,7 @@ export interface LoadFailureViewProps {
 export function LoadFailureView({ online, onRetry, back }: LoadFailureViewProps) {
   return (
     <section className="fade-in flex flex-1 flex-col items-start gap-4 py-8">
-      <p role="status" className="text-section">
+      <p role="status" className="font-serif text-title">
         {online ? copy.couldntRefresh : copy.waitingForConnection}
       </p>
       <div className="flex items-center gap-3">

@@ -70,7 +70,7 @@ function ToastCard({ toast, onDone }: { toast: ToastItem; onDone: (id: number) =
     return () => clearTimeout(timer)
   }, [toast.id, onDone])
   return (
-    <div className="fade-in max-w-content rounded-medium bg-text-primary px-4 py-3 text-secondary text-background">
+    <div className="fade-in max-w-content rounded-medium bg-text-primary px-4 py-3 text-secondary text-background shadow-sheet">
       {toast.message}
     </div>
   )

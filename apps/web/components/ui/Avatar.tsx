@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- avatars come from many hosts; no optimisation layer */
-import { type AvatarSizeName, avatarSize, initials } from '@earth/ui'
+import { type AvatarSizeName, avatarSize, avatarTintIndex, avatarTints, initials } from '@earth/ui'
 
 import { cx } from './cx'
 
@@ -14,11 +14,12 @@ export interface AvatarProps {
   readonly className?: string | undefined
 }
 
+/** Initials: the sans at row sizes, a serif monogram at the two large sizes. */
 const FONT_CLASS: Record<AvatarSizeName, string> = {
   small: 'text-meta',
   medium: 'text-secondary font-medium',
-  large: 'text-section',
-  profile: 'text-title',
+  large: 'font-serif text-section font-medium',
+  profile: 'font-serif text-title',
 }
 
 export function Avatar({
@@ -31,6 +32,8 @@ export function Avatar({
 }: AvatarProps) {
   const px = avatarSize[size]
   const label = decorative ? undefined : name
+  // One of eight muted tints, by name, so a person keeps theirs on every screen (tokens.ts).
+  const tint = avatarTints[avatarTintIndex(name)] ?? avatarTints[0]
   return (
     <span
       className={cx('relative inline-block shrink-0 align-middle', className)}
@@ -50,8 +53,9 @@ export function Avatar({
           role={decorative ? undefined : 'img'}
           aria-label={label}
           aria-hidden={decorative || undefined}
+          style={{ backgroundColor: tint.bg, color: tint.fg }}
           className={cx(
-            'flex size-full items-center justify-center rounded-avatar bg-subtle-fill text-text-secondary select-none',
+            'flex size-full items-center justify-center rounded-avatar select-none',
             FONT_CLASS[size],
           )}
         >

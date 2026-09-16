@@ -2,7 +2,7 @@ import { APP_NAME } from '@earth/ui'
 import type { ReactNode } from 'react'
 
 import { cx } from '../ui/cx'
-import { CONTENT_MAX_WIDTH_CLASS } from './PageContainer'
+import { CONTENT_COLUMN_CLASS } from './PageContainer'
 
 export interface ScreenHeaderProps {
   /** Without a title the header shows the `earth` wordmark (SCREEN 01/02). */
@@ -36,17 +36,12 @@ export function ScreenHeader({
         className,
       )}
     >
-      <div
-        className={cx(
-          'mx-auto flex flex-col gap-2 px-screen-margin pt-3 pb-2',
-          CONTENT_MAX_WIDTH_CLASS,
-        )}
-      >
+      <div className={cx('flex flex-col gap-2 px-screen-margin pt-3 pb-2', CONTENT_COLUMN_CLASS)}>
         <div className="flex min-h-touch-target items-center gap-3">
           {leading !== undefined ? <div className="-ml-2 shrink-0">{leading}</div> : null}
           <div className="flex min-w-0 flex-1 flex-col">
             {title === undefined ? (
-              <h1 className="text-title">{APP_NAME}</h1>
+              <h1 className="font-serif text-title rail:sr-only">{APP_NAME}</h1>
             ) : (
               <h1 className="truncate text-section">{title}</h1>
             )}

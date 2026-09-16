@@ -16,7 +16,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
   primary: 'bg-text-primary text-background hover:opacity-90 active:opacity-80',
-  secondary: 'bg-subtle-fill text-text-primary hover:opacity-90 active:opacity-80',
+  secondary: 'bg-subtle-fill text-text-primary hover:opacity-80 active:opacity-70',
   quiet: 'bg-transparent text-text-primary hover:bg-subtle-fill',
   destructive: 'bg-transparent text-danger hover:bg-subtle-fill',
 }
@@ -41,7 +41,7 @@ export function Button({
       disabled={disabled === true || loading}
       aria-busy={loading || undefined}
       className={cx(
-        'inline-flex min-h-touch-target items-center justify-center gap-2 rounded-medium px-5 text-body font-medium transition-[background-color,opacity] duration-fast ease-standard disabled:cursor-default disabled:opacity-50',
+        'inline-flex min-h-touch-target items-center justify-center gap-2 rounded-medium px-4 text-body font-medium transition-[background-color,color,opacity] duration-fast ease-standard disabled:cursor-default disabled:opacity-50',
         VARIANT_CLASS[variant],
         fullWidth && 'w-full',
         className,

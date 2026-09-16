@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 import { webCopy } from '../../lib/copy'
 import { TAB_ROUTES } from '../../lib/routes'
-import { CONTENT_MAX_WIDTH_CLASS } from '../shell/PageContainer'
+import { CONTENT_COLUMN_CLASS } from '../shell/PageContainer'
 import { FaceStack } from '../ui/FaceStack'
 import { Icon } from '../ui/Icon'
 import { Skeleton } from '../ui/Skeleton'
@@ -46,7 +46,7 @@ export function ConversationHeader({
   const activeRoom = conversation?.activeRoom ?? null
   return (
     <header className="sticky top-0 z-sticky bg-background pt-[env(safe-area-inset-top)] hairline-b">
-      <div className={`mx-auto flex flex-col px-screen-margin ${CONTENT_MAX_WIDTH_CLASS}`}>
+      <div className={`flex flex-col px-screen-margin ${CONTENT_COLUMN_CLASS}`}>
         <div className="flex min-h-touch-target items-center gap-2 py-1">
           <Link
             href={TAB_ROUTES.chats}

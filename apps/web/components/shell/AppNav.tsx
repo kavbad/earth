@@ -18,13 +18,16 @@ function TabLink({ tab, active, rail }: { tab: Tab; active: boolean; rail: boole
       className={cx(
         'flex items-center justify-center gap-3 transition-colors duration-fast ease-standard',
         rail
-          ? 'h-touch-target w-full justify-start rounded-medium px-3 hover:bg-subtle-fill'
+          ? 'h-touch-target w-full justify-start rounded-medium px-3'
           : 'h-full flex-1 flex-col gap-1',
+        rail && (active ? 'bg-subtle-fill' : 'hover:bg-subtle-fill hover:text-text-primary'),
         active ? 'text-text-primary' : 'text-text-secondary',
       )}
     >
       <Icon name={TAB_ICONS[tab]} className={cx(tab === 'live' && active && 'text-live')} />
-      <span className={cx(rail ? 'text-body' : 'text-meta')}>{copy.tabs[tab]}</span>
+      <span className={cx(rail ? 'text-body' : 'text-meta', active && rail && 'font-medium')}>
+        {copy.tabs[tab]}
+      </span>
     </Link>
   )
 }
@@ -54,9 +57,9 @@ export function LeftRail() {
   return (
     <nav
       aria-label={webCopy.mainNavigation}
-      className="sticky top-0 hidden h-dvh w-[200px] shrink-0 flex-col gap-1 px-3 pt-4 rail:flex"
+      className="sticky top-0 hidden h-dvh w-[240px] shrink-0 flex-col gap-1 px-4 pt-6 rail:flex"
     >
-      <Link href={ROUTES.home} className="mb-4 px-3 text-title">
+      <Link href={ROUTES.home} className="mb-6 px-3 font-serif text-title">
         {APP_NAME}
       </Link>
       {TABS.map((tab) => (

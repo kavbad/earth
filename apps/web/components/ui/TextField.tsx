@@ -12,7 +12,7 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
 }
 
 export const FIELD_INPUT_CLASS =
-  'w-full min-h-touch-target rounded-medium bg-subtle-fill px-4 text-body text-text-primary placeholder:text-text-secondary disabled:opacity-50'
+  'hairline w-full min-h-touch-target rounded-medium bg-background px-4 text-body text-text-primary transition-colors duration-fast ease-standard placeholder:text-text-tertiary focus:border-(color:--earth-color-text-primary) disabled:opacity-50'
 
 /** A labelled input: label always visible, hint and error wired through `aria-describedby`. */
 export function TextField({
@@ -31,7 +31,7 @@ export function TextField({
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
   return (
     <div className={cx('flex flex-col gap-1', className)}>
-      <label htmlFor={inputId} className="text-secondary text-text-secondary">
+      <label htmlFor={inputId} className="text-secondary font-medium text-text-primary">
         {label}
       </label>
       <div className="relative">

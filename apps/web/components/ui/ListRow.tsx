@@ -22,7 +22,7 @@ export type ListRowProps =
       >)
 
 const ROW_CLASS =
-  'flex w-full min-h-touch-target items-center gap-3 px-screen-margin py-2 text-left text-body text-text-primary transition-colors duration-fast ease-standard'
+  'flex w-full min-h-touch-target items-center gap-3 px-screen-margin py-3 text-left text-body text-text-primary transition-colors duration-fast ease-standard'
 
 /** A compact row (chats, members, settings): 8–12 pt gaps, hairline separators from the list. */
 export function ListRow(props: ListRowProps) {

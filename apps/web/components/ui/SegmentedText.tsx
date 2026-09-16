@@ -72,7 +72,7 @@ export function SegmentedText<K extends string>({
     <div
       role={radio ? 'radiogroup' : 'tablist'}
       aria-label={label}
-      className={cx('flex items-end gap-5', className)}
+      className={cx('flex items-end gap-6', className)}
     >
       {options.map((option, index) => {
         const selected = option.key === value

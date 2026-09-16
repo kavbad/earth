@@ -51,7 +51,7 @@ import { type ShareAudience, ShareLocationSheet } from '../location/ShareLocatio
 import { useShareUpdater } from '../location/useShareUpdater'
 import { VisibleSharesList } from '../location/VisibleSharesList'
 import { useClaimGate } from '../shell/ClaimSheet'
-import { CONTENT_MAX_WIDTH_CLASS } from '../shell/PageContainer'
+import { CONTENT_COLUMN_CLASS } from '../shell/PageContainer'
 import { RadiusControl } from '../shell/RadiusControl'
 import { ScreenHeader } from '../shell/ScreenHeader'
 import { Button } from '../ui/Button'
@@ -565,12 +565,7 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
 
       {selectedFriend !== null ? (
         <div className="fade-in absolute inset-x-0 bottom-0 z-raised bg-background px-screen-margin py-3 hairline-t">
-          <div
-            className={cx(
-              'mx-auto flex items-center justify-between gap-3',
-              CONTENT_MAX_WIDTH_CLASS,
-            )}
-          >
+          <div className={cx('flex items-center justify-between gap-3', CONTENT_COLUMN_CLASS)}>
             <p className="min-w-0 truncate text-body">
               <span className="font-medium">{selectedFriend.displayName}</span>
               <span className="text-text-secondary">
