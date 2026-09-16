@@ -126,6 +126,23 @@ export const STORAGE_BUCKETS = {
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS]
 
 /**
+ * Where a client renders private media from: the server tier's `GET /api/media/:bucket/:key*`
+ * (spec §104), which authorizes the viewer as the caller and redirects to a short-lived signed
+ * URL. The same shape `earth.media_url()` (0410) writes into every `PostMediaDto`, so chat media
+ * and post media are one path. The `media` and `voice` buckets admit their owner only (0997), so
+ * signing on the client works for whoever sent a photo and for nobody who received it.
+ *
+ * The storage key keeps its slashes (`<human id>/<file>`): the route captures them as segments.
+ */
+export function mediaRouteUrl(
+  apiBaseUrl: string,
+  bucket: StorageBucket,
+  storageKey: string,
+): string {
+  return `${apiBaseUrl.replace(/\/+$/, '')}/api/media/${bucket}/${storageKey}`
+}
+
+/**
  * RPCs that exist in `public` but have no client method by design (ARCHITECTURE §6): reached
  * through their `/api/*` route, by the server tier as the caller, or by cron. Listed so the parity
  * test can tell "server-only" from "forgotten".

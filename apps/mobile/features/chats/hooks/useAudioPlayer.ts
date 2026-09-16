@@ -5,6 +5,8 @@
 import { Audio } from 'expo-av'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { type MediaRequestHeaders, NO_HEADERS } from '@/features/media/requestHeaders'
+
 export interface AudioPlayer {
   readonly playing: boolean
   readonly loading: boolean
@@ -14,7 +16,11 @@ export interface AudioPlayer {
   toggle(): Promise<void>
 }
 
-export function useAudioPlayer(url: string | null): AudioPlayer {
+/** `headers` ride along with the request for `url` (the media route wants the session). */
+export function useAudioPlayer(
+  url: string | null,
+  headers: MediaRequestHeaders = NO_HEADERS,
+): AudioPlayer {
   const sound = useRef<Audio.Sound | null>(null)
   const finished = useRef(false)
   const [playing, setPlaying] = useState(false)
@@ -44,7 +50,7 @@ export function useAudioPlayer(url: string | null): AudioPlayer {
           staysActiveInBackground: true,
         })
         const created = await Audio.Sound.createAsync(
-          { uri: url },
+          { uri: url, headers: { ...headers } },
           { shouldPlay: true },
           (status) => {
             if (!status.isLoaded) {
@@ -79,7 +85,7 @@ export function useAudioPlayer(url: string | null): AudioPlayer {
       setLoading(false)
       setError(true)
     }
-  }, [url, playing])
+  }, [url, headers, playing])
 
   return { playing, loading, positionMs, durationMs, error, toggle }
 }

@@ -848,12 +848,12 @@ function InfoBody({
 }
 
 function MediaThumb({ media, label }: { readonly media: MediaPayload; readonly label: string }) {
-  const { url } = useMediaUrl(media)
+  const { url, headers } = useMediaUrl(media)
   return (
     <View style={styles.thumb} accessible accessibilityRole="image" accessibilityLabel={label}>
       {url !== null && !media.contentType.startsWith('video/') ? (
         <Image
-          source={{ uri: url }}
+          source={{ uri: url, headers }}
           style={styles.thumbImage}
           contentFit="cover"
           cachePolicy="memory-disk"

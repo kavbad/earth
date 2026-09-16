@@ -10,6 +10,7 @@ import {
   type ExpoClientLike,
   type LiveKitWebhookReceiverLike,
   type ServerDeps,
+  type StorageHostLike,
   type SupabaseClientOptionsLike,
   type SupabaseRpcClient,
   createEarthServer,
@@ -35,10 +36,14 @@ import {
 import { type SupabaseTableClientLike, createVerificationProviderFromEnv } from './verification'
 
 /**
- * A supabase-js client as the server tier uses it: RPCs, the one table the review store touches
- * and (service role) `auth.admin` for account deletion.
+ * A supabase-js client as the server tier uses it: RPCs, the one table the review store touches,
+ * (service role) `auth.admin` for account deletion and (service role) `storage` for
+ * `GET /api/media/:bucket/:key*` — `createServerDepsFromEnv` takes `storage` from the admin client.
  */
-export type WebSupabaseClient = SupabaseRpcClient & SupabaseTableClientLike & AuthAdminHostLike
+export type WebSupabaseClient = SupabaseRpcClient &
+  SupabaseTableClientLike &
+  AuthAdminHostLike &
+  StorageHostLike
 
 /** `createClient` of `@supabase/supabase-js`, structurally. */
 export type WebSupabaseClientFactory = (

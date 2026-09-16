@@ -441,3 +441,61 @@ describe('makeRouteHandler', () => {
     expect(test.supabase.creations.some((c) => c.kind.startsWith('user:'))).toBe(false)
   })
 })
+
+describe('makeRouteHandler — the session cookie as the bearer of a media element request', () => {
+  const KEY = `${HUMAN_ID}/photo.png`
+  const MEDIA_PATH = `/api/media/media/${KEY}`
+  const grant = () => ({
+    mediaObjectId: '33333333-3333-4333-8333-333333333333',
+    bucket: 'media',
+    storageKey: KEY,
+    contentType: 'image/png',
+    isPublic: false,
+  })
+
+  it('authorizes GET /api/media/* as the cookie session when the request carries no bearer', async () => {
+    const test = createTestContext({ rpc: { media_access_grant: grant } })
+    const handler = makeRouteHandler({
+      context: () => test.context,
+      bearerFromCookies: async () => USER_JWT,
+    })
+    const response = await handler.GET(webRequest(MEDIA_PATH))
+    // The whole chain: the grant as the signed-in person, the signature by the service role, and
+    // a private, short-lived redirect the browser follows for the element.
+    expect(response.status).toBe(302)
+    expect(response.headers.get('location')).toContain(`/storage/v1/object/sign/media/${KEY}`)
+    expect(response.headers.get('cache-control')).toBe('private, max-age=240')
+    expect(test.supabase.signed).toEqual([
+      { kind: 'admin', bucket: 'media', path: KEY, expiresIn: 300 },
+    ])
+    // The grant ran as the signed-in person, exactly as if the header had been sent.
+    expect(test.supabase.callsTo('media_access_grant')).toEqual([
+      {
+        kind: `user:${USER_JWT}`,
+        name: 'media_access_grant',
+        args: { bucket: 'media', storage_key: KEY },
+      },
+    ])
+  })
+
+  it('leaves the request anonymous when there is no cookie session', async () => {
+    const test = createTestContext({ rpc: { media_access_grant: grant } })
+    const handler = makeRouteHandler({
+      context: () => test.context,
+      bearerFromCookies: async () => null,
+    })
+    await handler.GET(webRequest(MEDIA_PATH))
+    expect(test.supabase.callsTo('media_access_grant').map((call) => call.kind)).toEqual(['anon'])
+  })
+
+  it('never lends the cookie to any other route: GET /api/feed?scope=friends stays 401', async () => {
+    const test = createTestContext()
+    const handler = makeRouteHandler({
+      context: () => test.context,
+      bearerFromCookies: async () => USER_JWT,
+    })
+    const response = await handler.GET(webRequest('/api/feed?scope=friends'))
+    expect(response.status).toBe(401)
+    expect(test.supabase.calls).toEqual([])
+  })
+})

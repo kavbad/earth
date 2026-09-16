@@ -169,7 +169,7 @@ Routes (all under `/api`, JSON, `Authorization: Bearer <supabase access token>` 
 | `POST /api/internal/metrics/daily` | Cron: `metrics_compute_daily(date)`. |
 | `POST /api/analytics/ingest` | First-party event sink (subset of contract events), rate limited. |
 | `POST /api/diagnostics/rtc` | RTC diagnostics sink. |
-| `GET /api/media/:bucket/:key*` | Signed access for private media (spec §104), the URL `earth.media_url()` puts in every `PostMediaDto`: authorizes the caller with RPC `media_access_grant(bucket, storage_key)` **as the caller**, then `302`s to a short-lived signed URL minted with the service-role Storage client. Visitors allowed (world posts); anyone outside the audience gets `403 forbidden` and nothing is signed. |
+| `GET /api/media/:bucket/:key*` | Signed access for private media (spec §104), the URL `earth.media_url()` puts in every `PostMediaDto` and `mediaRouteUrl()` (`@earth/api`) gives every chat message's media: authorizes the caller with RPC `media_access_grant(bucket, storage_key)` **as the caller**, then `302`s to a short-lived signed URL minted with the service-role Storage client. Visitors allowed (world posts); anyone outside the audience gets `403 forbidden` and nothing is signed. Clients never sign private media themselves: the `media` and `voice` buckets admit their owner only, so a client-side signed URL works for the sender and for no recipient. An `<img>`/`<audio>`/`<video>` cannot send a bearer, so the **web mount alone** presents the `@supabase/ssr` session cookie as the bearer of a bare `GET` of this one route (`apps/web/lib/server/cookie-bearer.ts`); mobile sends the token as request headers on its native media sources. Every other route requires the header. |
 
 ## 7. Typed application API (`packages/api`)
 

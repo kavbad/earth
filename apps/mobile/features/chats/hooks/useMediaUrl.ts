@@ -1,37 +1,35 @@
 /**
- * Signed URLs for private media (`media` / `voice` buckets) through `media.signedUrl`, cached per
- * storage key for a little under the URL's lifetime so scrolling back never re-signs.
+ * Where a message's media is rendered from, and with what: the server tier's media route
+ * (`mediaRouteUrl`, spec §104), which authorizes the viewer and redirects to a short-lived signed
+ * URL, plus the request headers a native source needs to be that viewer (`features/media`). No
+ * signing happens here: the `media` and `voice` buckets admit their owner only (0997), so a URL
+ * signed on this side would work for the sender and for nobody who received the message.
  */
-import { DEFAULT_SIGNED_URL_SECONDS } from '@earth/api'
-import { useQuery } from '@tanstack/react-query'
+import { mediaRouteUrl } from '@earth/api'
+
+import { type MediaRequestHeaders, useMediaRequestHeaders } from '@/features/media/requestHeaders'
+import { usePublicEnv } from '@/lib/providers'
 
 import type { MediaPayload } from '../payloads'
-import { useChatsShell } from '../shell'
-
-const SIGNED_URL_STALE_MS = (DEFAULT_SIGNED_URL_SECONDS - 300) * 1_000
 
 export interface MediaUrl {
   readonly url: string | null
+  /** Sent with every request for `url`: the session, as the media route expects it. */
+  readonly headers: MediaRequestHeaders
+  /** The environment (and with it the API origin) has not arrived yet. */
   readonly loading: boolean
   readonly error: boolean
 }
 
 export function useMediaUrl(media: MediaPayload | null): MediaUrl {
-  const { earth, isHuman } = useChatsShell()
-  const query = useQuery({
-    queryKey: ['media-url', media?.bucket ?? null, media?.storageKey ?? null],
-    queryFn: () =>
-      media === null
-        ? Promise.resolve<string | null>(null)
-        : earth.media.signedUrl(media.bucket, media.storageKey),
-    enabled: isHuman && media !== null,
-    staleTime: SIGNED_URL_STALE_MS,
-    gcTime: SIGNED_URL_STALE_MS,
-    retry: 1,
-  })
+  const env = usePublicEnv()
+  const headers = useMediaRequestHeaders()
+  if (media === null) return { url: null, headers, loading: false, error: false }
+  if (env === null) return { url: null, headers, loading: true, error: false }
   return {
-    url: query.data ?? null,
-    loading: media !== null && query.isPending,
-    error: query.isError,
+    url: mediaRouteUrl(env.API_BASE_URL, media.bucket, media.storageKey),
+    headers,
+    loading: false,
+    error: false,
   }
 }

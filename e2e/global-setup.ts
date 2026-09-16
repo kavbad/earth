@@ -92,6 +92,10 @@ function webEnv(): NodeJS.ProcessEnv {
   env['HUMAN_VERIFICATION_PROVIDER'] = 'mock'
   env['APP_ENV'] = 'development'
   env['NEXT_TELEMETRY_DISABLED'] = '1'
+  // The map's basemap comes from the app itself (`app/map-style.json`), never from the tile host
+  // `.local/stack.env` names for development: a journey must reach nothing outside the machine.
+  // A third-party host that stalled from the CI runner's network once failed E2E 10.
+  env['NEXT_PUBLIC_MAP_STYLE_URL'] = `${baseURL()}/map-style.json`
   delete env['KEEP_DB']
   return env
 }

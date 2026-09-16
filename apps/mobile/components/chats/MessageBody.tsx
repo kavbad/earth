@@ -104,12 +104,12 @@ function Placeholder({ label, loading }: { readonly label: string; readonly load
 }
 
 function ImageBody({ media, label }: { readonly media: MediaPayload; readonly label: string }) {
-  const { url, loading } = useMediaUrl(media)
+  const { url, headers, loading } = useMediaUrl(media)
   return (
     <MediaFrame media={media}>
       {url !== null ? (
         <Image
-          source={{ uri: url }}
+          source={{ uri: url, headers }}
           style={styles.fill}
           contentFit="cover"
           cachePolicy="memory-disk"
@@ -125,12 +125,12 @@ function ImageBody({ media, label }: { readonly media: MediaPayload; readonly la
 }
 
 function VideoBody({ media, label }: { readonly media: MediaPayload; readonly label: string }) {
-  const { url, loading } = useMediaUrl(media)
+  const { url, headers, loading } = useMediaUrl(media)
   return (
     <MediaFrame media={media}>
       {url !== null ? (
         <Video
-          source={{ uri: url }}
+          source={{ uri: url, headers }}
           useNativeControls
           resizeMode={ResizeMode.CONTAIN}
           style={[styles.fill, styles.video]}
@@ -152,8 +152,8 @@ function AudioBody({
   readonly label: string
   readonly isMine: boolean
 }) {
-  const { url, loading } = useMediaUrl(media)
-  const player = useAudioPlayer(url)
+  const { url, headers, loading } = useMediaUrl(media)
+  const player = useAudioPlayer(url, headers)
   const total = player.durationMs ?? media.durationMs
   const shown = player.playing || player.positionMs > 0 ? player.positionMs : total
   const duration = formatDuration(shown)

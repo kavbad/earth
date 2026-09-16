@@ -10,6 +10,7 @@ import { Image } from 'expo-image'
 import { StyleSheet, View } from 'react-native'
 
 import { postCopy } from '@/features/feed/copy'
+import { useMediaRequestHeaders } from '@/features/media/requestHeaders'
 
 export interface PostMediaProps {
   readonly media: readonly PostMediaDto[]
@@ -34,10 +35,12 @@ function MediaItem({
   readonly single: boolean
 }) {
   const aspectRatio = single ? mediaAspect(item) : 1
+  // `item.url` is the media route (`earth.media_url()`): it wants the session, as request headers.
+  const headers = useMediaRequestHeaders()
   if (item.mediaType === 'video') {
     return (
       <Video
-        source={{ uri: item.url }}
+        source={{ uri: item.url, headers }}
         style={[styles.item, { aspectRatio }]}
         resizeMode={ResizeMode.COVER}
         useNativeControls
@@ -50,7 +53,7 @@ function MediaItem({
   if (item.mediaType === 'audio') return null
   return (
     <Image
-      source={{ uri: item.url }}
+      source={{ uri: item.url, headers }}
       style={[styles.item, { aspectRatio }]}
       contentFit="cover"
       cachePolicy="memory-disk"

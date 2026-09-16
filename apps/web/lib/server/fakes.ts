@@ -84,6 +84,14 @@ export interface FakeRpcCall {
 
 export type FakeRpcHandler = (args: RpcArgs, call: FakeRpcCall) => unknown
 
+/** One `storage.from(bucket).createSignedUrl(path, expiresIn)` and the client that made it. */
+export interface FakeSignedUrlRequest {
+  readonly kind: FakeClientKind
+  readonly bucket: string
+  readonly path: string
+  readonly expiresIn: number
+}
+
 /** Thrown by a handler to make the fake return `{ data: null, error }` (a Postgres error). */
 export class FakeRpcFailure {
   constructor(readonly error: RpcError) {}
@@ -102,6 +110,8 @@ export interface FakeSupabase {
   readonly factory: WebSupabaseClientFactory
   readonly creations: FakeSupabaseCreation[]
   readonly calls: FakeRpcCall[]
+  /** Every signed URL minted through any client's `storage` (the media route uses the admin's). */
+  readonly signed: FakeSignedUrlRequest[]
   /** The in-memory `identity_reviews` table shared by every client the factory creates. */
   readonly reviews: FakeIdentityReview[]
   /** When set, every table operation fails with this message. */
@@ -119,6 +129,7 @@ export function createFakeSupabase(
   const table = new Map<string, FakeRpcHandler>(Object.entries(handlers))
   const creations: FakeSupabaseCreation[] = []
   const calls: FakeRpcCall[] = []
+  const signed: FakeSignedUrlRequest[] = []
   let reviews: FakeIdentityReview[] = []
   let nextReviewId = 1
 
@@ -180,6 +191,19 @@ export function createFakeSupabase(
         }
       },
       from: reviewsTable,
+      storage: {
+        from: (bucket) => ({
+          createSignedUrl: async (path, expiresIn) => {
+            signed.push({ kind, bucket, path, expiresIn })
+            return {
+              data: {
+                signedUrl: `${url}/storage/v1/object/sign/${bucket}/${path}?token=fake&expires=${String(expiresIn)}`,
+              },
+              error: null,
+            }
+          },
+        }),
+      },
     }
   }
 
@@ -187,6 +211,7 @@ export function createFakeSupabase(
     factory,
     creations,
     calls,
+    signed,
     get reviews() {
       return reviews
     },

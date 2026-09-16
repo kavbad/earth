@@ -18,6 +18,7 @@ import {
 } from '@earth/server'
 import { type Logger, createLogger } from '@earth/observability'
 
+import { type BearerFromCookies, bearerFromCookies, withCookieBearer } from './cookie-bearer'
 import { adaptCronRequest } from './cron'
 import { getServerContext } from './deps'
 import { WEB_APP_NAME } from './env'
@@ -44,6 +45,11 @@ export interface MakeRouteHandlerOptions {
   readonly context?: (() => WebServerContext) | undefined
   /** Logger used when the context itself cannot be built. */
   readonly fallbackLogger?: Logger | undefined
+  /**
+   * The session cookie's access token, presented as the bearer of a bare `GET /api/media/*`
+   * (`cookie-bearer.ts`). Defaults to Next's cookie store; tests inject one.
+   */
+  readonly bearerFromCookies?: BearerFromCookies | undefined
 }
 
 export const CONTEXT_FAILED_LOG_MESSAGE = 'server.context_failed' as const
@@ -58,6 +64,7 @@ export function contextFailureResponse(cause: unknown, logger: Logger): EarthRes
 export function makeRouteHandler(options: MakeRouteHandlerOptions = {}): EarthRouteHandlers {
   const getContext = options.context ?? getServerContext
   const fallbackLogger = options.fallbackLogger ?? createLogger({ base: { service: WEB_APP_NAME } })
+  const bearer = options.bearerFromCookies ?? bearerFromCookies
 
   const handle: NextRouteHandler = async (request) => {
     let context: WebServerContext
@@ -66,7 +73,10 @@ export function makeRouteHandler(options: MakeRouteHandlerOptions = {}): EarthRo
     } catch (cause) {
       return toWebResponse(contextFailureResponse(cause, fallbackLogger))
     }
-    const req = adaptCronRequest(fromWebRequest(request), context.cron)
+    const req = adaptCronRequest(
+      fromWebRequest(await withCookieBearer(request, bearer)),
+      context.cron,
+    )
     try {
       return toWebResponse(await context.server.handle(req))
     } catch (cause) {

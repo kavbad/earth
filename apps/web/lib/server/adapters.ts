@@ -62,7 +62,9 @@ export function supabaseClientFrom(client: SupabaseClient): WebSupabaseClient {
       }),
     }),
   }
-  return { ...rpc, ...tables, auth }
+  // `storage` only does anything with the service-role key: `createServerDepsFromEnv` takes the
+  // admin client's for `GET /api/media/:bucket/:key*`. Left off, the route answers `internal`.
+  return { ...rpc, ...tables, auth, storage: client.storage }
 }
 
 // ---------------------------------------------------------------------------

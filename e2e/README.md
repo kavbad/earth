@@ -1,14 +1,16 @@
-# e2e — the twelve journeys
+# e2e — the twelve journeys, and two more
 
 Playwright walks the web client the way a person does: the local stack behind it
 (`scripts/local-stack`, ARCHITECTURE.md §15) and no mocking above the network. The journeys are
-spec §116, one file each:
+spec §116, one file each, plus two that close gaps the twelve leave:
 
-| File                           | Journey                                                               |
-| ------------------------------ | --------------------------------------------------------------------- |
-| `journeys/00-smoke.spec.ts`    | the web app and the gateway answer, Home renders                      |
-| `journeys/00b-harness.spec.ts` | the harness itself: one Human claimed through the real claim UI       |
-| `journeys/01…12-*.spec.ts`     | E2E 1–12 (Start Earth, Join group, Group chat, Video, Friend Live, …) |
+| File                                 | Journey                                                               |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `journeys/00-smoke.spec.ts`          | the web app and the gateway answer, Home renders                      |
+| `journeys/00b-harness.spec.ts`       | the harness itself: one Human claimed through the real claim UI       |
+| `journeys/01…12-*.spec.ts`           | E2E 1–12 (Start Earth, Join group, Group chat, Video, Friend Live, …) |
+| `journeys/13-media-messages.spec.ts` | a photo and a voice note through Storage and the signed media route   |
+| `journeys/14-live-pins.spec.ts`      | a room open to the Neighborhood is a pin on Earth, positioned by area |
 
 ## Running
 
@@ -33,6 +35,11 @@ Root `pnpm test` includes this package, so it starts the stack too. For unit tes
    `GET /api/health` (`serverTier: "ready"`) and for the gateway's `/auth/v1/health`.
 3. `global-teardown.ts` stops the web app and runs `bash scripts/local-stack/down.sh`. The
    database is left behind on purpose, so a failure can still be inspected.
+
+The build in step 2 points `NEXT_PUBLIC_MAP_STYLE_URL` at the app's own `/map-style.json` (the
+built-in fallback style) rather than the tile host `.local/stack.env` names for development, so a
+run reaches nothing outside the machine. A third-party host that stalled from the CI runner's
+network once failed E2E 10 and read like a product defect.
 
 Setup refuses to run when something already answers on the web port (a `pnpm dev:web`, or a
 server whose pid file went stale): that server would take the port and be walked over in place of
@@ -87,6 +94,7 @@ groupName? })` is the same claim from the credential on, for a person who entere
   brings an existing Human back with an email code; `runId()`, `uniqueEmail()`, `uniqueName()` keep every run
   independent; `FIXTURE_EMAILS` and `FIXTURE_INVITE_TOKENS` are the read-only seed fixtures.
 - **`otp.ts`** — `readLatestOtp(email)` polls Mailpit for up to 20 s.
+- **`media.ts`** — `pngFile(width, height, rgb)`: a real, decodable PNG for a file chooser.
 - **`assertions.ts`** — `expectToast(page, message)`, `expectVisibleCopy(page, text)`.
 - **`copy.ts`** — re-exports `copy` from `@earth/ui` and the web client's `webCopy` / `chatCopy`.
 
