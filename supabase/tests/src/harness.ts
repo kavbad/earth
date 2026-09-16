@@ -100,9 +100,22 @@ export interface TestDb {
   rpc<T = unknown>(name: string, args: RpcArgs, as: RoleSpec): Promise<T>
   /** Asserts the promise rejects with a P0001 error whose message is exactly `code`. */
   expectError(promise: Promise<unknown>, code: string): Promise<pg.DatabaseError>
+  /**
+   * Makes every backend this harness holds flush its pending table statistics now. A backend
+   * reports `pg_stat_user_tables` counters at most once a second and, once idle, only on a
+   * ten-second timer — so the rows a pooled connection wrote for a fixture can surface in the
+   * counters long after, in the middle of a probe that diffs them. Call this before a snapshot.
+   */
+  flushStats(): Promise<void>
   /** Ends connections and drops the scratch database. Idempotent. */
   drop(): Promise<void>
 }
+
+/** Pooled caller connections per scratch database (`asRole` / `rpc`). */
+export const POOL_MAX = 4
+/** `flushStats` polls the counters this often, this many times, until two reads agree. */
+export const STATS_SETTLE_STEP_MS = 50
+export const STATS_SETTLE_ATTEMPTS = 40
 
 export const IDENTIFIER_PATTERN = /^[a-z_][a-z0-9_]*$/
 
@@ -180,8 +193,37 @@ export async function createTestDb(options: CreateTestDbOptions = {}): Promise<T
   const url = databaseUrl(adminUrl, name)
   const sql = new pg.Client({ connectionString: url })
   await sql.connect()
-  const pool = new pg.Pool({ connectionString: url, max: 4 })
+  const pool = new pg.Pool({ connectionString: url, max: POOL_MAX })
   let dropped = false
+
+  const flushStats: TestDb['flushStats'] = async () => {
+    // The flag makes the backend report at the end of this very statement, before it answers.
+    await sql.query('select pg_stat_force_next_flush()')
+    // Every idle pooled backend is handed out before a new one is opened, so holding `POOL_MAX`
+    // clients at once reaches each connection that could still hold unreported writes.
+    const clients = await Promise.all(Array.from({ length: POOL_MAX }, () => pool.connect()))
+    try {
+      await Promise.all(clients.map((client) => client.query('select pg_stat_force_next_flush()')))
+    } finally {
+      for (const client of clients) client.release()
+    }
+    // The report lands in shared memory as each backend goes idle, a moment after it answers;
+    // wait for the counters to hold still before returning.
+    const total = async (): Promise<string> => {
+      const { rows } = await sql.query<{ n: string }>(
+        'select coalesce(sum(n_tup_ins + n_tup_upd + n_tup_del), 0)::text as n from pg_stat_user_tables',
+      )
+      return rows[0]?.n ?? '0'
+    }
+    let previous = await total()
+    for (let attempt = 0; attempt < STATS_SETTLE_ATTEMPTS; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, STATS_SETTLE_STEP_MS))
+      const current = await total()
+      if (current === previous) return
+      previous = current
+    }
+    throw new Error('table statistics did not settle after a forced flush')
+  }
 
   const asRole: TestDb['asRole'] = async (as, fn, roleOptions = {}) => {
     const client = await pool.connect()
@@ -262,5 +304,5 @@ export async function createTestDb(options: CreateTestDbOptions = {}): Promise<T
     }
   }
 
-  return { name, template, url, sql, asRole, createAuthUser, rpc, expectError, drop }
+  return { name, template, url, sql, asRole, createAuthUser, rpc, expectError, flushStats, drop }
 }

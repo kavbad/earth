@@ -112,6 +112,32 @@ describe('createTestDb', () => {
     ])
   })
 
+  it('flushStats makes pooled writes visible in the table statistics at once', async () => {
+    const db = await createTestDb()
+    try {
+      const count = async (): Promise<number> => {
+        const { rows } = await db.sql.query<{ n: string }>(
+          `select n_tup_upd::text as n from pg_stat_user_tables
+             where schemaname = 'public' and relname = 'feature_flags'`,
+        )
+        return Number(rows[0]?.n ?? 0)
+      }
+      await db.flushStats()
+      const before = await count()
+      // Written on a pooled connection that then sits idle with the row unreported.
+      await db.asRole('service', async (client) => {
+        const result = await client.query(
+          `update public.feature_flags set updated_at = now() where key = 'WORLD_ENABLED'`,
+        )
+        expect(result.rowCount).toBe(1)
+      })
+      await db.flushStats()
+      expect(await count()).toBe(before + 1)
+    } finally {
+      await db.drop()
+    }
+  })
+
   it('createAuthUser inserts distinct users', async () => {
     const a = await db.createAuthUser({ email: 'a@example.test' })
     const b = await db.createAuthUser()

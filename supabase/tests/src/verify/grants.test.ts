@@ -440,11 +440,14 @@ interface Outcome {
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
- * Waits until every backend has flushed its pending table statistics (an idle backend flushes
- * within PGSTAT_MIN_INTERVAL = 1 s), so a probe's delta contains only the probe's own writes.
+ * Makes every backend the harness holds report its pending table statistics, then waits until
+ * the counters hold still, so a probe's delta contains only the probe's own writes. The forced
+ * flush is what makes this deterministic: an idle pooled backend otherwise reports the fixture
+ * rows it wrote on a ten-second timer, which once landed in the middle of a probe as a burst of
+ * writes attributed to `room_join`.
  */
 async function settleStats(db: TestDb): Promise<Map<string, number>> {
-  await db.sql.query('select pg_stat_force_next_flush()')
+  await db.flushStats()
   let previous = await tupleWrites(db)
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await sleep(1100)
