@@ -46,7 +46,7 @@ export interface MessageBubbleProps {
 function DaySeparator({ label }: { readonly label: string }) {
   return (
     <View style={styles.day} accessibilityRole="header">
-      <Text style={[text.meta, text.muted]}>{label}</Text>
+      <Text style={[text.meta, text.tertiary]}>{label}</Text>
     </View>
   )
 }
@@ -74,7 +74,7 @@ function MessageBubbleView({
     return (
       <View style={styles.system}>
         {dayLabel !== null ? <DaySeparator label={dayLabel} /> : null}
-        <Text style={[text.meta, text.muted, styles.systemText]}>{message.text ?? ''}</Text>
+        <Text style={[text.meta, text.tertiary, styles.systemText]}>{message.text ?? ''}</Text>
       </View>
     )
   }
@@ -205,12 +205,12 @@ function MessageBubbleView({
               </Text>
             </Pressable>
           ) : showTime ? (
-            <Text style={[text.meta, text.muted, styles.time]}>
+            <Text style={[text.meta, text.tertiary, styles.time]}>
               {timeLabel(message.createdAt)}
               {seenByLine !== null ? ` · ${seenByLine}` : ''}
             </Text>
           ) : seenByLine !== null ? (
-            <Text style={[text.meta, text.muted, styles.time]}>{seenByLine}</Text>
+            <Text style={[text.meta, text.tertiary, styles.time]}>{seenByLine}</Text>
           ) : null}
         </View>
       </View>
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
   column: { maxWidth: '78%', minWidth: 0 },
   columnMine: { alignItems: 'flex-end' },
   columnTheirs: { alignItems: 'flex-start' },
-  senderName: { marginBottom: space[1], paddingLeft: space[3] },
-  bubble: { borderRadius: radius.medium },
-  bubbleText: { paddingHorizontal: space[3], paddingVertical: space[2] },
+  senderName: { marginBottom: space[1], paddingLeft: space[4] },
+  bubble: { borderRadius: radius.large },
+  bubbleText: { paddingHorizontal: space[4], paddingVertical: space[2] + space[1] / 2 },
   bubbleWide: { padding: space[1] },
   bubbleMine: { backgroundColor: colors.textPrimary },
   bubbleTheirs: { backgroundColor: colors.subtleFill },

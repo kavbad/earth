@@ -116,7 +116,7 @@ function PostCardView({
               </View>
             </>
           ) : null}
-          <Text style={[text.secondary, text.muted]}>{meta}</Text>
+          <Text style={[text.secondary, text.tertiary]}>{meta}</Text>
         </View>
         {detail ? (
           <View>{content}</View>
@@ -152,8 +152,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenMargin,
     backgroundColor: colors.background,
   },
-  feedPadding: { paddingVertical: space[4] },
-  replyPadding: { paddingVertical: space[3] },
+  feedPadding: { paddingVertical: space[5] },
+  replyPadding: { paddingVertical: space[4] },
   avatar: { flexShrink: 0 },
   main: { flex: 1, minWidth: 0, gap: space[2] },
   header: {

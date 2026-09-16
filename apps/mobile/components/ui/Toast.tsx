@@ -22,6 +22,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { sheetShadow } from './shadow'
 import { text } from './text'
 
 export const TOAST_DURATION_MS = 4_000
@@ -116,6 +117,7 @@ const styles = StyleSheet.create({
     zIndex: zIndex.toast,
   },
   card: {
+    ...sheetShadow,
     backgroundColor: colors.textPrimary,
     borderRadius: radius.medium,
     paddingHorizontal: space[4],

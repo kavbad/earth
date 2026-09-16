@@ -3,7 +3,7 @@
  * when there is something to count. Visitors meet the claim sheet on react/reply (spec §43).
  */
 import type { PostViewDto } from '@earth/domain'
-import { colors, copy, space, touchTarget } from '@earth/ui'
+import { type IconName, colors, copy, space, touchTarget } from '@earth/ui'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
@@ -28,7 +28,9 @@ export interface PostActionsProps {
   readonly onHidden?: ((postId: PostViewDto['post']['id']) => void) | undefined
 }
 
+/** Quiet icon + count (§92): tertiary ink, the copy carried as the accessible name. */
 function Action({
+  icon,
   label,
   count,
   onPress,
@@ -36,6 +38,7 @@ function Action({
   accessibilityLabel,
   selected,
 }: {
+  readonly icon: IconName
   readonly label: string
   readonly count?: number
   readonly onPress: () => void
@@ -52,9 +55,9 @@ function Action({
       hitSlop={space[1]}
       style={({ pressed }) => [styles.action, pressed && styles.pressed]}
     >
-      <Text style={[text.secondary, active ? text.primary : text.muted]}>{label}</Text>
+      <Icon name={icon} size="small" color={active ? colors.textPrimary : colors.textTertiary} />
       {count !== undefined && count > 0 ? (
-        <Text style={[text.secondary, active ? text.primary : text.muted]}>{count}</Text>
+        <Text style={[text.secondary, active ? text.primary : text.tertiary]}>{count}</Text>
       ) : null}
     </Pressable>
   )
@@ -79,6 +82,7 @@ export function PostActions({ view, context, onReply, onHidden }: PostActionsPro
   return (
     <View style={styles.row}>
       <Action
+        icon="heart"
         label={reaction.reacted ? postCopy.reacted : postCopy.react}
         count={reaction.count}
         active={reaction.reacted}
@@ -89,6 +93,7 @@ export function PostActions({ view, context, onReply, onHidden }: PostActionsPro
         onPress={reaction.toggle}
       />
       <Action
+        icon="reply"
         label={copy.reply}
         count={view.replyCount}
         accessibilityLabel={`${copy.replies}${
@@ -96,7 +101,7 @@ export function PostActions({ view, context, onReply, onHidden }: PostActionsPro
         }`}
         onPress={reply}
       />
-      <Action label={postCopy.share} onPress={() => void actions.share(view)} />
+      <Action icon="share" label={postCopy.share} onPress={() => void actions.share(view)} />
       <View style={styles.spacer} />
       <Pressable
         onPress={() => setMoreOpen(true)}
@@ -128,7 +133,7 @@ const styles = StyleSheet.create({
     minHeight: touchTarget,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[1],
+    gap: space[1] + space[1] / 2,
     paddingHorizontal: space[2],
   },
   more: {

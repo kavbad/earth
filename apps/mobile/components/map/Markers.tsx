@@ -12,6 +12,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { Icon } from '@/components/ui/Icon'
 import { LiveMark } from '@/components/ui/LiveMark'
+import { sheetShadow } from '@/components/ui/shadow'
 import { fontFor, text } from '@/components/ui/text'
 import { mapCopy } from '@/features/earth/copy'
 import type { LiveCluster } from '@/features/earth/state/cluster'
@@ -69,8 +70,7 @@ function ClusterMarkerViewBase({ cluster }: { readonly cluster: LiveCluster }) {
       accessibilityRole="button"
       accessibilityLabel={`${mapCopy.liveHere(cluster.count)} · ${mapCopy.zoomIn}`}
     >
-      <LiveMark text={false} />
-      <Text style={[text.secondary, text.primary, styles.clusterCount]}>{cluster.count}</Text>
+      <Text style={[text.secondary, text.inverse, styles.clusterCount]}>{cluster.count}</Text>
     </View>
   )
 }
@@ -144,11 +144,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space[2],
-    paddingHorizontal: space[2],
+    paddingLeft: space[2],
+    paddingRight: space[3],
     borderRadius: radius.avatar,
     backgroundColor: colors.background,
     borderWidth: borderWidth.separator,
     borderColor: colors.separator,
+    ...sheetShadow,
   },
   pillActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
   pillText: { maxWidth: 140 },
@@ -157,9 +159,8 @@ const styles = StyleSheet.create({
     width: touchTarget,
     height: touchTarget,
     borderRadius: radius.avatar,
-    backgroundColor: colors.background,
-    borderWidth: borderWidth.separator,
-    borderColor: colors.separator,
+    backgroundColor: colors.textPrimary,
+    ...sheetShadow,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

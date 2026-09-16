@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { shellCopy } from '@/lib/copy'
 
 import { Icon } from './Icon'
+import { sheetShadow } from './shadow'
 import { text } from './text'
 
 export interface SheetProps {
@@ -43,7 +44,7 @@ export interface SheetProps {
 }
 
 const PANEL_TRAVEL = 480
-const BACKDROP_OPACITY = 0.4
+const BACKDROP_OPACITY = 0.24
 const enter = Easing.bezier(...motion.curve.enter)
 const exit = Easing.bezier(...motion.curve.exit)
 
@@ -156,14 +157,15 @@ const styles = StyleSheet.create({
   backdropPress: { flex: 1 },
   avoid: { justifyContent: 'flex-end' },
   panel: {
+    ...sheetShadow,
     backgroundColor: colors.background,
-    borderTopLeftRadius: radius.medium,
-    borderTopRightRadius: radius.medium,
+    borderTopLeftRadius: radius.large,
+    borderTopRightRadius: radius.large,
     paddingHorizontal: spacing.screenMargin,
-    paddingTop: space[4],
+    paddingTop: space[5],
     maxHeight: '85%',
   },
-  title: { marginBottom: space[3], paddingRight: touchTarget },
+  title: { marginBottom: space[4], paddingRight: touchTarget },
   close: {
     position: 'absolute',
     top: space[2],

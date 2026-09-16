@@ -44,6 +44,7 @@ import {
   type MomentMarker,
   type PlaceMarker,
   activeFriends,
+  placesAt,
   toMarkers,
 } from '@/features/earth/state/markers'
 import {
@@ -301,7 +302,7 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
       }),
       markerLayer<PlaceMarker>({
         kind: 'place',
-        items: markers.places,
+        items: placesAt(markers.places, zoom),
         zIndex: LAYER_Z.place,
         render: (marker) => (
           <PlaceMarkerView marker={marker} active={marker.placeId === activePlaceId} />
@@ -331,7 +332,17 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
         },
       }),
     ],
-    [markers.moments, markers.places, friends, liveItems, activePlaceId, router, map, openLive],
+    [
+      markers.moments,
+      markers.places,
+      zoom,
+      friends,
+      liveItems,
+      activePlaceId,
+      router,
+      map,
+      openLive,
+    ],
   )
 
   // ---------------------------------------------------------------- location

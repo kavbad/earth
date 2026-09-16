@@ -50,7 +50,7 @@ export function TextField({
   const errorText = error ?? null
   return (
     <View style={styles.box}>
-      {hideLabel ? null : <Text style={[text.meta, text.muted]}>{label}</Text>}
+      {hideLabel ? null : <Text style={[text.secondary, text.primary]}>{label}</Text>}
       <View style={[styles.field, errorText !== null && styles.fieldError]}>
         <TextInput
           value={value}
@@ -66,7 +66,7 @@ export function TextField({
           {...(autoCorrect === undefined ? {} : { autoCorrect })}
           editable={editable}
           placeholder={hideLabel ? label : undefined}
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel={label}
           {...(hint === undefined ? {} : { accessibilityHint: hint })}
           style={[text.body, text.primary, styles.input]}
@@ -93,7 +93,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: touchTarget,
     borderRadius: radius.medium,
-    backgroundColor: colors.subtleFill,
+    backgroundColor: colors.background,
+    borderWidth: borderWidth.separator,
+    borderColor: colors.separator,
     paddingRight: space[3],
   },
   fieldError: { borderWidth: borderWidth.separator, borderColor: colors.danger },

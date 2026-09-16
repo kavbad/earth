@@ -5,6 +5,8 @@
 import {
   type AvatarSizeName,
   avatarSize,
+  avatarTintIndex,
+  avatarTints,
   borderWidth,
   colors,
   initials,
@@ -26,10 +28,11 @@ export interface AvatarProps {
   readonly decorative?: boolean
 }
 
+/** Initials: the sans at row sizes, a serif monogram at the two large sizes. */
 const FONT: Record<AvatarSizeName, TextStyle> = {
   small: text.meta,
   medium: { ...text.secondary, fontWeight: '500', fontFamily: fontFor('sans', '500') },
-  large: text.section,
+  large: { ...text.section, fontWeight: '500', fontFamily: fontFor('serif', '500') },
   profile: text.title,
 }
 
@@ -42,6 +45,8 @@ export function Avatar({
 }: AvatarProps) {
   const px = avatarSize[size]
   const dot = Math.max(8, Math.round(px / 4))
+  // One of eight muted tints, by name, so a person keeps theirs on every screen (tokens.ts).
+  const tint = avatarTints[avatarTintIndex(name)] ?? avatarTints[0]
   const accessibility = decorative
     ? { accessible: false, importantForAccessibility: 'no-hide-descendants' as const }
     : {
@@ -63,8 +68,8 @@ export function Avatar({
           accessible={false}
         />
       ) : (
-        <View style={[styles.fallback, { width: px, height: px }]}>
-          <Text style={[FONT[size], text.muted]} numberOfLines={1}>
+        <View style={[styles.fallback, { width: px, height: px, backgroundColor: tint.bg }]}>
+          <Text style={[FONT[size], { color: tint.fg }]} numberOfLines={1}>
             {initials(name)}
           </Text>
         </View>
@@ -85,7 +90,6 @@ const styles = StyleSheet.create({
   image: { borderRadius: radius.avatar, backgroundColor: colors.subtleFill },
   fallback: {
     borderRadius: radius.avatar,
-    backgroundColor: colors.subtleFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

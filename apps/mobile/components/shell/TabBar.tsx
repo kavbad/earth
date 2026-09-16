@@ -10,7 +10,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Icon } from '@/components/ui/Icon'
-import { text } from '@/components/ui/text'
+import { fontFor, text } from '@/components/ui/text'
 import { shellCopy } from '@/lib/copy'
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0]
@@ -58,7 +58,9 @@ export function TabBar({ state, navigation }: TabBarProps) {
             style={styles.item}
           >
             <Icon name={TAB_ICONS[tab]} color={color} />
-            <Text style={[text.meta, { color }]}>{copy.tabs[tab]}</Text>
+            <Text style={[text.meta, { color }, active && styles.activeLabel]}>
+              {copy.tabs[tab]}
+            </Text>
           </Pressable>
         )
       })}
@@ -86,4 +88,5 @@ const styles = StyleSheet.create({
     gap: space[1],
     paddingTop: space[2],
   },
+  activeLabel: { fontFamily: fontFor('sans', '600'), fontWeight: '600' },
 })

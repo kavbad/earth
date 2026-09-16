@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.rowGapLoose,
     paddingHorizontal: spacing.screenMargin,
-    paddingVertical: space[2],
+    paddingVertical: space[3],
     backgroundColor: colors.background,
   },
   flush: { paddingHorizontal: 0 },

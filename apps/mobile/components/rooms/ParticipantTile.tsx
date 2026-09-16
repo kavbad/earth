@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderRadius: radius.medium,
+    borderRadius: radius.large,
     backgroundColor: colors.subtleFill,
     borderWidth: borderWidth.indicator,
     borderColor: 'transparent',
