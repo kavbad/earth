@@ -1,7 +1,8 @@
 /**
- * Design tokens — the only source of colors, type scale, spacing, radii and motion for both
- * clients (ARCHITECTURE §13). The palette hexes, type scale and motion range are exactly
- * EARTH_V1_SPEC.md PART XV (§89–§95); everything else here is derived from the 8-point baseline.
+ * Design tokens — the only source of colors, type faces and scale, spacing, radii, shadow and
+ * motion for both clients (ARCHITECTURE §13). The palette hexes, type scale and motion range are
+ * exactly EARTH_V1_SPEC.md PART XV (§89–§95); everything else here is derived from the 8-point
+ * baseline.
  *
  * Web consumes these through `css.ts` (CSS variables + Tailwind 4 theme); mobile consumes the
  * TypeScript objects directly. Never hard-code a color, size or duration in a client.
@@ -15,17 +16,20 @@
  * Spec §89. `danger` / `success` are the "semantic system red / green": the platform's own
  * semantic colors (iOS `systemRed` / `systemGreen` in the light appearance), pinned to one hex so
  * web and Android render the same value. They are never the Live red — Earth accent appears
- * sparingly and Live red carries much stronger semantic importance.
+ * sparingly and Live red carries much stronger semantic importance. `earthAccent` is fern green:
+ * links, selection, focus and the Earth mark, never a fill behind text. `textTertiary` is the
+ * third gray, for timestamps and metadata that must read as furniture, not content.
  */
 export const colors = {
   background: '#FFFFFF',
   surface: '#FFFFFF',
   textPrimary: '#111214',
   textSecondary: '#72757A',
+  textTertiary: '#A2A5AA',
   separator: '#ECEDEF',
   subtleFill: '#F6F7F8',
   live: '#E6463E',
-  earthAccent: '#2459D3',
+  earthAccent: '#2F6B4C',
   danger: '#FF3B30',
   success: '#34C759',
 } as const
@@ -34,18 +38,44 @@ export type ColorName = keyof typeof colors
 export type ColorValue = (typeof colors)[ColorName]
 export const COLOR_NAMES = Object.keys(colors) as readonly ColorName[]
 
+/**
+ * Initials avatars carry one of these muted pairs, chosen by `avatarTintIndex(name)` (format.ts)
+ * so a person keeps their tint everywhere. Each `fg` on its `bg` reads at ≥ 4.5:1; none of them
+ * competes with Live red or the accent for attention.
+ */
+export const avatarTints = [
+  { name: 'moss', bg: '#E3EBE2', fg: '#2F6B4C' },
+  { name: 'sky', bg: '#E1EAF3', fg: '#2C4F7C' },
+  { name: 'sand', bg: '#EFE9D6', fg: '#6B5A22' },
+  { name: 'slate', bg: '#E2E7EC', fg: '#3A4C5C' },
+  { name: 'plum', bg: '#EAE2EC', fg: '#5B3D63' },
+  { name: 'sea', bg: '#DEEAEA', fg: '#2F5F62' },
+  { name: 'rose', bg: '#F1E2E4', fg: '#7A3B44' },
+  { name: 'stone', bg: '#EBEBE6', fg: '#4A4C45' },
+] as const
+export type AvatarTint = (typeof avatarTints)[number]
+
 // ---------------------------------------------------------------------------
 // §90 Typography
 // ---------------------------------------------------------------------------
 
 /**
- * Native/system-quality typography first (spec §90): the platform UI face on every OS, nothing
- * decorative. Mobile uses the platform default face; web resolves this stack.
+ * Two faces (spec §90): a serif for statements — the wordmark, Display and Title, onboarding
+ * lines, empty-state headlines — and a quiet grotesk for every functional label. `fontFace` names
+ * the faces as the font files register them; web builds its stacks from those names (fontsource,
+ * self-hosted), mobile maps a face and weight to the bundled file (`components/ui/text.ts`).
+ * No decorative type in functional UI: Section and below are always the sans.
  */
-export const fontFamily = {
-  system:
-    "-apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+export const fontFace = {
+  serif: 'Newsreader Variable',
+  sans: 'Instrument Sans Variable',
 } as const
+export type FontFaceName = keyof typeof fontFace
+
+export const fontFamily = {
+  serif: `'${fontFace.serif}', 'Iowan Old Style', Georgia, 'Times New Roman', serif`,
+  sans: `'${fontFace.sans}', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`,
+} as const satisfies Record<FontFaceName, string>
 export type FontFamilyName = keyof typeof fontFamily
 
 export const fontWeight = {
@@ -62,6 +92,9 @@ export interface TypeStyle {
   readonly weight: FontWeight
   /** Absolute line height in points / CSS px — always a multiple of the 4pt half-step (§91). */
   readonly lineHeight: number
+  readonly family: FontFamilyName
+  /** Tracking in em; display sizes tighten a touch, meta opens up. Omitted means the face's own. */
+  readonly letterSpacing?: number
 }
 
 /**
@@ -70,12 +103,30 @@ export interface TypeStyle {
  */
 export const TYPE_LINE_HEIGHT_STEP = 4
 export const typography = {
-  display: { size: 32, weight: fontWeight.semibold, lineHeight: 40 },
-  title: { size: 24, weight: fontWeight.semibold, lineHeight: 32 },
-  section: { size: 18, weight: fontWeight.semibold, lineHeight: 24 },
-  body: { size: 16, weight: fontWeight.regular, lineHeight: 24 },
-  secondary: { size: 14, weight: fontWeight.regular, lineHeight: 20 },
-  meta: { size: 12, weight: fontWeight.medium, lineHeight: 16 },
+  display: {
+    size: 36,
+    weight: fontWeight.medium,
+    lineHeight: 44,
+    family: 'serif',
+    letterSpacing: -0.01,
+  },
+  title: {
+    size: 28,
+    weight: fontWeight.medium,
+    lineHeight: 36,
+    family: 'serif',
+    letterSpacing: -0.005,
+  },
+  section: { size: 18, weight: fontWeight.semibold, lineHeight: 24, family: 'sans' },
+  body: { size: 16, weight: fontWeight.regular, lineHeight: 24, family: 'sans' },
+  secondary: { size: 14, weight: fontWeight.regular, lineHeight: 20, family: 'sans' },
+  meta: {
+    size: 12,
+    weight: fontWeight.medium,
+    lineHeight: 16,
+    family: 'sans',
+    letterSpacing: 0.01,
+  },
 } as const satisfies Record<string, TypeStyle>
 
 export type TypographyName = keyof typeof typography
@@ -124,10 +175,15 @@ export type SpacingName = keyof typeof spacing
 // Radii
 // ---------------------------------------------------------------------------
 
-/** `avatar` is "fully round" (any value ≥ half the box). No thick rounded cards around posts (§92). */
+/**
+ * `small` for chips and skeletons, `medium` for buttons, fields and bubbles, `large` for sheets
+ * and media, `avatar` is "fully round" (any value ≥ half the box). No thick rounded cards around
+ * posts (§92).
+ */
 export const radius = {
   small: 8,
-  medium: 12,
+  medium: 10,
+  large: 16,
   avatar: 999,
 } as const
 export type RadiusName = keyof typeof radius
@@ -177,9 +233,19 @@ export type EasingName = keyof typeof motion.easing
 export const borderWidth = {
   hairline: 0.5,
   separator: 1,
-  indicator: 2,
+  indicator: 1.5,
 } as const
 export type BorderWidthName = keyof typeof borderWidth
+
+/**
+ * The one shadow: sheets, dialogs, toasts and map pills lift off the page with it. Ink at a low
+ * opacity, never a colored glow. Web renders it as `box-shadow`; mobile derives `shadowOffset` /
+ * `elevation` from the same numbers.
+ */
+export const shadow = {
+  sheet: { y: 12, blur: 32, opacity: 0.12 },
+} as const satisfies Record<string, { y: number; blur: number; opacity: number }>
+export type ShadowName = keyof typeof shadow
 
 export const zIndex = {
   base: 0,
@@ -216,12 +282,15 @@ export type AvatarSizeName = keyof typeof avatarSize
 
 export const tokens = {
   colors,
+  avatarTints,
+  fontFace,
   fontFamily,
   fontWeight,
   typography,
   space,
   spacing,
   radius,
+  shadow,
   motion,
   borderWidth,
   zIndex,

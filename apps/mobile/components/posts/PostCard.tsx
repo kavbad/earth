@@ -16,6 +16,7 @@ import { postRoute, profileRoute } from '@/features/feed/routes'
 import { Avatar, Icon, text } from '@/components/ui'
 import { PostActions } from './PostActions'
 import { PostMedia } from './PostMedia'
+import { fontFor } from '@/components/ui/text'
 
 export const POST_CARD_VARIANTS = ['feed', 'detail', 'reply'] as const
 export type PostCardVariant = (typeof POST_CARD_VARIANTS)[number]
@@ -168,5 +169,6 @@ const styles = StyleSheet.create({
     fontSize: typography.section.size,
     lineHeight: typography.section.lineHeight,
     fontWeight: '400',
+    fontFamily: fontFor('sans', '400'),
   },
 })

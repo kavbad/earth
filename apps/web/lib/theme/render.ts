@@ -8,8 +8,9 @@ import { cssVarName, cssVariableEntries, tailwindThemeCss } from '@earth/ui'
 export const THEME_CSS_HEADER = `/* GENERATED from @earth/ui tokens by lib/theme/generate.ts — do not edit by hand. */`
 
 /**
- * Tailwind's own palette, type scale and font families are reset so only the spec's tokens
- * (PART XV) produce utilities: `bg-background`, `text-text-secondary`, `text-body`, ... The
+ * Tailwind's own palette, type scale, font families and shadows are reset so only the spec's
+ * tokens (PART XV) produce utilities: `bg-background`, `text-text-secondary`, `text-body`,
+ * `font-serif`, `shadow-sheet`, ... The
  * default spacing multiplier is kept — Tailwind's `0.25rem` step is exactly the 4pt half-step
  * of the 8-point baseline (§91), so `p-4` is 16px and the named `spacing-*` tokens agree.
  */
@@ -17,6 +18,7 @@ export const TAILWIND_RESET_THEME = `@theme {
   --color-*: initial;
   --font-*: initial;
   --text-*: initial;
+  --shadow-*: initial;
 }`
 
 /** Prettier prints hex colors in lower case. */

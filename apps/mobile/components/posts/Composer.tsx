@@ -70,6 +70,7 @@ import {
 import { AudienceConfirmSheet } from './AudienceConfirmSheet'
 import { AudienceSheet } from './AudienceSheet'
 import { PlaceSheet } from './PlaceSheet'
+import { fontFor } from '@/components/ui/text'
 
 export interface ComposerProps {
   /** The post being replied to; `null` for a new post. */
@@ -396,6 +397,7 @@ const styles = StyleSheet.create({
     fontSize: typography.section.size,
     lineHeight: typography.section.lineHeight,
     fontWeight: '400',
+    fontFamily: fontFor('sans', '400'),
   },
   chevron: { transform: [{ rotate: '90deg' }] },
   tools: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space[2] },

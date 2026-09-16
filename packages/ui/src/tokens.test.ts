@@ -6,12 +6,16 @@ import {
   HALF_STEP,
   TYPE_LINE_HEIGHT_STEP,
   TYPOGRAPHY_NAMES,
+  type TypeStyle,
+  avatarTints,
   borderWidth,
   colors,
+  fontFace,
   fontFamily,
   fontWeight,
   motion,
   radius,
+  shadow,
   space,
   spacing,
   tokens,
@@ -27,15 +31,39 @@ describe('palette (spec §89)', () => {
       surface: '#FFFFFF',
       textPrimary: '#111214',
       textSecondary: '#72757A',
+      textTertiary: '#A2A5AA',
       separator: '#ECEDEF',
       subtleFill: '#F6F7F8',
       live: '#E6463E',
-      earthAccent: '#2459D3',
+      earthAccent: '#2F6B4C',
       danger: '#FF3B30',
       success: '#34C759',
     })
-    expect(COLOR_NAMES).toHaveLength(10)
+    expect(COLOR_NAMES).toHaveLength(11)
     for (const name of COLOR_NAMES) expect(colors[name]).toMatch(/^#[0-9A-F]{6}$/)
+  })
+
+  it('keeps the accent green and quiet, far from Live red', () => {
+    const [r, g, b] = rgb(colors.earthAccent)
+    expect(g).toBeGreaterThan(r)
+    expect(g).toBeGreaterThan(b)
+    // Deep enough to carry text on white (links, selected labels).
+    expect(contrast(colors.earthAccent, colors.background)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(colors.textTertiary, colors.background)).toBeLessThan(
+      contrast(colors.textSecondary, colors.background),
+    )
+  })
+
+  it('gives every avatar tint a legible foreground on its own fill', () => {
+    expect(avatarTints).toHaveLength(8)
+    expect(new Set(avatarTints.map((tint) => tint.name)).size).toBe(8)
+    for (const tint of avatarTints) {
+      expect(tint.bg).toMatch(/^#[0-9A-F]{6}$/)
+      expect(tint.fg).toMatch(/^#[0-9A-F]{6}$/)
+      expect(contrast(tint.fg, tint.bg)).toBeGreaterThanOrEqual(4.5)
+      // Fills stay close to the page so a face never becomes a badge.
+      expect(contrast(tint.bg, colors.background)).toBeLessThan(1.35)
+    }
   })
 
   it('uses the platform semantic red / green, distinct from Live red', () => {
@@ -49,13 +77,36 @@ describe('palette (spec §89)', () => {
 describe('typography (spec §90)', () => {
   it('matches the scale exactly', () => {
     expect(TYPOGRAPHY_NAMES).toEqual(['display', 'title', 'section', 'body', 'secondary', 'meta'])
-    expect(typography.display).toMatchObject({ size: 32, weight: fontWeight.semibold })
-    expect(typography.title).toMatchObject({ size: 24, weight: fontWeight.semibold })
-    expect(typography.section).toMatchObject({ size: 18, weight: fontWeight.semibold })
-    expect(typography.body).toMatchObject({ size: 16, weight: fontWeight.regular })
-    expect(typography.secondary).toMatchObject({ size: 14, weight: fontWeight.regular })
-    expect(typography.meta).toMatchObject({ size: 12, weight: fontWeight.medium })
+    expect(typography.display).toMatchObject({
+      size: 36,
+      weight: fontWeight.medium,
+      family: 'serif',
+    })
+    expect(typography.title).toMatchObject({ size: 28, weight: fontWeight.medium, family: 'serif' })
+    expect(typography.section).toMatchObject({
+      size: 18,
+      weight: fontWeight.semibold,
+      family: 'sans',
+    })
+    expect(typography.body).toMatchObject({ size: 16, weight: fontWeight.regular, family: 'sans' })
+    expect(typography.secondary).toMatchObject({
+      size: 14,
+      weight: fontWeight.regular,
+      family: 'sans',
+    })
+    expect(typography.meta).toMatchObject({ size: 12, weight: fontWeight.medium, family: 'sans' })
     expect(fontWeight).toEqual({ regular: 400, medium: 500, semibold: 600 })
+  })
+
+  it('tightens the serif sizes a touch and opens the meta line', () => {
+    expect(typography.display.letterSpacing).toBeLessThan(0)
+    expect(typography.title.letterSpacing).toBeLessThan(0)
+    expect(typography.meta.letterSpacing).toBeGreaterThan(0)
+    for (const name of TYPOGRAPHY_NAMES) {
+      const style: TypeStyle = typography[name]
+      const tracking = style.letterSpacing ?? 0
+      expect(Math.abs(tracking)).toBeLessThanOrEqual(0.02)
+    }
   })
 
   it('line heights sit on the 4pt half-step and never clip', () => {
@@ -68,11 +119,18 @@ describe('typography (spec §90)', () => {
     }
   })
 
-  it('is system typography first, nothing decorative', () => {
-    expect(fontFamily.system.startsWith('-apple-system')).toBe(true)
-    expect(fontFamily.system).toContain('system-ui')
-    expect(fontFamily.system.endsWith('sans-serif')).toBe(true)
-    expect(fontFamily.system).not.toMatch(/serif,|cursive|fantasy|monospace/)
+  it('is a serif for statements and a sans for everything functional', () => {
+    expect(Object.keys(fontFamily)).toEqual(['serif', 'sans'])
+    expect(fontFamily.serif.startsWith(`'${fontFace.serif}'`)).toBe(true)
+    expect(fontFamily.serif.endsWith('serif')).toBe(true)
+    expect(fontFamily.sans.startsWith(`'${fontFace.sans}'`)).toBe(true)
+    expect(fontFamily.sans).toContain('system-ui')
+    expect(fontFamily.sans.endsWith('sans-serif')).toBe(true)
+    expect(fontFamily.sans).not.toMatch(/cursive|fantasy|monospace/)
+    // Section and below are the functional labels: never the serif.
+    for (const name of ['section', 'body', 'secondary', 'meta'] as const) {
+      expect(typography[name].family).toBe('sans')
+    }
   })
 })
 
@@ -96,7 +154,10 @@ describe('spacing (spec §91)', () => {
 
 describe('radii, motion, hairlines, layering', () => {
   it('matches the contract', () => {
-    expect(radius).toEqual({ small: 8, medium: 12, avatar: 999 })
+    expect(radius).toEqual({ small: 8, medium: 10, large: 16, avatar: 999 })
+    expect(shadow.sheet.opacity).toBeGreaterThan(0)
+    expect(shadow.sheet.opacity).toBeLessThanOrEqual(0.2)
+    expect(shadow.sheet.blur).toBeGreaterThan(shadow.sheet.y)
     expect(motion.duration).toEqual({ fast: 180, base: 240, slow: 300 })
     for (const value of Object.values(motion.duration)) {
       expect(value).toBeGreaterThanOrEqual(180)
@@ -129,3 +190,26 @@ describe('radii, motion, hairlines, layering', () => {
     }
   })
 })
+
+// WCAG 2.x relative luminance and contrast ratio, for the palette assertions above.
+function rgb(hex: string): [number, number, number] {
+  const value = hex.replace('#', '')
+  return [0, 2, 4].map((i) => Number.parseInt(value.slice(i, i + 2), 16)) as [
+    number,
+    number,
+    number,
+  ]
+}
+
+function luminance(hex: string): number {
+  const [r, g, b] = rgb(hex).map((channel) => {
+    const c = channel / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }) as [number, number, number]
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+function contrast(a: string, b: string): number {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
+  return (light + 0.05) / (dark + 0.05)
+}

@@ -5,7 +5,9 @@ import {
   cssVar,
   cssVarName,
   cssVariableEntries,
+  hexToRgba,
   kebabCase,
+  shadowCss,
   tailwindTheme,
   tailwindThemeCss,
   tokensToCssVariables,
@@ -14,6 +16,7 @@ import {
   COLOR_NAMES,
   TYPOGRAPHY_NAMES,
   colors,
+  fontFamily,
   motion,
   radius,
   space,
@@ -40,7 +43,8 @@ describe('tokensToCssVariables', () => {
     expect(css).toContain('--earth-color-separator:#ECEDEF')
     expect(css).toContain('--earth-color-subtle-fill:#F6F7F8')
     expect(css).toContain('--earth-color-live:#E6463E')
-    expect(css).toContain('--earth-color-earth-accent:#2459D3')
+    expect(css).toContain('--earth-color-text-tertiary:#A2A5AA')
+    expect(css).toContain('--earth-color-earth-accent:#2F6B4C')
     expect(css).toContain('--earth-color-danger:#FF3B30')
     expect(css).toContain('--earth-color-success:#34C759')
   })
@@ -50,7 +54,15 @@ describe('tokensToCssVariables', () => {
       expect(css).toContain(`--earth-font-size-${name}:${typography[name].size}px`)
       expect(css).toContain(`--earth-font-weight-${name}:${typography[name].weight}`)
       expect(css).toContain(`--earth-line-height-${name}:${typography[name].lineHeight}px`)
+      expect(css).toContain(`--earth-font-family-of-${name}:${fontFamily[typography[name].family]}`)
     }
+    expect(css).toContain("--earth-font-family-serif:'Newsreader Variable'")
+    expect(css).toContain("--earth-font-family-sans:'Instrument Sans Variable'")
+    expect(css).toContain('--earth-letter-spacing-display:-0.01em')
+    expect(css).toContain('--earth-letter-spacing-meta:0.01em')
+    expect(css).not.toContain('--earth-letter-spacing-body')
+    expect(css).toContain(`--earth-radius-large:${radius.large}px`)
+    expect(css).toContain('--earth-shadow-sheet:0 12px 32px rgba(17, 18, 20, 0.12)')
     expect(css).toContain(`--earth-space-1:${space[1]}px`)
     expect(css).toContain(`--earth-space-screen-margin:${spacing.screenMargin}px`)
     expect(css).toContain(`--earth-space-feed-gap:${spacing.feedGap}px`)
@@ -82,6 +94,14 @@ describe('cssVar', () => {
   })
 })
 
+describe('hexToRgba / shadowCss', () => {
+  it('renders the ink at a low opacity', () => {
+    expect(hexToRgba('#111214', 0.12)).toBe('rgba(17, 18, 20, 0.12)')
+    expect(hexToRgba('FFFFFF', 1)).toBe('rgba(255, 255, 255, 1)')
+    expect(shadowCss('sheet')).toBe(`0 12px 32px ${hexToRgba(colors.textPrimary, 0.12)}`)
+  })
+})
+
 describe('kebabCase', () => {
   it('converts camelCase', () => {
     expect(kebabCase('textPrimary')).toBe('text-primary')
@@ -99,15 +119,20 @@ describe('tailwindTheme', () => {
       surface: '#FFFFFF',
       'text-primary': '#111214',
       'text-secondary': '#72757A',
+      'text-tertiary': '#A2A5AA',
       separator: '#ECEDEF',
       'subtle-fill': '#F6F7F8',
       live: '#E6463E',
-      'earth-accent': '#2459D3',
+      'earth-accent': '#2F6B4C',
       danger: '#FF3B30',
       success: '#34C759',
     })
     expect(tailwindTheme.fontSize.body).toEqual(['16px', { lineHeight: '24px', fontWeight: '400' }])
-    expect(tailwindTheme.fontSize.display[1].fontWeight).toBe('600')
+    expect(tailwindTheme.fontSize.display[1].fontWeight).toBe('500')
+    expect(tailwindTheme.fontSize.display[1].letterSpacing).toBe('-0.01em')
+    expect(tailwindTheme.fontSize.body[1].letterSpacing).toBeUndefined()
+    expect(tailwindTheme.fontFamily.serif.startsWith("'Newsreader Variable'")).toBe(true)
+    expect(tailwindTheme.boxShadow.sheet).toBe(shadowCss('sheet'))
     expect(tailwindTheme.spacing['4']).toBe('16px')
     expect(tailwindTheme.spacing['screen-margin']).toBe('16px')
     expect(tailwindTheme.spacing['feed-gap']).toBe('24px')
@@ -123,13 +148,18 @@ describe('tailwindTheme', () => {
     expect(css.startsWith('@theme {\n')).toBe(true)
     expect(css).toContain('  --color-background: #FFFFFF;')
     expect(css).toContain('  --color-text-primary: #111214;')
-    expect(css).toContain('  --font-system: -apple-system')
+    expect(css).toContain("  --font-serif: 'Newsreader Variable'")
+    expect(css).toContain("  --font-sans: 'Instrument Sans Variable'")
+    expect(css).not.toContain('--font-system')
     expect(css).toContain('  --font-weight-semibold: 600;')
     expect(css).toContain('  --text-body: 16px;')
     expect(css).toContain('  --text-body--line-height: 24px;')
     expect(css).toContain('  --text-body--font-weight: 400;')
     expect(css).toContain('  --spacing-screen-margin: 16px;')
-    expect(css).toContain('  --radius-medium: 12px;')
+    expect(css).toContain('  --radius-medium: 10px;')
+    expect(css).toContain('  --radius-large: 16px;')
+    expect(css).toContain('  --text-display--letter-spacing: -0.01em;')
+    expect(css).toContain('  --shadow-sheet: 0 12px 32px rgba(17, 18, 20, 0.12);')
     expect(css).toContain('  --border-width-hairline: 0.5px;')
     expect(css).toContain('  --ease-standard: cubic-bezier(0.2, 0, 0, 1);')
     expect(css).toContain('  --z-index-modal: 300;')

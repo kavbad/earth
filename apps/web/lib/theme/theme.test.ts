@@ -30,6 +30,10 @@ describe('app/theme.css', () => {
 
   it('resets the Tailwind palette and type scale so only tokens produce utilities', () => {
     expect(committed).toContain('--color-*: initial;')
+    expect(committed).toContain('--font-*: initial;')
     expect(committed).toContain('--text-*: initial;')
+    expect(committed).toContain('--shadow-*: initial;')
+    expect(committed).toContain("--font-serif: 'Newsreader Variable'")
+    expect(committed).toContain('--shadow-sheet: 0 12px 32px rgba(17, 18, 20, 0.12);')
   })
 })

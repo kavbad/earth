@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  AVATAR_TINT_COUNT,
   EM_DASH_SEPARATOR,
   SPELLED_NAMES_MAX,
+  avatarTintIndex,
   cleanNames,
   compactCount,
   formatHandle,
@@ -216,5 +218,47 @@ describe('formatHandle', () => {
     expect(formatHandle('')).toBe('')
     expect(formatHandle('  ')).toBe('')
     expect(formatHandle('@')).toBe('')
+  })
+})
+
+describe('avatarTintIndex', () => {
+  it('is stable for a name, whatever its case or padding', () => {
+    expect(avatarTintIndex('Maya')).toBe(avatarTintIndex('  maya '))
+    expect(avatarTintIndex('Kavon Badie')).toBe(avatarTintIndex('kavon badie'))
+  })
+
+  it('stays inside the tint table and spreads names across it', () => {
+    const names = [
+      'Maya',
+      'Xavier',
+      'Kavon',
+      'Sarah',
+      'Ben',
+      'Chris',
+      'Sam',
+      'Jules',
+      'Ada',
+      'Noor',
+      'Léa',
+      'Ōta',
+      'Priya',
+      'Tom',
+      'Ines',
+      'Yuki',
+    ]
+    const seen = new Set<number>()
+    for (const name of names) {
+      const index = avatarTintIndex(name)
+      expect(index).toBeGreaterThanOrEqual(0)
+      expect(index).toBeLessThan(AVATAR_TINT_COUNT)
+      seen.add(index)
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(5)
+  })
+
+  it('sends a blank name to the first tint', () => {
+    expect(avatarTintIndex('')).toBe(0)
+    expect(avatarTintIndex('   ')).toBe(0)
+    expect(avatarTintIndex('Maya', 0)).toBe(0)
   })
 })

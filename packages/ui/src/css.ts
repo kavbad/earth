@@ -17,6 +17,7 @@ import {
   iconSize,
   motion,
   radius,
+  shadow,
   space,
   spacing,
   touchTarget,
@@ -32,8 +33,10 @@ import {
   type FontWeightName,
   type IconSizeName,
   type RadiusName,
+  type ShadowName,
   type SpaceStep,
   type SpacingName,
+  type TypeStyle,
   type TypographyName,
   type ZIndexName,
 } from './tokens'
@@ -59,9 +62,12 @@ export type CssVariableName =
   | `font-size-${TypographyName}`
   | `font-weight-${TypographyName}`
   | `line-height-${TypographyName}`
+  | `letter-spacing-${TypographyName}`
+  | `font-family-of-${TypographyName}`
   | `space-${SpaceStep}`
   | `space-${KebabCase<SpacingName>}`
   | `radius-${RadiusName}`
+  | `shadow-${ShadowName}`
   | `duration-${DurationName}`
   | `easing-${EasingName}`
   | `border-${BorderWidthName}`
@@ -74,6 +80,22 @@ export type CssVariableEntry = readonly [name: CssVariableName, value: string]
 
 const px = (n: number): string => `${n}px`
 const ms = (n: number): string => `${n}ms`
+const em = (n: number): string => `${n}em`
+
+/** `#RRGGBB` + alpha → `rgba(r, g, b, a)`; shadows are the ink at a low opacity. */
+export function hexToRgba(hex: string, alpha: number): string {
+  const value = hex.replace(/^#/, '')
+  const r = Number.parseInt(value.slice(0, 2), 16)
+  const g = Number.parseInt(value.slice(2, 4), 16)
+  const b = Number.parseInt(value.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/** The one `box-shadow` value of a shadow token. */
+export function shadowCss(name: ShadowName): string {
+  const { y, blur, opacity } = shadow[name]
+  return `0 ${px(y)} ${px(blur)} ${hexToRgba(colors.textPrimary, opacity)}`
+}
 
 function entriesOf<K extends string, V>(
   record: Readonly<Record<K, V>>,
@@ -96,10 +118,14 @@ export function cssVariableEntries(): ReadonlyArray<CssVariableEntry> {
   for (const [name, value] of entriesOf(fontWeight)) {
     out.push([`font-weight-${name}`, String(value)])
   }
-  for (const [name, style] of entriesOf(typography)) {
+  for (const [name, style] of entriesOf<TypographyName, TypeStyle>(typography)) {
     out.push([`font-size-${name}`, px(style.size)])
     out.push([`font-weight-${name}`, String(style.weight)])
     out.push([`line-height-${name}`, px(style.lineHeight)])
+    out.push([`font-family-of-${name}`, fontFamily[style.family]])
+    if (style.letterSpacing !== undefined) {
+      out.push([`letter-spacing-${name}`, em(style.letterSpacing)])
+    }
   }
   for (const [step, value] of Object.entries(space)) {
     out.push([`space-${step as `${SpaceStep}`}`, px(value)])
@@ -109,6 +135,9 @@ export function cssVariableEntries(): ReadonlyArray<CssVariableEntry> {
   }
   for (const [name, value] of entriesOf(radius)) {
     out.push([`radius-${name}`, px(value)])
+  }
+  for (const name of Object.keys(shadow) as ShadowName[]) {
+    out.push([`shadow-${name}`, shadowCss(name)])
   }
   for (const [name, value] of entriesOf(motion.duration)) {
     out.push([`duration-${name}`, ms(value)])
@@ -161,7 +190,11 @@ export function tokensToCssVariables(): string {
 
 export type TailwindFontSize = readonly [
   size: string,
-  options: { readonly lineHeight: string; readonly fontWeight: string },
+  options: {
+    readonly lineHeight: string
+    readonly fontWeight: string
+    readonly letterSpacing?: string
+  },
 ]
 
 type KebabKeys<T extends Record<string, unknown>, V> = {
@@ -188,11 +221,17 @@ function kebabRecord<T extends Record<string, unknown>, V>(
  */
 export const tailwindTheme = {
   colors: kebabRecord(colors, (value): ColorValue => value),
-  fontFamily: { system: fontFamily.system },
+  fontFamily: kebabRecord(fontFamily, (value) => value),
   fontWeight: kebabRecord(fontWeight, (value) => String(value)),
-  fontSize: kebabRecord(typography, (style): TailwindFontSize => [
+  fontSize: kebabRecord(typography, (style: TypeStyle): TailwindFontSize => [
     px(style.size),
-    { lineHeight: px(style.lineHeight), fontWeight: String(style.weight) },
+    style.letterSpacing === undefined
+      ? { lineHeight: px(style.lineHeight), fontWeight: String(style.weight) }
+      : {
+          lineHeight: px(style.lineHeight),
+          fontWeight: String(style.weight),
+          letterSpacing: em(style.letterSpacing),
+        },
   ]),
   spacing: {
     ...(Object.fromEntries(Object.entries(space).map(([k, v]) => [k, px(v)])) as {
@@ -202,6 +241,9 @@ export const tailwindTheme = {
     'touch-target': px(touchTarget),
   },
   borderRadius: kebabRecord(radius, px),
+  boxShadow: Object.fromEntries(
+    (Object.keys(shadow) as ShadowName[]).map((name) => [name, shadowCss(name)]),
+  ) as Record<ShadowName, string>,
   borderWidth: kebabRecord(borderWidth, px),
   transitionDuration: kebabRecord(motion.duration, ms),
   transitionTimingFunction: kebabRecord(motion.easing, (value) => value),
@@ -219,6 +261,7 @@ export const TAILWIND_THEME_NAMESPACES = [
   'text',
   'spacing',
   'radius',
+  'shadow',
   'border-width',
   'transition-duration',
   'ease',
@@ -243,11 +286,15 @@ export function tailwindThemeCss(): string {
     add(`text-${name}`, size)
     add(`text-${name}--line-height`, options.lineHeight)
     add(`text-${name}--font-weight`, options.fontWeight)
+    if (options.letterSpacing !== undefined) {
+      add(`text-${name}--letter-spacing`, options.letterSpacing)
+    }
   }
   for (const [name, value] of Object.entries(tailwindTheme.spacing)) add(`spacing-${name}`, value)
   for (const [name, value] of Object.entries(tailwindTheme.borderRadius)) {
     add(`radius-${name}`, value)
   }
+  for (const [name, value] of Object.entries(tailwindTheme.boxShadow)) add(`shadow-${name}`, value)
   for (const [name, value] of Object.entries(tailwindTheme.borderWidth)) {
     add(`border-width-${name}`, value)
   }

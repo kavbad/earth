@@ -232,6 +232,25 @@ export function initials(displayName: string): string {
   return `${first}${last}`.toUpperCase()
 }
 
+/** How many tints `avatarTintIndex` chooses among — `avatarTints.length` in tokens.ts. */
+export const AVATAR_TINT_COUNT = 8
+
+/**
+ * Which of the eight avatar tints a person carries (`avatarTints` in tokens.ts): FNV-1a over the
+ * trimmed, lower-cased display name, so the same name gets the same tint on every screen and on
+ * both clients. Blank → the first tint.
+ */
+export function avatarTintIndex(displayName: string, count: number = AVATAR_TINT_COUNT): number {
+  const key = displayName.trim().toLowerCase()
+  if (key.length === 0 || count <= 0) return 0
+  let hash = 0x811c9dc5
+  for (const char of key) {
+    hash ^= char.codePointAt(0) ?? 0
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash % count
+}
+
 /** `maya` → `@maya`; an already-prefixed handle is returned unchanged; blank → empty string. */
 export function formatHandle(handle: string): string {
   const bare = handle.trim().replace(/^@+/, '')

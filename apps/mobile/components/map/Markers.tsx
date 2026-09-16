@@ -12,7 +12,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { FaceStack } from '@/components/ui/FaceStack'
 import { Icon } from '@/components/ui/Icon'
 import { LiveMark } from '@/components/ui/LiveMark'
-import { text } from '@/components/ui/text'
+import { fontFor, text } from '@/components/ui/text'
 import { mapCopy } from '@/features/earth/copy'
 import type { LiveCluster } from '@/features/earth/state/cluster'
 import {
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space[1],
   },
-  clusterCount: { fontWeight: '500' },
+  clusterCount: { fontWeight: '500', fontFamily: fontFor('sans', '500') },
   friend: { alignItems: 'center', justifyContent: 'center' },
   halo: { position: 'absolute', backgroundColor: colors.earthAccent, opacity: HALO_OPACITY },
   face: {

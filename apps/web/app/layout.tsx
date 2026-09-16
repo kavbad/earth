@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-dvh bg-background font-system text-body text-text-primary antialiased">
+      <body className="min-h-dvh bg-background font-sans text-body text-text-primary antialiased">
         <EarthProviders>{children}</EarthProviders>
       </body>
     </html>

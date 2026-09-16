@@ -14,7 +14,7 @@ import {
 import { Image } from 'expo-image'
 import { StyleSheet, Text, type TextStyle, View } from 'react-native'
 
-import { text } from './text'
+import { fontFor, text } from './text'
 
 export interface AvatarProps {
   readonly name: string
@@ -28,7 +28,7 @@ export interface AvatarProps {
 
 const FONT: Record<AvatarSizeName, TextStyle> = {
   small: text.meta,
-  medium: { ...text.secondary, fontWeight: '500' },
+  medium: { ...text.secondary, fontWeight: '500', fontFamily: fontFor('sans', '500') },
   large: text.section,
   profile: text.title,
 }

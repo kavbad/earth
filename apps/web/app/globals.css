@@ -2,18 +2,24 @@
  * Global stylesheet (ARCHITECTURE §13, spec PART XV). Every color, size, radius and duration comes
  * from the @earth/ui tokens rendered into ./theme.css (generated — see lib/theme/generate.ts):
  * `bg-background`, `text-text-secondary`, `text-body`, `rounded-medium`, `duration-fast`, ...
- * Nothing here names a hex, a font or a pixel size that is not a token.
+ * Nothing here names a hex, a font or a pixel size that is not a token; the font files come from
+ * the two fontsource packages and register the family names `fontFace` in @earth/ui expects.
  */
 @import 'tailwindcss';
 @import './theme.css';
+/* The two faces (§90), self-hosted: Newsreader with its optical-size axis for statements,
+ * Instrument Sans for everything functional. Same origin, so no page ever asks a font host. */
+@import '@fontsource-variable/newsreader/opsz.css';
+@import '@fontsource-variable/instrument-sans/wght.css';
 
 @layer base {
   html {
     background: var(--earth-color-background);
     color: var(--earth-color-text-primary);
-    font-family: var(--earth-font-family-system);
+    font-family: var(--earth-font-family-sans);
     font-size: var(--earth-font-size-body);
     line-height: var(--earth-line-height-body);
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-size-adjust: 100%;
@@ -114,9 +120,35 @@
  * headers share (`max-w-content`). The map and other full-bleed surfaces opt out. */
 @theme {
   --breakpoint-rail: 900px;
-  --container-content: 680px;
+  --container-content: 640px;
 }
 
 @utility hairline {
   border: var(--earth-border-separator) solid var(--earth-color-separator);
+}
+
+/* A Live point on the map breathes: one soft ring, slower than a transition (§95), no bounce. */
+@utility live-pulse {
+  animation: earth-pulse calc(var(--earth-duration-slow) * 6) var(--earth-easing-standard) infinite;
+}
+
+@keyframes earth-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--earth-color-live) 40%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--earth-color-live) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--earth-color-live) 0%, transparent);
+  }
+}
+
+/* The basemap's attribution is furniture: meta type, tertiary ink, no box. */
+.maplibregl-ctrl-attrib {
+  background: transparent;
+  color: var(--earth-color-text-tertiary);
+  font-family: var(--earth-font-family-sans);
+  font-size: var(--earth-font-size-meta);
+  line-height: var(--earth-line-height-meta);
 }
