@@ -341,3 +341,28 @@ Alone, a taller viewport caught it by chance. Fix: `cameraAreaId()` in both `vie
 camera starts Neighborhood from the current neighborhood, the other radii from the city, "Your
 Earth" from the home city — and the camera effect waits for that area rather than flying out to
 the globe while it loads. Unit-tested on both clients; the journey is unchanged and pins the fix.
+
+## Round 3 — the redesign (2026-09-16)
+
+The product worked and looked like an unstyled prototype. Direction agreed with the user: the
+craft of Anthropic's product design (typographic hierarchy, whitespace, hairlines, one restrained
+accent, quiet motion) with §89's own palette kept — only the accent changes, to fern green
+`#2F6B4C` — plus additive tokens (a tertiary gray, eight muted avatar tints, one shadow), a real
+type system (Newsreader for statements, Instrument Sans for everything functional), a designed
+basemap, and both clients in one pass. Plan: `/root/.claude/plans/greedy-juggling-dawn.md`.
+
+- [ ] R3-1 Tokens, CSS bridge, web + mobile fonts (`packages/ui`, `apps/web/app/theme.css`,
+      `globals.css`, `apps/mobile/app/_layout.tsx`, `components/ui/text.ts`)
+- [ ] R3-2 Web primitives and shell (`components/ui/*`, `components/shell/*`)
+- [ ] R3-3 Web areas: feed/posts, chats, rooms/live/guest, profile/search/notifications,
+      you/settings, claim/welcome/invite
+- [ ] R3-4 Map basemap (`lib/map/basemap.ts`, `/map-style.json`) and markers
+- [ ] R3-5 Mobile restyle (primitives, shell, feed, chats, rooms, map, profile, claim)
+- [ ] R3-6 `e2e/screens.ts`, spec §89/§90/§91/§93 + ARCHITECTURE, final gate
+      (lint/typecheck/format/test/build/export/`pnpm e2e` 19/19), screenshot review, push, CI
+
+Guards to grep before every commit: `<h1 class="truncate text-section">` (RoomHeader),
+`'text-danger'` sole class (SafetyMenu), Button's bare `<span>`, SegmentedText `bg-transparent`
+and no `rounded-medium`, unread dot `bg-earth-accent`, Leave never `bg-live`/`bg-danger`,
+`shadow-` only `shadow-none`/`shadow-sheet`, `ICON_STROKE_WIDTH` 1.75, no `world-atlas` in client
+chunks, no non-localhost request in the screens run.
