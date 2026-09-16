@@ -299,7 +299,7 @@ signal wait on accounts and hardware this environment does not have.
 - [x] **C — a hermetic suite.** `apps/web/app/map-style.json/route.ts` serves the built-in fallback
       style; `e2e/global-setup.ts` builds the web app with `NEXT_PUBLIC_MAP_STYLE_URL` pointed at
       it, so no journey reaches outside the machine. Development keeps its basemap.
-- [ ] Verify: `pnpm e2e` green locally with the new journeys, unit/lint/typecheck/format green,
+- [x] Verify: `pnpm e2e` green locally with the new journeys, unit/lint/typecheck/format green,
       CI green on the runner; update the counts in "Tests, by tier", the open-items table and
       "Known limitations" above.
 
@@ -308,7 +308,8 @@ the web build with the hermetic basemap, 19 tests on 2 workers — **19/19, no r
 (13: 8.8 s, 14: 8.0 s; E2E 10 17.6 s, down from 42 s on the third-party style). `earth-web` 430,
 `earth-mobile` 405, `@earth/api` 155 unit tests, typecheck, lint, format and the Metro export
 green. CI: at 5329df3 the e2e job failed on journey 14 alone (18/19, both attempts, the camera
-defect below); d69f60f carries the fix and its run is pending at the time of this entry.
+defect below); with the fix (d69f60f, run 11 at abf1c72) all five jobs are green — the e2e job
+in 4 min 11 s, 19/19 on the runner, the first CI run of the hermetic basemap.
 
 What journey 13 found — a product bug in three links, each layer green on its own:
 
