@@ -358,9 +358,10 @@ basemap, and both clients in one pass. Plan: `/root/.claude/plans/greedy-jugglin
       you/settings, claim/welcome/invite
 - [x] R3-4 Map basemap (`lib/map/basemap.ts`, `/map-style.json`) and markers
 - [x] R3-5 Mobile restyle (primitives, shell, feed, chats, rooms, map, profile, claim)
-- [ ] R3-6 `e2e/screens.ts`, spec §89/§90/§91/§93 + ARCHITECTURE, final gate
-      (lint/typecheck/format/test/build/export/`pnpm e2e` 19/19), screenshot review, push, CI
-      — everything but the CI tick is done (below); CI at 4c87c56 pending at the time of writing.
+- [x] R3-6 `e2e/screens.ts`, spec §89/§90/§91/§93 + ARCHITECTURE, final gate
+      (lint/typecheck/format/test/build/export/`pnpm e2e` 19/19), screenshot review, push, CI —
+      **all five jobs green at 86d1f7f** (e2e 19/19 on the runner in 4 min, database tests, web
+      build, lint/typecheck/format/unit, mobile export).
 
 Final gate (2026-09-16, 4c87c56): fresh-stack `pnpm e2e` **19/19 in 2.4 min** (the journeys drive
 the app-served basemap and worker); `expo export` iOS and Android both complete; `pnpm test`
@@ -371,7 +372,12 @@ CI: from fca8f0f the "Database tests" job failed three runs in four on `verify/g
 — the unclaimed `room_join` probe charged with a burst of fixture rows. Not the redesign's: a
 backend reports `pg_stat_user_tables` at most once a second and, idle, on a ten-second timer,
 so a pooled connection's fixture writes could land mid-probe. 4c87c56 adds `TestDb.flushStats()`
-(every pooled backend forced to report, counters waited still) and `settleStats` uses it.
+(every pooled backend forced to report, counters waited still) and `settleStats` uses it. The run
+after that failed once more in the same job, elsewhere: `scripts/db/migrate-lib.test.ts` hit
+`duplicate key … pg_authid_rolname_index` on `create role anon` — the root scripts tests migrate
+their scratch databases in parallel workers, roles are cluster-wide, and the shim's
+`if not exists … create role` is two statements. 86d1f7f takes a transaction-scoped advisory
+lock around the roles block. Neither flake was the redesign's; both were latent in the harness.
 
 What the screenshot review found — two product bugs no test could see, each hiding the other:
 
