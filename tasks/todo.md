@@ -58,7 +58,7 @@ Build order (spec §131): Humans → groups → conversation → realtime presen
 - [x] Migrations 05xx: areas (PostGIS), places, location_shares, human_context; seed SF areas
 - [x] RPC: area_resolve, context_set_area, location_share_create/revoke, map_objects
 - [x] MapProvider (react-native-maps / maplibre), Earth screen (web + mobile), city switch
-- [x] Gate: same UI switches radius (E2E 11 walks it end to end); map shows Lives by area — proven at the DB and component tier by `supabase/tests/src/map-search/map.test.ts` (`map_objects` returns each Live inside the bbox at every radius, none outside) and the marker-state tests on both clients. No journey walks a Live pin; see Known limitations.
+- [x] Gate: same UI switches radius (E2E 11 walks it end to end); map shows Lives by area — proven at the DB and component tier by `supabase/tests/src/map-search/map.test.ts` (`map_objects` returns each Live inside the bbox at every radius, none outside) and the marker-state tests on both clients — and end to end by journey 14 (`e2e/journeys/14-live-pins.spec.ts`, 2026-09-16): a room opened to the Neighborhood is on Ben's map at the Mission's centroid, named for the person on camera.
 
 ## Milestone 7 — Safety / hardening
 - [x] Migrations 07xx: reports, rate limits, audit log; blocks wired through every policy
@@ -123,27 +123,29 @@ handlers with injected dependencies. Docs: `README.md`, `docs/DEPLOYMENT.md`,
 ### Tests, by tier
 
 Final run, 2026-09-04, branch `claude/earth-v1-build-spec-n9wgrk`, Postgres 16 on
-127.0.0.1:5432. `pnpm test` (turbo, 26 tasks) exit 0.
+127.0.0.1:5432. `pnpm test` (turbo, 26 tasks) exit 0. The `earth-web`, `earth-mobile`,
+`@earth/api` and `@earth/e2e` rows are as of 2026-09-16 (Round 2 below); the others are unchanged
+since the 2026-09-04 run.
 
 | Tier / workspace                                                            | Files | Tests                 |
 | --------------------------------------------------------------------------- | ----- | --------------------- |
 | `@earth/db-tests` (authorization matrix, RPC invariants, integration flows) | 73    | 4259                  |
 | `@earth/permissions` (mirror + shared fixtures)                             | 8     | 2336                  |
-| `earth-web` (state + components via `react-dom/server`)                     | 71    | 411                   |
-| `earth-mobile` (state + screens through `test/render.tsx`)                  | 64    | 401                   |
+| `earth-web` (state + components via `react-dom/server`)                     | 74    | 430                   |
+| `earth-mobile` (state + screens through `test/render.tsx`)                  | 64    | 405                   |
 | `@earth/observability`                                                      | 6     | 287                   |
 | `@earth/domain`                                                             | 19    | 276                   |
 | `@earth/server`                                                             | 20    | 207                   |
-| `@earth/api`                                                                | 14    | 153                   |
+| `@earth/api`                                                                | 15    | 155                   |
 | `@earth/auth`                                                               | 9     | 141                   |
 | `@earth/realtime`                                                           | 10    | 108                   |
 | `@earth/ui`                                                                 | 6     | 82                    |
 | `@earth/analytics`                                                          | 9     | 81                    |
 | `@earth/config`                                                             | 6     | 65                    |
 | root (`pnpm test:root`: migrate runner, local-stack)                        | 9     | 103 passed, 7 skipped |
-| `@earth/e2e` (Playwright journeys)                                          | 14    | 17                    |
+| `@earth/e2e` (Playwright journeys)                                          | 16    | 19                    |
 
-8927 tests in total (8910 unit/DB + 17 end to end). The 7 root skips are the live `stack.test.ts`
+8954 tests in total (8935 unit/DB + 19 end to end). The 7 root skips are the live `stack.test.ts`
 cases, which need a running stack; run separately with the stack up they pass —
 `EARTH_REQUIRE_STACK=1 pnpm vitest run scripts/local-stack/stack.test.ts` exit 0, 9 passed.
 
@@ -250,13 +252,9 @@ in a row (four including the `pnpm test` pass).
 - The **mobile client is verified by typecheck, unit/screen tests and a Metro export only**. No
   build ran on a device or simulator, no EAS build was produced, push was never delivered to a
   handset, and `react-native-maps` was never rendered.
-- The §127 done-statements are proven end to end **on the web client only** (17 Playwright tests,
-  one Chromium project against `apps/web`).
-- The Milestone 6 gate is proven at the DB and component tier, not end to end: E2E 11 walks the
-  radius switch and E2E 10 walks the map's friend markers, while "the map shows Lives by area" is
-  proven by `supabase/tests/src/map-search/map.test.ts` (`map_objects` returns each Live inside the
-  bbox at every radius and none outside) and the marker-state tests on both clients. No journey
-  walks a Live pin.
+- The §127 done-statements are proven end to end **on the web client only** (19 Playwright tests,
+  one Chromium project against `apps/web`). The mobile map's camera fix of 2026-09-16
+  (`cameraAreaId`) is unit-tested there, never rendered.
 - Nothing has been deployed. Every provider account, secret and store submission in
   `docs/DEPLOYMENT.md` is untested against a real project.
 
@@ -267,8 +265,9 @@ in a row (four including the `pnpm test` pass).
 2. Produce a real `eas build` and run it on a device: push delivered to a handset, the Android map
    rendering with the Maps key, deep links resolving against the served association files.
 3. Give the verification provider an age signal so SEC-003's gate has something to act on.
-4. Extend the journeys where coverage is thin: a photo and a voice message end to end (DOD-02
-   remainder), and the map's Live pins (the Milestone 6 gate).
+4. ~~Extend the journeys where coverage is thin: a photo and a voice message end to end (DOD-02
+   remainder), and the map's Live pins (the Milestone 6 gate).~~ Done 2026-09-16 — journeys 13
+   and 14 (Round 2 below).
 5. Stand up a mobile end-to-end harness (Maestro or Detox against `scripts/local-stack`) so the
    §127 statements are proven on both clients (DOD-01 remainder).
 6. Consider applying REL-01's cancel-before-write guard to the other `setQueryData` call sites,
@@ -304,10 +303,12 @@ signal wait on accounts and hardware this environment does not have.
       CI green on the runner; update the counts in "Tests, by tier", the open-items table and
       "Known limitations" above.
 
-Status (2026-09-16): both journeys pass against the running stack (13: 12.2 s, 14: 8.3 s);
-`@earth/api` 155, `earth-web` 426, `earth-mobile` 401 unit tests green; typecheck, lint,
-format and the Metro export green; the full fresh-stack `pnpm e2e` (which is also the first run
-of the hermetic basemap) is in progress and its counts follow in the next entry.
+Status (2026-09-16, d69f60f): the full fresh-stack `pnpm e2e` — `up.sh` → migrations + seeds,
+the web build with the hermetic basemap, 19 tests on 2 workers — **19/19, no retries, 2.2 min**
+(13: 8.8 s, 14: 8.0 s; E2E 10 17.6 s, down from 42 s on the third-party style). `earth-web` 430,
+`earth-mobile` 405, `@earth/api` 155 unit tests, typecheck, lint, format and the Metro export
+green. CI: at 5329df3 the e2e job failed on journey 14 alone (18/19, both attempts, the camera
+defect below); d69f60f carries the fix and its run is pending at the time of this entry.
 
 What journey 13 found — a product bug in three links, each layer green on its own:
 
