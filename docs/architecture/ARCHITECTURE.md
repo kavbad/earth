@@ -230,7 +230,9 @@ Every method validates its result with the DTO zod schema from `@earth/domain`. 
 
 ## 13. Design system
 
-Tokens live in `packages/ui/src/tokens.ts` and are the only source of colors, type scale, spacing, radii, motion durations. Web consumes them as CSS variables (`packages/ui/src/css.ts` generates `:root` variables); mobile consumes the TS object. Copy strings live in `packages/ui/src/copy.ts` and are used verbatim by both clients (spec microcopy is exact).
+Tokens live in `packages/ui/src/tokens.ts` and are the only source of colors (the palette, the eight avatar tints), type faces and scale (each style carries its family and tracking), spacing, radii, the one shadow and motion durations. Web consumes them as CSS variables and a Tailwind `@theme` (`packages/ui/src/css.ts`, rendered into the committed `apps/web/app/theme.css`); mobile consumes the TS object, with `components/ui/text.ts` mapping a face and weight to the bundled font file. The two faces are self-hosted on both clients (fontsource on web, `@expo-google-fonts` on mobile), so no screen asks a font host. Copy strings live in `packages/ui/src/copy.ts` and are used verbatim by both clients (spec microcopy is exact).
+
+The web map serves its own basemap (`GET /map-style.json`, from `world-atlas` land decoded at build — inline sources, nothing to fetch) and MapLibre's worker files (`GET /maplibre/:asset`, from the installed package), because the library resolves its worker relative to a chunk path that does not exist in a Next build. `e2e/screens.ts` photographs every screen for the design review and fails when a request leaves the machine.
 
 ## 14. Environment
 

@@ -984,39 +984,39 @@ text-secondary:   #72757A
 separator:        #ECEDEF
 subtle-fill:      #F6F7F8
 live:             #E6463E
-earth-accent:     #2459D3
+earth-accent:     #2F6B4C
 danger:           semantic system red
 success:          semantic system green
 ```
 
-Earth accent appears sparingly. Live red has much stronger semantic importance.
+Earth accent is fern green and appears sparingly — links, selection, focus, the Earth mark; never a fill behind text. Live red has much stronger semantic importance. Three additive tokens sit beside the palette without changing it: `text-tertiary` `#A2A5AA` for timestamps and metadata; eight muted avatar tints (a `bg`/`fg` pair each, chosen by a hash of the display name so a person keeps theirs everywhere); one ink shadow (`0 12px 32px` at 12%) for sheets, toasts and map pills. Not ivory, not beige, not terracotta.
 
 ### 90. Typography
 
-Native/system-quality typography first.
+Two faces, both self-hosted. A serif — Newsreader, with its optical-size axis — for statements: the wordmark, Display and Title, onboarding lines, empty-state headlines. A quiet grotesk — Instrument Sans — for every functional label.
 
 ```text
-Display       32 / semibold
-Title         24 / semibold
-Section       18 / semibold
-Body          16 / regular
-Secondary     14 / regular
-Meta          12 / medium
+Display       36 / 44   serif medium   −0.01em
+Title         28 / 36   serif medium   −0.005em
+Section       18 / 24   sans semibold
+Body          16 / 24   sans regular
+Secondary     14 / 20   sans regular
+Meta          12 / 16   sans medium    +0.01em
 ```
 
-No decorative type in functional UI.
+Line heights are multiples of 4. No decorative type in functional UI: Section and below are always the sans.
 
 ### 91. Spacing
 
-8-point baseline. Screen horizontal margin 16; feed object spacing 20–28; compact row gap 8–12. Do not over-card the interface.
+8-point baseline. Screen horizontal margin 16; feed object spacing 20–28; compact row gap 8–12. Do not over-card the interface. Radii: 8 for chips, 10 for buttons, fields and bubbles, 16 for sheets, tiles and media. On the web, from 900 px, a 240 px rail with the serif wordmark and a 640 px reading column beside it with a breathing right margin.
 
 ### 92. Feed post visual
 
-Text post: avatar, name, minimal metadata, generous text, subdued actions. Photo/video: same identity header, media large, no thick rounded card around whole post. Live: visually distinct primarily through live media, participant faces/names, small Live mark — not giant colored borders.
+Text post: avatar (a photo, or initials on the person's tint), name, minimal metadata in tertiary ink, generous text, subdued actions — icons with counts, the copy as their accessible name. Photo/video: same identity header, media large, no thick rounded card around whole post. Live: visually distinct primarily through live media, participant faces/names, small Live mark — not giant colored borders.
 
 ### 93. Radius control visual
 
-Text row: Friends Neighborhood City World. No filled segmented-control background. Selected item: primary text, 1–2 px understated underline/indicator. Unselected secondary gray.
+Text row: Friends Neighborhood City World. No filled segmented-control background. Selected item: primary text, a 1.5 px understated ink underline. Unselected secondary gray.
 
 ### 94. Chat visual
 

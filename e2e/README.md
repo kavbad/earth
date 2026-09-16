@@ -78,6 +78,16 @@ Anything not exported falls back to `.local/stack.env`, which `up.sh` writes.
 | `e2e/test-results/`         | traces (`on-first-retry`) and failure screenshots           |
 | `e2e/playwright-report/`    | the HTML report                                             |
 
+## Screens — the design review's evidence
+
+`pnpm exec tsx e2e/screens.ts <tag>` signs the seed Human Ben in and photographs every screen a
+person sees — as a visitor and as Ben, at 1280×800 and 390×844 — into `.local/screens/<tag>/`.
+It runs against a stack and web app that are already up (`pnpm stack:up`, then the web app built
+with `NEXT_PUBLIC_MAP_STYLE_URL` pointed at the app's own `/map-style.json`), asserts nothing
+about the product except that no request leaves the machine, and writes nothing to Ben's
+account. Look at the pictures before calling a design step done: this is how the map that had
+never rendered was found.
+
 ## Writing a journey
 
 Everything a journey needs is in `fixtures/`:

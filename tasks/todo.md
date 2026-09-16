@@ -351,15 +351,34 @@ accent, quiet motion) with §89's own palette kept — only the accent changes, 
 type system (Newsreader for statements, Instrument Sans for everything functional), a designed
 basemap, and both clients in one pass. Plan: `/root/.claude/plans/greedy-juggling-dawn.md`.
 
-- [ ] R3-1 Tokens, CSS bridge, web + mobile fonts (`packages/ui`, `apps/web/app/theme.css`,
+- [x] R3-1 Tokens, CSS bridge, web + mobile fonts (`packages/ui`, `apps/web/app/theme.css`,
       `globals.css`, `apps/mobile/app/_layout.tsx`, `components/ui/text.ts`)
-- [ ] R3-2 Web primitives and shell (`components/ui/*`, `components/shell/*`)
-- [ ] R3-3 Web areas: feed/posts, chats, rooms/live/guest, profile/search/notifications,
+- [x] R3-2 Web primitives and shell (`components/ui/*`, `components/shell/*`)
+- [x] R3-3 Web areas: feed/posts, chats, rooms/live/guest, profile/search/notifications,
       you/settings, claim/welcome/invite
-- [ ] R3-4 Map basemap (`lib/map/basemap.ts`, `/map-style.json`) and markers
-- [ ] R3-5 Mobile restyle (primitives, shell, feed, chats, rooms, map, profile, claim)
+- [x] R3-4 Map basemap (`lib/map/basemap.ts`, `/map-style.json`) and markers
+- [x] R3-5 Mobile restyle (primitives, shell, feed, chats, rooms, map, profile, claim)
 - [ ] R3-6 `e2e/screens.ts`, spec §89/§90/§91/§93 + ARCHITECTURE, final gate
       (lint/typecheck/format/test/build/export/`pnpm e2e` 19/19), screenshot review, push, CI
+
+What the screenshot review found — two product bugs no test could see, each hiding the other:
+
+1. **The map had never rendered on the web.** MapLibre's stylesheet makes its container
+   `position: relative`, so the `absolute inset-0` sizing gave it a height of 0; the canvas drew
+   into nothing and the wrapper's stone showed through as "the map". Every journey passed
+   because markers are DOM elements positioned by the map, and the box-filtered `map_objects`
+   answers were right. Fixed by sizing the container outright (`MapProvider.tsx`).
+2. **MapLibre's worker died on load.** The library resolves `maplibre-gl-worker.mjs` relative
+   to `import.meta.url`, which inside a Next chunk is `/_next/static/chunks/…` — a 404 — so no
+   data layer (tiles, GeoJSON) could ever draw; only the background did. Fixed by serving the two
+   worker files from the app (`GET /maplibre/:asset`, prerendered from the installed package)
+   and `setWorkerUrl` (`lib/map/worker.ts`).
+
+Both were invisible to `renderToStaticMarkup` tests, to the database suite and to the journeys;
+they were visible in the first screenshot of the Earth screen once the basemap gave the canvas
+something to show. The basemap itself (`lib/map/basemap.ts`) needed the antimeridian handled:
+Chukotka's and Fiji's rings jump from 180 to −180 and painted a band across every tile until
+their longitudes were unwrapped (Antarctica's polar edge kept).
 
 Guards to grep before every commit: `<h1 class="truncate text-section">` (RoomHeader),
 `'text-danger'` sole class (SafetyMenu), Button's bare `<span>`, SegmentedText `bg-transparent`
