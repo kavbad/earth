@@ -16,8 +16,12 @@ import {
 describe('viewForScope', () => {
   const city = { lat: 37.77, lng: -122.42 }
 
-  it('starts World zoomed out even when a city is known', () => {
-    expect(viewForScope('world', city)).toEqual(WORLD_VIEW)
+  it("starts World zoomed out, turned to the city's longitude when one is known", () => {
+    expect(viewForScope('world', city)).toEqual({
+      center: { lat: WORLD_VIEW.center.lat, lng: city.lng },
+      zoom: WORLD_VIEW.zoom,
+    })
+    expect(viewForScope('world', null)).toEqual(WORLD_VIEW)
   })
 
   it('centres Friends / Neighborhood / City on their area at their zoom', () => {

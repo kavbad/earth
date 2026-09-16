@@ -70,9 +70,15 @@ export function cameraAreaId(
   return scope === 'neighborhood' ? (context?.currentAreaId ?? city) : city
 }
 
-/** Friends, Neighborhood and City need an area to start from (`cameraAreaId`); World never does. */
+/**
+ * Friends, Neighborhood and City need an area to start from (`cameraAreaId`); World never does,
+ * but with one it turns the globe to the viewer's own longitude so their Earth is in the middle.
+ */
 export function viewForScope(scope: Scope, anchor: LatLng | null): MapViewport {
-  if (scope === 'world' || anchor === null) return WORLD_VIEW
+  if (anchor === null) return WORLD_VIEW
+  if (scope === 'world') {
+    return { center: { lat: WORLD_VIEW.center.lat, lng: anchor.lng }, zoom: WORLD_VIEW.zoom }
+  }
   return { center: anchor, zoom: SCOPE_ZOOM[scope] }
 }
 

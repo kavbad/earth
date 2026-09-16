@@ -3,11 +3,13 @@ import { LiveCardDtoSchema, MapObjectsDtoSchema } from '@earth/domain'
 import { describe, expect, it } from 'vitest'
 
 import {
+  PLACE_MIN_ZOOM,
   activeFriends,
   friendHaloPt,
   isAreaLevel,
   liveMarker,
   liveMarkerId,
+  placesAt,
   positionsOf,
   toMarkers,
 } from './markers'
@@ -113,5 +115,15 @@ describe('toMarkers (SCREEN 20)', () => {
     expect(activeFriends([friend], new Date(friend.expiresAt).getTime() + 1)).toHaveLength(0)
     expect(friendHaloPt('city')).toBeGreaterThan(friendHaloPt('approximate'))
     expect(friendHaloPt('precise')).toBe(0)
+  })
+})
+
+describe('placesAt', () => {
+  const places = [{ placeId: 'a' }, { placeId: 'b' }] as const
+  it('draws places from city zoom on and none on a continent', () => {
+    expect(placesAt(places, PLACE_MIN_ZOOM)).toBe(places)
+    expect(placesAt(places, 13)).toBe(places)
+    expect(placesAt(places, PLACE_MIN_ZOOM - 0.1)).toEqual([])
+    expect(placesAt(places, 1.4)).toEqual([])
   })
 })

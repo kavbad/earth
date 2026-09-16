@@ -50,7 +50,11 @@ describe('cameraAreaId', () => {
 
 describe('camera decisions (SCREEN 20)', () => {
   it('starts each radius from its area and World from the globe', () => {
-    expect(viewForScope('world', CITY)).toEqual(WORLD_VIEW)
+    expect(viewForScope('world', CITY)).toEqual({
+      center: { lat: WORLD_VIEW.center.lat, lng: CITY.lng },
+      zoom: WORLD_VIEW.zoom,
+    })
+    expect(viewForScope('world', null)).toEqual(WORLD_VIEW)
     expect(viewForScope('neighborhood', CITY)).toEqual({
       center: CITY,
       zoom: SCOPE_ZOOM.neighborhood,

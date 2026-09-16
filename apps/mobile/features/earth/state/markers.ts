@@ -207,3 +207,11 @@ export function positionsOf(markers: MarkerSets): LatLng[] {
     ...markers.moments.map((m) => m.position),
   ]
 }
+
+/** Below this zoom a Place pin is a label on a continent: places are drawn from city zoom on. */
+export const PLACE_MIN_ZOOM = 9
+
+/** The Place pins to draw at a zoom — none while the map shows more than a city (SCREEN 20). */
+export function placesAt<T>(places: readonly T[], zoom: number): readonly T[] {
+  return zoom >= PLACE_MIN_ZOOM ? places : []
+}

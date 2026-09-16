@@ -80,6 +80,7 @@ import {
   type MarkerSets,
   type PlaceMarker,
   activeFriends,
+  placesAt,
   toMarkers,
 } from './state/markers'
 import {
@@ -492,7 +493,7 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
       />
       <MarkerLayer
         kind="place"
-        items={markers.places}
+        items={placesAt(markers.places, zoom)}
         render={(marker: PlaceMarker) => (
           <PlaceMarkerView marker={marker} active={marker.placeId === activePlaceId} />
         )}
