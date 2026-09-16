@@ -18,8 +18,9 @@ import { postCopy } from './copy'
 import { type PostActionContext, usePostActions, useReaction } from './hooks/usePostActions'
 import { postRoute } from './routes'
 
+/** Quiet icon + count row (§92): tertiary ink, the icon says what the copy says in `aria-label`. */
 const ACTION_CLASS =
-  'inline-flex min-h-touch-target items-center gap-1 rounded-small px-2 text-secondary text-text-secondary transition-colors duration-fast ease-standard hover:text-text-primary -ml-2 first:ml-0'
+  'inline-flex min-h-touch-target items-center gap-1.5 rounded-small px-2 text-secondary text-text-tertiary transition-colors duration-fast ease-standard hover:text-text-primary -ml-2 first:ml-0'
 
 export interface PostActionsProps {
   readonly view: PostViewDto
@@ -39,6 +40,12 @@ export function PostActions({ view, context, onReply, onHidden, className }: Pos
   const isOwn = session.humanId !== null && session.humanId === view.author.humanId
   const replyLabel = view.replyCount > 0 ? `${copy.reply} ${view.replyCount}` : copy.reply
   const replyHref = postRoute(view.post.id)
+  const replyContent = (
+    <>
+      <Icon name="reply" size="small" />
+      {view.replyCount > 0 ? <span aria-hidden="true">{view.replyCount}</span> : null}
+    </>
+  )
 
   return (
     <div className={cx('flex items-center gap-1', className)}>
@@ -49,7 +56,7 @@ export function PostActions({ view, context, onReply, onHidden, className }: Pos
         aria-label={`${reaction.reacted ? postCopy.reacted : postCopy.react}${reaction.count > 0 ? `, ${postCopy.reactionCount(reaction.count)}` : ''}`}
         className={cx(ACTION_CLASS, reaction.reacted && 'text-text-primary')}
       >
-        <span aria-hidden="true">{reaction.reacted ? postCopy.reacted : postCopy.react}</span>
+        <Icon name="heart" size="small" className={cx(reaction.reacted && 'fill-current')} />
         {reaction.count > 0 ? <span aria-hidden="true">{reaction.count}</span> : null}
       </button>
       {onReply !== undefined ? (
@@ -58,9 +65,10 @@ export function PostActions({ view, context, onReply, onHidden, className }: Pos
           onClick={() => {
             if (gate.requireHuman('post')) onReply()
           }}
+          aria-label={replyLabel}
           className={ACTION_CLASS}
         >
-          {replyLabel}
+          {replyContent}
         </button>
       ) : (
         <Link
@@ -68,11 +76,16 @@ export function PostActions({ view, context, onReply, onHidden, className }: Pos
           className={ACTION_CLASS}
           aria-label={`${copy.replies}${view.replyCount > 0 ? `, ${postCopy.replyCount(view.replyCount)}` : ''}`}
         >
-          {replyLabel}
+          {replyContent}
         </Link>
       )}
-      <button type="button" onClick={() => void actions.share(view)} className={ACTION_CLASS}>
-        {postCopy.share}
+      <button
+        type="button"
+        onClick={() => void actions.share(view)}
+        aria-label={postCopy.share}
+        className={ACTION_CLASS}
+      >
+        <Icon name="share" size="small" />
       </button>
       <button
         type="button"

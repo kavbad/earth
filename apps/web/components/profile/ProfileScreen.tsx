@@ -121,7 +121,7 @@ export function ProfileScreen({ handle, initial }: ProfileScreenProps) {
                 size="profile"
               />
               <div className="flex flex-col gap-1">
-                <h2 className="text-title">{profile.identity.displayName}</h2>
+                <h2 className="font-serif text-title">{profile.identity.displayName}</h2>
                 <p className="flex flex-wrap items-center gap-x-2 text-secondary text-text-secondary">
                   <span>{formatHandle(profile.identity.handle)}</span>
                   <span className="inline-flex items-center gap-1 text-meta">

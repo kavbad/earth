@@ -32,7 +32,7 @@ export function FeedSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col">
       {[0, 1, 2].map((row) => (
-        <div key={row} className="flex gap-3 px-screen-margin py-4">
+        <div key={row} className="flex gap-3 px-screen-margin py-5">
           <Skeleton className="size-10 rounded-avatar" />
           <div className="flex flex-1 flex-col gap-3">
             <Skeleton className="h-4 w-1/3" />
@@ -139,7 +139,7 @@ export function FeedList({ feed, scope, onHidden }: FeedListProps) {
           )}
         </div>
       ) : cards.length > 0 ? (
-        <p className="px-screen-margin py-6 text-center text-secondary text-text-secondary">
+        <p className="px-screen-margin py-8 text-center text-secondary text-text-tertiary">
           {feedCopy.endOfFeed}
         </p>
       ) : null}

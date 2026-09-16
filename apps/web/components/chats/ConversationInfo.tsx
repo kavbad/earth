@@ -507,7 +507,7 @@ function InfoBody({ conversation, group, groupLoading, refetchGroup, viewerId }:
               onSave={(next) => void saveName(next)}
             />
           ) : (
-            <h2 className="text-title">{title}</h2>
+            <h2 className="font-serif text-title">{title}</h2>
           )}
           {otherMember !== null ? (
             <Link

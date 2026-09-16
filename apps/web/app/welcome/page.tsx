@@ -62,13 +62,13 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center gap-8 px-screen-margin text-center">
+    <main className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center gap-8 px-screen-margin text-center">
       <span
         aria-hidden="true"
         className="fade-in size-3 rounded-avatar bg-earth-accent [animation-duration:var(--earth-duration-slow)]"
       />
       <div className="fade-in flex flex-col items-center gap-4 [animation-delay:var(--earth-duration-fast)]">
-        <h1 className="text-display">{copy.youreOnEarth}</h1>
+        <h1 className="font-serif text-display">{copy.youreOnEarth}</h1>
         {identity !== null ? (
           <div className="flex flex-col items-center gap-3">
             <Avatar

@@ -110,7 +110,11 @@ async function captureHuman(
   await shot(page, dir, `${size}-11-home-neighborhood`, true)
   await page.getByRole('tab', { name: 'World', exact: true }).click()
   await shot(page, dir, `${size}-12-home-world`, true)
-  const post = await page.locator('a[href^="/p/"]').first().getAttribute('href')
+  const post = await page
+    .locator('a[href^="/p/"]')
+    .first()
+    .getAttribute('href', { timeout: 5_000 })
+    .catch(() => null)
   if (post !== null) {
     await page.goto(`${baseURL()}${post}`)
     await shot(page, dir, `${size}-13-post`, true)
@@ -119,7 +123,8 @@ async function captureHuman(
   const chat = await page
     .locator('a[href^="/chats/"]:not([href$="/new"])')
     .first()
-    .getAttribute('href')
+    .getAttribute('href', { timeout: 5_000 })
+    .catch(() => null)
   if (chat !== null) {
     await page.goto(`${baseURL()}${chat}`)
     await shot(page, dir, `${size}-21-chat`)

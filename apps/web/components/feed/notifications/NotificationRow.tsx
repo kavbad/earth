@@ -85,7 +85,7 @@ export function NotificationRow({ row, onSeen, onAccept, onOpen }: NotificationR
         {row.body !== '' ? (
           <span className="truncate text-secondary text-text-secondary">{row.body}</span>
         ) : null}
-        <span className="mt-1 inline-flex items-center gap-2 text-meta text-text-secondary">
+        <span className="mt-1 inline-flex items-center gap-2 text-meta text-text-tertiary">
           {isLive ? <LiveMark /> : null}
           <span>{relativeTime(row.createdAt)}</span>
         </span>

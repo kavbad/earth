@@ -32,7 +32,7 @@ export function GuestPostRoom({ onClaim, onDone }: GuestPostRoomProps) {
   const repeat = counts !== undefined && counts.roomsJoined >= REPEAT_SESSIONS_FROM
   return (
     <section className="fade-in flex flex-1 flex-col justify-center gap-6 py-8">
-      <p className="text-title">
+      <p className="font-serif text-title">
         {repeat ? copy.guestRepeat(counts.roomsJoined, counts.humansMet) : copy.guestPostRoom}
       </p>
       <div className="flex flex-col gap-2">

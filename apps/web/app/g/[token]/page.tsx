@@ -53,9 +53,9 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
   const { token } = await params
   const result = await loadPreview(token)
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
+    <main className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title">
+        <Link href={ROUTES.home} className="font-serif text-title">
           {APP_NAME}
         </Link>
       </div>
@@ -74,7 +74,7 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
                 )}
               />
             ) : null}
-            <h1 className="text-title">{previewTitle(result.preview)}</h1>
+            <h1 className="font-serif text-title">{previewTitle(result.preview)}</h1>
             <p className="text-secondary text-text-secondary">
               {webCopy.inviteMembers(result.preview.memberCount)}
             </p>
@@ -90,7 +90,7 @@ export default async function GroupInvitePage({ params }: { params: Params }) {
         <LoadFailure />
       ) : (
         <section className="fade-in flex flex-1 flex-col gap-4 py-8">
-          <h1 className="text-title">{webCopy.inviteNotFound}</h1>
+          <h1 className="font-serif text-title">{webCopy.inviteNotFound}</h1>
           <Link href={ROUTES.home} className="text-body text-earth-accent">
             {webCopy.backToEarth}
           </Link>

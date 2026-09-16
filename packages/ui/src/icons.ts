@@ -114,6 +114,14 @@ export const icons = {
   close: icon(stroke('M6 6l12 12'), stroke('M18 6L6 18')),
   send: icon(stroke('M20.5 3.5L3.5 10.5l7.5 2.5 2.5 7.5z'), stroke('M11 13l9.5-9.5')),
   chevron: icon(stroke('M9 5l7 7-7 7')),
+  /** React to a post — an outlined heart; the reacted state fills it with CSS. */
+  heart: icon(
+    stroke(
+      'M12 20.2s-7.2-4.4-7.2-10.2a4.1 4.1 0 0 1 7.2-2.7a4.1 4.1 0 0 1 7.2 2.7c0 5.8-7.2 10.2-7.2 10.2z',
+    ),
+  ),
+  /** Reply — a turned arrow. */
+  reply: icon(stroke('M9 14l-4-4 4-4'), stroke('M5 10h9a5 5 0 0 1 5 5v3')),
   share: icon(
     stroke('M12 3v12'),
     stroke('M8 7l4-4 4 4'),

@@ -78,7 +78,7 @@ function MessageBubbleView({
     return (
       <div className="px-screen-margin">
         {dayLabel !== null ? <DaySeparator label={dayLabel} /> : null}
-        <p className="py-2 text-center text-meta text-text-secondary">{message.text ?? ''}</p>
+        <p className="py-2 text-center text-meta text-text-tertiary">{message.text ?? ''}</p>
       </div>
     )
   }
@@ -90,7 +90,7 @@ function MessageBubbleView({
       {dayLabel !== null ? <DaySeparator label={dayLabel} /> : null}
       <div className={cx('group flex items-end gap-2', isMine ? 'flex-row-reverse' : 'flex-row')}>
         {!isMine ? (
-          <span className="w-8 shrink-0">
+          <span className={cx('w-8 shrink-0', showTime && 'mb-5')}>
             {endsGroup ? (
               <Avatar name={senderName} src={sender?.avatarUrl ?? null} size="small" decorative />
             ) : null}
@@ -100,13 +100,13 @@ function MessageBubbleView({
           className={cx('flex min-w-0 max-w-[78%] flex-col', isMine ? 'items-end' : 'items-start')}
         >
           {!isMine && startsGroup ? (
-            <span className="mb-1 pl-3 text-meta text-text-secondary">{senderName}</span>
+            <span className="mb-1 pl-4 text-meta text-text-secondary">{senderName}</span>
           ) : null}
           <div
             {...longPress}
             className={cx(
-              'relative rounded-medium transition-opacity duration-fast ease-standard',
-              wide ? 'p-1' : 'px-3 py-2',
+              'relative rounded-large transition-opacity duration-fast ease-standard',
+              wide ? 'p-1' : 'px-4 py-2.5',
               isMine ? 'bg-text-primary text-background' : 'bg-subtle-fill text-text-primary',
               message.status === 'pending' && 'opacity-70',
               message.status === 'failed' && 'opacity-60',
@@ -150,7 +150,7 @@ function MessageBubbleView({
               aria-label={chatCopy.messageActions}
               onClick={() => onOpenActions(message)}
               className={cx(
-                'absolute top-0 flex size-8 items-center justify-center rounded-avatar bg-background text-text-secondary opacity-0 shadow-none transition-opacity duration-fast ease-standard hairline group-hover:opacity-100 focus-visible:opacity-100',
+                'absolute top-0 flex size-8 items-center justify-center rounded-avatar bg-background text-text-secondary opacity-0 shadow-sheet transition-opacity duration-fast ease-standard hairline group-hover:opacity-100 focus-visible:opacity-100',
                 isMine ? '-left-10' : '-right-10',
               )}
             >
@@ -196,12 +196,12 @@ function MessageBubbleView({
           ) : message.status === 'pending' ? (
             <span className="mt-1 text-meta text-text-secondary">{chatCopy.sending}</span>
           ) : showTime ? (
-            <span className="mt-1 flex items-center gap-2 text-meta text-text-secondary">
+            <span className="mt-1 flex items-center gap-2 text-meta text-text-tertiary">
               <span>{timeLabel(message.createdAt)}</span>
               {seenByLine !== null ? <span>· {seenByLine}</span> : null}
             </span>
           ) : seenByLine !== null ? (
-            <span className="mt-1 text-meta text-text-secondary">{seenByLine}</span>
+            <span className="mt-1 text-meta text-text-tertiary">{seenByLine}</span>
           ) : null}
         </div>
       </div>
@@ -212,7 +212,7 @@ function MessageBubbleView({
 function DaySeparator({ label }: { readonly label: string }) {
   return (
     <div className="flex items-center justify-center py-3">
-      <span className="text-meta text-text-secondary">{label}</span>
+      <span className="text-meta text-text-tertiary">{label}</span>
     </div>
   )
 }

@@ -25,7 +25,7 @@ function MediaItem({ item, authorName }: { item: PostMediaDto; authorName: strin
         playsInline
         preload="metadata"
         aria-label={postCopy.videoLabel(authorName)}
-        className="block w-full rounded-medium bg-subtle-fill"
+        className="block w-full rounded-large bg-subtle-fill"
         style={style}
       />
     )
@@ -48,7 +48,7 @@ function MediaItem({ item, authorName }: { item: PostMediaDto; authorName: strin
       width={item.width > 0 ? item.width : undefined}
       height={item.height > 0 ? item.height : undefined}
       loading="lazy"
-      className="block w-full rounded-medium bg-subtle-fill object-cover"
+      className="block w-full rounded-large bg-subtle-fill object-cover"
       style={style}
     />
   )
@@ -64,7 +64,7 @@ export function PostMedia({ media, authorName, className }: PostMediaProps) {
   return (
     <div
       className={cx(
-        'overflow-hidden rounded-medium',
+        'overflow-hidden rounded-large',
         single ? 'w-full' : 'grid grid-cols-2 gap-1',
         className,
       )}

@@ -93,7 +93,7 @@ export function PostCard({
       aria-label={`${author.displayName}: ${text === '' ? postCopy.photoAlt(author.displayName) : text.slice(0, 80)}`}
       className={cx(
         'flex gap-3 px-screen-margin',
-        variant === 'reply' ? 'py-3' : 'py-4',
+        variant === 'reply' ? 'py-4' : 'py-5',
         className,
       )}
     >
@@ -119,7 +119,7 @@ export function PostCard({
           </Link>
           {detail ? (
             <>
-              <span className="truncate text-secondary text-text-secondary">
+              <span className="truncate text-secondary text-text-tertiary">
                 {formatHandle(author.handle)}
               </span>
               <span className="inline-flex items-center gap-1 text-meta text-text-secondary">
@@ -128,7 +128,7 @@ export function PostCard({
               </span>
             </>
           ) : null}
-          <span className="text-secondary text-text-secondary">
+          <span className="text-secondary text-text-tertiary">
             {detail ? meta : <Link href={href}>{meta}</Link>}
           </span>
         </header>

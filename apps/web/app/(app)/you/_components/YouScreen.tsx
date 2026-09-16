@@ -144,7 +144,7 @@ export function YouScreen() {
         <section aria-label={copy.tabs.you} className="flex flex-col gap-3 px-screen-margin py-6">
           <Avatar name={identity.displayName} src={identity.avatarUrl} size="profile" decorative />
           <div className="flex flex-col">
-            <h2 className="text-title">{identity.displayName}</h2>
+            <h2 className="font-serif text-title">{identity.displayName}</h2>
             <p className="text-secondary text-text-secondary">{formatHandle(identity.handle)}</p>
             {identity.cityName !== null ? (
               <p className="text-secondary text-text-secondary">{identity.cityName}</p>

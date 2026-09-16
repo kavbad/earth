@@ -44,7 +44,7 @@ export function ParticipantTile({
       role="group"
       aria-label={participant.isGuest ? `${label} (${copy.guest})` : label}
       className={cx(
-        'relative flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-medium bg-subtle-fill transition-[box-shadow] duration-fast ease-standard',
+        'relative flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-large bg-subtle-fill transition-[box-shadow] duration-fast ease-standard',
         participant.isSpeaking && 'ring-2 ring-(color:--earth-color-text-secondary)',
         className,
       )}

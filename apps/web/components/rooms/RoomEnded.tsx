@@ -58,7 +58,7 @@ export function RoomEnded({ kind, backHref, onRetry }: RoomEndedProps) {
   const line = roomClosedLine(kind, online)
   return (
     <div className="fade-in flex flex-1 flex-col items-start justify-center gap-4 px-screen-margin py-8">
-      <p className="text-section">{line}</p>
+      <p className="font-serif text-title">{line}</p>
       <div className="flex items-center gap-3">
         {kind === 'error' && onRetry !== undefined ? (
           <Button variant="primary" onClick={onRetry}>

@@ -250,7 +250,7 @@ export function GuestRoom({ token, preview }: GuestRoomProps) {
           <FaceStack people={preview.participants} size="large" label={names.join(', ')} />
         ) : null}
         <div className="flex flex-col gap-1">
-          <h1 className="text-title">{previewTitle(preview)}</h1>
+          <h1 className="font-serif text-title">{previewTitle(preview)}</h1>
           <p className="flex flex-wrap items-center gap-2 text-secondary text-text-secondary">
             {preview.ended ? <span>{roomCopy.roomEnded}</span> : <LiveMark />}
             {preview.invitedByDisplayName !== null ? (

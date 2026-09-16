@@ -13,15 +13,15 @@ import { useClaimFlow } from './ClaimFlowProvider'
 export function ClaimFrame({ children }: { readonly children: ReactNode }) {
   const { ready } = useClaimFlow()
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)] pb-[calc(var(--earth-space-6)+env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-screen-margin pt-[env(safe-area-inset-top)] pb-[calc(var(--earth-space-6)+env(safe-area-inset-bottom))]">
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title">
+        <Link href={ROUTES.home} className="font-serif text-title">
           {APP_NAME}
         </Link>
       </div>
       <OfflineBanner />
       {ready ? (
-        <div className="fade-in flex flex-1 flex-col py-6">{children}</div>
+        <div className="fade-in flex flex-1 flex-col py-8">{children}</div>
       ) : (
         <div className="flex flex-1 items-center justify-center py-12">
           <Spinner />
@@ -32,5 +32,5 @@ export function ClaimFrame({ children }: { readonly children: ReactNode }) {
 }
 
 export function ClaimTitle({ children }: { readonly children: ReactNode }) {
-  return <h1 className="mb-6 text-title">{children}</h1>
+  return <h1 className="mb-8 max-w-[18ch] font-serif text-display">{children}</h1>
 }

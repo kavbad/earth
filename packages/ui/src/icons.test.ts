@@ -32,6 +32,8 @@ const REQUIRED = [
   'close',
   'send',
   'chevron',
+  'heart',
+  'reply',
   'share',
   'block',
   'report',

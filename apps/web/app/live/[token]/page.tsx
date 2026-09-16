@@ -55,12 +55,12 @@ export default async function GuestRoomPage({ params }: { params: Params }) {
   const { token } = await params
   const result = await loadPreview(token)
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
+    <main className="mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-screen-margin pt-[env(safe-area-inset-top)]">
       {result.ok && result.livekitOrigin !== null ? (
         <link rel="preconnect" href={result.livekitOrigin} />
       ) : null}
       <div className="flex min-h-touch-target items-center py-3">
-        <Link href={ROUTES.home} className="text-title">
+        <Link href={ROUTES.home} className="font-serif text-title">
           {APP_NAME}
         </Link>
       </div>
@@ -73,7 +73,7 @@ export default async function GuestRoomPage({ params }: { params: Params }) {
         <LoadFailure />
       ) : (
         <section className="fade-in flex flex-1 flex-col gap-4 py-8">
-          <h1 className="text-title">{roomCopy.linkNotUsable}</h1>
+          <h1 className="font-serif text-title">{roomCopy.linkNotUsable}</h1>
           <Link href={ROUTES.home} className="text-body text-earth-accent">
             {webCopy.backToEarth}
           </Link>

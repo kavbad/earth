@@ -157,7 +157,7 @@ export function ChatsList() {
                 action={
                   <Link
                     href={NEW_CHAT_ROUTE}
-                    className="inline-flex min-h-touch-target items-center rounded-medium bg-text-primary px-5 text-body font-medium text-background"
+                    className="inline-flex min-h-touch-target items-center rounded-medium bg-text-primary px-4 text-body font-medium text-background"
                   >
                     {copy.newChat}
                   </Link>
