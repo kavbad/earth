@@ -360,6 +360,18 @@ basemap, and both clients in one pass. Plan: `/root/.claude/plans/greedy-jugglin
 - [x] R3-5 Mobile restyle (primitives, shell, feed, chats, rooms, map, profile, claim)
 - [ ] R3-6 `e2e/screens.ts`, spec §89/§90/§91/§93 + ARCHITECTURE, final gate
       (lint/typecheck/format/test/build/export/`pnpm e2e` 19/19), screenshot review, push, CI
+      — everything but the CI tick is done (below); CI at 4c87c56 pending at the time of writing.
+
+Final gate (2026-09-16, 4c87c56): fresh-stack `pnpm e2e` **19/19 in 2.4 min** (the journeys drive
+the app-served basemap and worker); `expo export` iOS and Android both complete; `pnpm test`
+green across all 26 tasks (db-tests 4259, permissions 2336, web 448, mobile 406, ui 89 …);
+lint, typecheck, format green. Screens reviewed at r3-2, r3-3 and r3-4 (`.local/screens/`).
+
+CI: from fca8f0f the "Database tests" job failed three runs in four on `verify/grants.test.ts`
+— the unclaimed `room_join` probe charged with a burst of fixture rows. Not the redesign's: a
+backend reports `pg_stat_user_tables` at most once a second and, idle, on a ten-second timer,
+so a pooled connection's fixture writes could land mid-probe. 4c87c56 adds `TestDb.flushStats()`
+(every pooled backend forced to report, counters waited still) and `settleStats` uses it.
 
 What the screenshot review found — two product bugs no test could see, each hiding the other:
 
