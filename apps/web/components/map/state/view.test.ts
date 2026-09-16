@@ -1,3 +1,4 @@
+import type { AreaId } from '@earth/domain'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -5,6 +6,7 @@ import {
   WORLD_VIEW,
   boundsAround,
   boundsKey,
+  cameraAreaId,
   clampBounds,
   fallbackStyle,
   roundBounds,
@@ -18,7 +20,7 @@ describe('viewForScope', () => {
     expect(viewForScope('world', city)).toEqual(WORLD_VIEW)
   })
 
-  it('centres Friends / Neighborhood / City on the city at their zoom', () => {
+  it('centres Friends / Neighborhood / City on their area at their zoom', () => {
     expect(viewForScope('neighborhood', city)).toEqual({
       center: city,
       zoom: SCOPE_ZOOM.neighborhood,
@@ -27,8 +29,36 @@ describe('viewForScope', () => {
     expect(viewForScope('friends', city).zoom).toBe(SCOPE_ZOOM.friends)
   })
 
-  it('falls back to the world view without a city', () => {
+  it('falls back to the world view without an area', () => {
     expect(viewForScope('city', null)).toEqual(WORLD_VIEW)
+  })
+})
+
+describe('cameraAreaId', () => {
+  const MISSION = 'a0000000-0000-4000-8000-000000000001' as AreaId
+  const SF = 'a0000000-0000-4000-8000-000000000002' as AreaId
+  const NYC = 'a0000000-0000-4000-8000-000000000003' as AreaId
+  const context = { currentAreaId: MISSION, currentCityId: SF, homeCityId: NYC }
+
+  it('starts Neighborhood from the current neighborhood and the other radii from the city', () => {
+    expect(cameraAreaId('neighborhood', context)).toBe(MISSION)
+    expect(cameraAreaId('friends', context)).toBe(SF)
+    expect(cameraAreaId('city', context)).toBe(SF)
+    expect(cameraAreaId('world', context)).toBe(SF)
+  })
+
+  it('starts Neighborhood from the city when no neighborhood is known', () => {
+    expect(cameraAreaId('neighborhood', { ...context, currentAreaId: null })).toBe(SF)
+  })
+
+  it('falls back to the home city, where "Your Earth" always starts', () => {
+    expect(cameraAreaId('city', { ...context, currentCityId: null })).toBe(NYC)
+    expect(cameraAreaId('neighborhood', context, true)).toBe(NYC)
+    expect(cameraAreaId('friends', { ...context, homeCityId: null }, true)).toBe(SF)
+  })
+
+  it('has nowhere to start from without a context', () => {
+    expect(cameraAreaId('neighborhood', null)).toBeNull()
   })
 })
 

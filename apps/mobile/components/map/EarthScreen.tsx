@@ -51,6 +51,7 @@ import {
   MOVE_DEBOUNCE_MS,
   PLACE_ZOOM,
   boundsForRegion,
+  cameraAreaId,
   regionForView,
   viewForScope,
 } from '@/features/earth/state/view'
@@ -179,18 +180,16 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
     [],
   )
 
-  const context = shell.me?.context ?? null
-  const homeCityId = context?.homeCityId ?? null
-  const contextCityId = context?.currentCityId ?? homeCityId
-  const cityId = youParam && homeCityId !== null ? homeCityId : contextCityId
-  const cityQuery = useArea(cityId)
-  const city: LatLng | null = cityQuery.data?.centroid ?? null
+  const anchorId = cameraAreaId(scope, shell.me?.context ?? null, youParam)
+  const anchorQuery = useArea(anchorId)
+  const anchor: LatLng | null = anchorQuery.data?.centroid ?? null
 
-  // The radius decides the camera (spec §52); the city arriving later re-centres once.
+  // The radius decides the camera (spec §52), once the area it starts from is known: the map
+  // opens on the globe and moves once, never out to the world and back while an area loads.
   useEffect(() => {
-    if (map === null) return
-    map.setView(viewForScope(scope, city))
-  }, [map, scope, city])
+    if (map === null || (anchorId !== null && anchor === null)) return
+    map.setView(viewForScope(scope, anchor))
+  }, [map, scope, anchorId, anchor])
 
   // "Your Earth" (SCREEN 24): home city, own Moments — the Friends radius when it is open.
   useEffect(() => {

@@ -2,14 +2,14 @@
  * Camera decisions for SCREEN 20, pure so they are tested without a map: where each radius
  * starts, how a bounding box becomes a stable query key, and the light fallback style.
  */
-import type { Scope } from '@earth/domain'
+import type { AreaId, HumanContextDto, Scope } from '@earth/domain'
 
 import type { LatLng, MapBounds, MapViewport } from '../types'
 
 /** Zoomed-out globe: "Humans are Live around Earth" (SCREEN 20 World). */
 export const WORLD_VIEW: MapViewport = { center: { lat: 20, lng: 0 }, zoom: 1.4 }
 
-/** Zoom levels per radius when a city centroid is known (spec §52). */
+/** Zoom levels per radius once the area it starts from is known (spec §52). */
 export const SCOPE_ZOOM = {
   friends: 11,
   neighborhood: 13,
@@ -23,10 +23,29 @@ export const PLACE_ZOOM = 15
 /** Own position after "Use my location". */
 export const LOCATE_ZOOM = 13
 
-/** Neighborhood and City need a city to start from; World never does. */
-export function viewForScope(scope: Scope, city: LatLng | null): MapViewport {
-  if (scope === 'world' || city === null) return WORLD_VIEW
-  return { center: city, zoom: SCOPE_ZOOM[scope] }
+/** The three area ids of the Human's context the camera reads (`HumanContextDto`). */
+export type CameraContext = Pick<HumanContextDto, 'currentAreaId' | 'currentCityId' | 'homeCityId'>
+
+/**
+ * The area each radius starts from (spec §52): Neighborhood from the current neighborhood — its
+ * Lives are that area's (0590), so the camera holds its centroid whatever the viewport's shape —
+ * and the other radii from the current city; without one, the home city. "Your Earth" (`home`,
+ * SCREEN 24) always starts from the home city.
+ */
+export function cameraAreaId(
+  scope: Scope,
+  context: CameraContext | null,
+  home = false,
+): AreaId | null {
+  const city = context?.currentCityId ?? context?.homeCityId ?? null
+  if (home) return context?.homeCityId ?? city
+  return scope === 'neighborhood' ? (context?.currentAreaId ?? city) : city
+}
+
+/** Friends, Neighborhood and City need an area to start from (`cameraAreaId`); World never does. */
+export function viewForScope(scope: Scope, anchor: LatLng | null): MapViewport {
+  if (scope === 'world' || anchor === null) return WORLD_VIEW
+  return { center: anchor, zoom: SCOPE_ZOOM[scope] }
 }
 
 /** Degrees kept in the query key: 3 decimals ≈ 100 m, enough to stop jitter re-fetches. */

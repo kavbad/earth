@@ -329,3 +329,13 @@ What journey 13 found — a product bug in three links, each layer green on its 
 Journey 14 also found that a room a failed run leaves on camera clusters with the next run's at
 the same centroid; the journey now leaves the room, and asserts the pin or its cluster plus the
 List row. Not a product defect — co-located Lives cluster by design.
+
+What journey 14 found in the full run (it passed alone, failed 2/2 from a fresh stack): the
+Neighborhood radius asks `map_objects` for the neighborhood in context (0590) but the camera
+started from the *city* centroid at zoom 13 on both clients, so the Live it draws sat wherever
+the neighborhood happens to be relative to the city — the trace's request boxes show Ben's final
+box at lat 37.765–37.785 around San Francisco's centroid, the Mission's 37.7599 just outside it.
+Alone, a taller viewport caught it by chance. Fix: `cameraAreaId()` in both `view.ts` — the
+camera starts Neighborhood from the current neighborhood, the other radii from the city, "Your
+Earth" from the home city — and the camera effect waits for that area rather than flying out to
+the globe while it loads. Unit-tested on both clients; the journey is unchanged and pins the fix.

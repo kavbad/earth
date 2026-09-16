@@ -88,6 +88,7 @@ import {
   PLACE_ZOOM,
   WORLD_VIEW,
   boundsAround,
+  cameraAreaId,
   viewForScope,
 } from './state/view'
 import type { LatLng, MapBounds, MarkerTap } from './types'
@@ -215,24 +216,22 @@ function EarthMapBody({ sheet, setSheet, sharingOn }: EarthMapBodyProps) {
     }
   }, [map])
 
-  const contextCityId =
-    session.me?.context?.currentCityId ?? session.me?.context?.homeCityId ?? null
-  const homeCityId = session.me?.context?.homeCityId ?? null
   const youParam = searchParams.get(EARTH_QUERY.you) !== null
-  const cityId = youParam && homeCityId !== null ? homeCityId : contextCityId
-  const cityQuery = useQuery({
-    queryKey: ['area', cityId],
-    queryFn: () => earth.location.getArea(asAreaId(cityId ?? '')),
-    enabled: runtime !== null && cityId !== null,
+  const anchorId = cameraAreaId(scope, session.me?.context ?? null, youParam)
+  const anchorQuery = useQuery({
+    queryKey: ['area', anchorId],
+    queryFn: () => earth.location.getArea(asAreaId(anchorId ?? '')),
+    enabled: runtime !== null && anchorId !== null,
     staleTime: Number.POSITIVE_INFINITY,
   })
-  const city: LatLng | null = cityQuery.data?.centroid ?? null
+  const anchor: LatLng | null = anchorQuery.data?.centroid ?? null
 
-  // The radius decides the camera (spec §52); the city arriving later re-centres once.
+  // The radius decides the camera (spec §52), once the area it starts from is known: the map
+  // opens on the globe and moves once, never out to the world and back while an area loads.
   useEffect(() => {
-    if (map === null) return
-    map.setView(viewForScope(scope, city))
-  }, [map, scope, city])
+    if (map === null || (anchorId !== null && anchor === null)) return
+    map.setView(viewForScope(scope, anchor))
+  }, [map, scope, anchorId, anchor])
 
   // "Your Earth" (SCREEN 24): home city, own Moments — the Friends radius when it is open.
   useEffect(() => {
