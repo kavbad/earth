@@ -9,7 +9,6 @@ import { copy } from '@earth/ui'
 import { FaceStack } from '../ui/FaceStack'
 import { Avatar } from '../ui/Avatar'
 import { Icon } from '../ui/Icon'
-import { LiveMark } from '../ui/LiveMark'
 import { cx } from '../ui/cx'
 import { mapCopy } from './copy'
 import type { LiveCluster } from './state/cluster'
@@ -21,8 +20,14 @@ import {
   friendHaloPx,
 } from './state/markers'
 
+/** A Live on the map: faces, the title and a breathing red point on a lifted white pill. */
 const PILL_CLASS =
-  'flex min-h-touch-target items-center gap-2 rounded-avatar bg-background px-2 text-meta text-text-primary ring-1 ring-separator transition-transform duration-fast ease-standard hover:scale-105 active:scale-95'
+  'flex min-h-touch-target items-center gap-2 rounded-avatar bg-background pr-3 pl-2 text-meta font-medium text-text-primary ring-1 ring-separator shadow-sheet transition-transform duration-fast ease-standard hover:scale-105 active:scale-95'
+
+/** The red point itself; the button's label already says "Live", so it is decoration here. */
+function LivePoint() {
+  return <span aria-hidden="true" className="live-pulse size-2 shrink-0 rounded-avatar bg-live" />
+}
 
 export function LiveMarkerView({ marker }: { readonly marker: LiveMarker }) {
   const label = `${marker.title} · ${mapCopy.participants(marker.participantCount)}`
@@ -36,11 +41,9 @@ export function LiveMarkerView({ marker }: { readonly marker: LiveMarker }) {
           label={label}
           max={2}
         />
-      ) : (
-        <LiveMark text={false} />
-      )}
+      ) : null}
       <span className="max-w-[140px] truncate">{marker.title}</span>
-      {marker.faces.length > 0 ? <LiveMark text={false} /> : null}
+      <LivePoint />
     </button>
   )
 }
@@ -50,9 +53,8 @@ export function ClusterMarkerView({ cluster }: { readonly cluster: LiveCluster }
     <button
       type="button"
       aria-label={`${mapCopy.liveHere(cluster.count)} · ${mapCopy.zoomIn}`}
-      className="flex size-touch-target items-center justify-center gap-1 rounded-avatar bg-background text-secondary font-medium text-text-primary ring-1 ring-separator transition-transform duration-fast ease-standard hover:scale-105 active:scale-95"
+      className="flex size-touch-target items-center justify-center gap-1 rounded-avatar bg-text-primary text-secondary font-medium text-background shadow-sheet transition-transform duration-fast ease-standard hover:scale-105 active:scale-95"
     >
-      <LiveMark text={false} />
       <span aria-hidden="true">{cluster.count}</span>
     </button>
   )
@@ -74,7 +76,7 @@ export function PlaceMarkerView({
         'flex min-h-touch-target items-center gap-1 rounded-avatar px-2 text-meta transition-colors duration-fast ease-standard',
         active
           ? 'bg-text-primary text-background'
-          : 'bg-background text-text-primary ring-1 ring-separator',
+          : 'bg-background text-text-primary ring-1 ring-separator shadow-sheet',
       )}
     >
       <Icon name="location" size="small" />

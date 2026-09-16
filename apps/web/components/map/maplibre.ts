@@ -4,6 +4,8 @@
  * render. Motion follows spec §95 (180–300 ms); MapLibre honours `prefers-reduced-motion`.
  */
 import { colors, motion } from '@earth/ui'
+
+import { MAPLIBRE_WORKER_URL } from '../../lib/map/worker'
 import type { MapOptions, Map as MapLibreMap, Marker } from 'maplibre-gl'
 
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -44,6 +46,9 @@ function moveState(map: MapLibreMap): MapMoveState {
 
 export const createMapLibreEarthMap: EarthMapFactory = async (container, options) => {
   const lib = await import('maplibre-gl')
+  // The worker the app serves (`lib/map/worker.ts`); the library's own resolution lands on a
+  // chunk path that does not exist, and without a worker no data layer ever draws.
+  lib.setWorkerUrl(MAPLIBRE_WORKER_URL)
   const style = (options.styleUrl ??
     fallbackStyle({ background: colors.background, subtleFill: colors.subtleFill })) as NonNullable<
     MapOptions['style']

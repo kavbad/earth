@@ -8,28 +8,35 @@ describe('GET /map-style.json', () => {
     expect(dynamic).toBe('force-static')
   })
 
-  it('serves the built-in fallback style as JSON, cacheable', async () => {
+  it('serves the basemap as JSON, cacheable, with nothing to fetch', async () => {
     const response = GET()
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('application/json')
     expect(response.headers.get('cache-control')).toBe(STYLE_CACHE_CONTROL)
 
-    // MapLibre's minimum: a version-8 style with a background layer and no remote sources — the
-    // property that keeps a journey off the network.
-    const style = (await response.json()) as {
+    // MapLibre's minimum: a version-8 style whose sources are inline — the property that keeps a
+    // journey off the network.
+    const text = await response.text()
+    const style = JSON.parse(text) as {
       readonly version: number
-      readonly sources: Record<string, unknown>
-      readonly layers: readonly {
-        readonly type: string
-        readonly paint?: Record<string, unknown>
-      }[]
+      readonly sources: Record<string, { readonly type: string; readonly data?: unknown }>
+      readonly layers: readonly { readonly id: string; readonly type: string }[]
       readonly metadata?: Record<string, unknown>
     }
     expect(style.version).toBe(8)
-    expect(style.sources).toEqual({})
-    expect(style.layers).toHaveLength(1)
-    expect(style.layers[0]?.type).toBe('background')
-    expect(style.layers[0]?.paint?.['background-color']).toBe(colors.subtleFill)
-    expect(style.metadata?.['earth:fallback']).toBe(true)
+    expect(Object.keys(style.sources)).toEqual(['land', 'graticule'])
+    for (const source of Object.values(style.sources)) {
+      expect(source.type).toBe('geojson')
+      expect(typeof source.data).toBe('object')
+    }
+    expect(text).not.toMatch(/https?:\/\/|"tiles"|"url"/)
+    expect(style.layers.map((layer) => layer.id)).toEqual([
+      'background',
+      'land',
+      'coast',
+      'graticule',
+    ])
+    expect(style.metadata?.['earth:basemap']).toBe('land-110m')
+    expect(style.metadata?.['earth:surface']).toBe(colors.background)
   })
 })

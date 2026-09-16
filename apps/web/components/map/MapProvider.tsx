@@ -114,7 +114,9 @@ export function MapProvider({
   return (
     <MapContext.Provider value={value}>
       <div className={cx('relative h-full w-full bg-subtle-fill', className)}>
-        <div ref={containerRef} className="absolute inset-0" />
+        {/* MapLibre's stylesheet makes its container `position: relative`, so it is sized here
+            outright rather than by `inset-0`: a container with no height renders into nothing. */}
+        <div ref={containerRef} className="h-full w-full" />
         {children}
       </div>
     </MapContext.Provider>

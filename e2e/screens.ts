@@ -137,6 +137,9 @@ async function captureHuman(
     if (name === '30-earth') {
       await page.getByRole('button', { name: 'List', exact: true }).click()
       await shot(page, dir, `${size}-31-earth-list`)
+      await page.keyboard.press('Escape')
+      await page.getByRole('tab', { name: 'World', exact: true }).click()
+      await shot(page, dir, `${size}-32-earth-world`)
     }
     if (name === '51-search') {
       await page.getByRole('searchbox').first().fill('Maya')
