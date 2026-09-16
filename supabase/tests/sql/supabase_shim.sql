@@ -33,6 +33,11 @@ begin
     return;
   end if;
 
+  -- Roles are cluster-wide, and this shim runs for several databases at once (each test worker
+  -- migrates its own scratch database): the check-and-create below must be one session at a time,
+  -- or two sessions both see no `anon` and one of them fails on pg_authid's unique index.
+  perform pg_advisory_xact_lock(hashtext('supabase_shim.roles'));
+
   if not exists (select 1 from pg_roles where rolname = 'anon') then
     create role anon nologin noinherit;
   end if;
