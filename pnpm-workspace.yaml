@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+  - supabase/tests
+  - e2e
+
+# pnpm 10 skips dependency lifecycle scripts unless allow-listed here.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
+  - unrs-resolver

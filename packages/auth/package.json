@@ -1,0 +1,28 @@
+{
+  "name": "@earth/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Session helpers, claim-flow state machine and HumanVerificationProvider interface + adapters.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@earth/api": "workspace:*",
+    "@earth/config": "workspace:*",
+    "@earth/domain": "workspace:*",
+    "@earth/ui": "workspace:*",
+    "@supabase/supabase-js": "2.114.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

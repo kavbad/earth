@@ -1,0 +1,23 @@
+{
+  "name": "@earth/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Enums, types, DTO zod schemas and pure domain logic (feed ranking, naming, audience, cursors).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

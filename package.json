@@ -1,0 +1,50 @@
+{
+  "name": "earth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "turbo run lint lint:root",
+    "lint:root": "eslint scripts eslint.config.js vitest.config.ts",
+    "typecheck": "turbo run typecheck typecheck:root",
+    "typecheck:root": "tsc -p tsconfig.json --noEmit",
+    "test": "turbo run test test:root",
+    "test:root": "vitest run",
+    "build": "turbo run build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:web": "pnpm --filter earth-web dev",
+    "dev:mobile": "pnpm --filter earth-mobile start",
+    "db:reset": "tsx scripts/db/migrate.ts --reset",
+    "db:migrate": "tsx scripts/db/migrate.ts",
+    "db:seed": "tsx scripts/db/migrate.ts --seed",
+    "db:test": "pnpm --filter @earth/db-tests test",
+    "e2e": "pnpm --filter @earth/e2e test",
+    "stack:up": "bash scripts/local-stack/up.sh",
+    "stack:up:web": "bash scripts/local-stack/up.sh --with-web",
+    "stack:down": "bash scripts/local-stack/down.sh",
+    "stack:fetch": "bash scripts/local-stack/fetch-binaries.sh",
+    "stack:otp": "bash scripts/local-stack/otp.sh",
+    "db:test:clean": "pnpm --filter @earth/db-tests test:clean"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "26.4.1",
+    "@types/pg": "8.23.1",
+    "dotenv": "17.4.2",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "pg": "8.23.0",
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "turbo": "2.10.12",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "4.1.11"
+  }
+}

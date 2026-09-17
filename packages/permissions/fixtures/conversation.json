@@ -1,0 +1,266 @@
+{
+  "object": "conversation",
+  "description": "earth.can_view_conversation (expect) and message_send (send): conversation type × membership × block × caller kind.",
+  "cases": [
+    {
+      "name": "visitor · direct conversation",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_authenticated"
+      }
+    },
+    {
+      "name": "guest · direct conversation",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_a_human"
+      }
+    },
+    {
+      "name": "claiming · direct conversation",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_a_human"
+      }
+    },
+    {
+      "name": "human non-member · direct conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": false,
+        "isConversationMember": false
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "conversation_not_found"
+      }
+    },
+    {
+      "name": "human non-member blocked · direct conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": true,
+        "isConversationMember": false
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "conversation_not_found"
+      }
+    },
+    {
+      "name": "human member · direct conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": false,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": true,
+      "send": {
+        "expect": true,
+        "reason": null
+      }
+    },
+    {
+      "name": "human member blocked · direct conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": true,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "blocked"
+      }
+    },
+    {
+      "name": "human friend member · direct conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "blockedEitherWay": false,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "direct"
+      },
+      "expect": true,
+      "send": {
+        "expect": true,
+        "reason": null
+      }
+    },
+    {
+      "name": "visitor · group conversation",
+      "viewer": {
+        "kind": "visitor",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_authenticated"
+      }
+    },
+    {
+      "name": "guest · group conversation",
+      "viewer": {
+        "kind": "guest",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_a_human"
+      }
+    },
+    {
+      "name": "claiming · group conversation",
+      "viewer": {
+        "kind": "claiming",
+        "blockedEitherWay": false
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "not_a_human"
+      }
+    },
+    {
+      "name": "human non-member · group conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": false,
+        "isConversationMember": false
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "conversation_not_found"
+      }
+    },
+    {
+      "name": "human non-member blocked · group conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": true,
+        "isConversationMember": false
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": false,
+      "send": {
+        "expect": false,
+        "reason": "conversation_not_found"
+      }
+    },
+    {
+      "name": "human member · group conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": false,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": true,
+      "send": {
+        "expect": true,
+        "reason": null
+      }
+    },
+    {
+      "name": "human member blocked · group conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "other",
+        "blockedEitherWay": true,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": true,
+      "send": {
+        "expect": true,
+        "reason": null
+      }
+    },
+    {
+      "name": "human friend member · group conversation",
+      "viewer": {
+        "kind": "human",
+        "relationToAuthor": "friend",
+        "blockedEitherWay": false,
+        "isConversationMember": true
+      },
+      "object": {
+        "conversationType": "group"
+      },
+      "expect": true,
+      "send": {
+        "expect": true,
+        "reason": null
+      }
+    }
+  ]
+}
